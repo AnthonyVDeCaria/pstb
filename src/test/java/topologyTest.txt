@@ -1,0 +1,12 @@
+#Brokers
+B0 B B1,B2,B3
+B1 B B0,B2
+B2 B B0,B4
+B3 B B0
+B4 B B0
+
+#Clients
+Telly A,P B0
+#Poop
+Trip S B3
+Shut S,C,P B5
