@@ -9,8 +9,6 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.startup.TopologyFileParser;
 import pstb.util.LogicalTopology;
-import pstb.util.NodeRole;
-import pstb.util.PubSubGroup;
 import pstb.util.UI;
 
 public class PSTB {
@@ -32,11 +30,10 @@ public class PSTB {
 		{
 			logger.info("Parse Complete.");
 			LogicalTopology network = parserTopo.getLogicalTopo();
-			PubSubGroup broker = network.getGroup(NodeRole.B);
 			
 			logger.info("Starting Topology Testing.");
-			boolean reciCheck = network.confirmBrokerMutualConnectivity(broker);
-			if(!reciCheck)
+			boolean mCCheck = network.confirmBrokerMutualConnectivity();
+			if(!mCCheck)
 			{
 				logger.info("Topology File has one way connections.");
 				
@@ -51,11 +48,11 @@ public class PSTB {
 				{
 					try
 					{
-						network.fixReciprocations(network.getGroup(NodeRole.B));
+						network.forceMutualConnectivity();
 					}
 					catch(IllegalArgumentException e)
 					{
-						logger.warn("Problem with fixing reciprocations", e);
+						logger.warn("Problem forcing mutual connectivity", e);
 					}
 				}
 			}
