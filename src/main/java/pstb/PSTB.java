@@ -11,6 +11,7 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.startup.BenchmarkVariables;
 import pstb.startup.TopologyFileParser;
 import pstb.util.LogicalTopology;
 import pstb.util.UI;
@@ -28,7 +29,7 @@ public class PSTB {
 	
 	public static void main(String[] args)
 	{
-		logger.info("Starting programm - getting properties.");
+		logger.info("Starting program - getting properties.");
 		
 		Properties defaultProp = null;
 		
@@ -43,20 +44,22 @@ public class PSTB {
 		
 		if(defaultProp != null)
 		{
-			String topologyFileName = null;
+//			String topologyFileName = null;
+			
+			BenchmarkVariables test = new BenchmarkVariables();
 			
 			String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
 			boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp);
 			if (!customBenchPropAns)
 			{
-				topologyFileName = defaultProp.getProperty("pstb.topologyFileLocation");
+				test.setTopologyFileName(defaultProp.getProperty("pstb.topologyFileLocation"));
 			}
 			else
 			{
 				try
 				{
 					Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
-					topologyFileName = userProp.getProperty("pstb.topologyFileLocation");
+					test.setTopologyFileName(userProp.getProperty("pstb.topologyFileLocation"));
 				}
 				catch (IOException e)
 				{
@@ -64,11 +67,11 @@ public class PSTB {
 				}
 			}
 			
-			if(topologyFileName != null)
+			if(!test.checkForNullFields())
 			{
 				logger.info("Starting Topology File Parse.");
 				TopologyFileParser parserTopo = new TopologyFileParser();
-				boolean parseCheck = parserTopo.parse(topologyFileName);
+				boolean parseCheck = parserTopo.parse(test.getTopologyFileName());
 				if(!parseCheck)
 				{
 					logger.error("Parse Failed!");
