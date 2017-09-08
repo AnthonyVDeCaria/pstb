@@ -33,7 +33,7 @@ public class PSTB {
 		logger.info("Starting program.");
 		Scanner simpleUserInput = new Scanner(System.in);
 		
-		logger.info("Getting properties.");
+		logger.info("Starting Properties Parsing.");
 		Properties defaultProp = null;
 		
 		try
@@ -42,31 +42,29 @@ public class PSTB {
 		}
 		catch (IOException e)
 		{
-			logger.error("Couldn't load default properties file", e);
+			logger.error("Properties: Couldn't load default properties file", e);
 		}
 		
 		if(defaultProp != null)
-		{
-//			String topologyFileName = null;
-			
+		{			
 			BenchmarkVariables test = new BenchmarkVariables();
 			
 			String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
 			boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
 			if (!customBenchPropAns)
 			{
-				test.setTopologyFileName(defaultProp.getProperty("pstb.topologyFileLocation"));
+				test.setBenchmarkVariable(defaultProp);
 			}
 			else
 			{
 				try
 				{
 					Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
-					test.setTopologyFileName(userProp.getProperty("pstb.topologyFileLocation"));
+					test.setBenchmarkVariable(userProp);
 				}
 				catch (IOException e)
 				{
-					logger.error("Couldn't load user properties file", e);
+					logger.error("Properties: Couldn't load user properties file", e);
 				}
 			}
 			
@@ -90,8 +88,9 @@ public class PSTB {
 					{
 						logger.info("Topology File has one way connections.");
 						
-						String fixBroker = "Would you like to fix Y/n?\n"
-								+ "Answering 'n' will terminate this program.";
+						String fixBroker = "The given Topology File is not mutually connected\n"
+								+ "Would you like us to fix this internally before testing topology Y/n?\n"
+								+ "Answering 'n' will terminate the program.";
 						boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
 						if (!fixBrokerAns)
 						{
@@ -107,7 +106,7 @@ public class PSTB {
 							}
 							catch(IllegalArgumentException e)
 							{
-								logger.warn("Problem forcing mutual connectivity", e);
+								logger.warn("Topology: Problem forcing mutual connectivity", e);
 							}
 						}
 					}
@@ -122,6 +121,10 @@ public class PSTB {
 						logger.info("Topology Check Complete.");
 					}
 				}
+			}
+			else
+			{
+				logger.error("Error with custom properties file.");
 			}
 		}
 		logger.info("Ending program.");
