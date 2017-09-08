@@ -18,17 +18,19 @@ public class UI {
 	 * @param prompt - A prompt for the user
 	 * @return true if the user typed y or Y; false if they typed n or N
 	 */
-	public static boolean getYNAnswerFromUser(String prompt)
+	public static boolean getYNAnswerFromUser(String prompt, Scanner userInterface)
 	{
 		boolean userResponse = false;
-		Scanner simpleUserInput = new Scanner(System.in);
+		
 		System.out.println(prompt);
-		String userAns = simpleUserInput.next();
+		
+		String userAns = userInterface.next();
+		
 		while(!userAns.equalsIgnoreCase("Y") && !userAns.equalsIgnoreCase("N"))
 		{
-			userAns = simpleUserInput.next();
+			userAns = userInterface.next();
 		}
-		simpleUserInput.close();
+		
 		if(userAns.equalsIgnoreCase("Y"))
 		{
 			userResponse = true;

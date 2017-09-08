@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
+import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,6 +73,17 @@ public class LogicalTopology {
 		{
 			System.out.println("All B Nodes reciprocate each other");
 		}
+	}
+	
+	/**
+	 * Allows an action to be resolved on every group in the topology
+	 * (A port of the HashMap's forEach)
+	 * @param action - the action that's to be applied to every node
+	 * @see HashMap
+	 */
+	public void forEach(BiConsumer<? super NodeRole,? super PubSubGroup> action)
+	{
+		network.forEach(action);
 	}
 	
 	/**

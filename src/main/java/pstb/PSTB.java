@@ -7,6 +7,7 @@ package pstb;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.Scanner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,8 +30,10 @@ public class PSTB {
 	
 	public static void main(String[] args)
 	{
-		logger.info("Starting program - getting properties.");
+		logger.info("Starting program.");
+		Scanner simpleUserInput = new Scanner(System.in);
 		
+		logger.info("Getting properties.");
 		Properties defaultProp = null;
 		
 		try
@@ -49,7 +52,7 @@ public class PSTB {
 			BenchmarkVariables test = new BenchmarkVariables();
 			
 			String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
-			boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp);
+			boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
 			if (!customBenchPropAns)
 			{
 				test.setTopologyFileName(defaultProp.getProperty("pstb.topologyFileLocation"));
@@ -89,9 +92,11 @@ public class PSTB {
 						
 						String fixBroker = "Would you like to fix Y/n?\n"
 								+ "Answering 'n' will terminate this program.";
-						boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker);
+						boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
 						if (!fixBrokerAns)
 						{
+							logger.info("Ending program.");
+							simpleUserInput.close();
 							System.exit(0);
 						}
 						else
@@ -119,5 +124,7 @@ public class PSTB {
 				}
 			}
 		}
+		logger.info("Ending program.");
+		simpleUserInput.close();
 	}
 }

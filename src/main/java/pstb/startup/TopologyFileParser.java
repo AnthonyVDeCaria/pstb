@@ -123,6 +123,28 @@ public class TopologyFileParser {
 		return true;
 	}
 	
+	private boolean checkUniqueName(String name)
+	{	
+		boolean isNameUnique = false;
+		try
+		{
+			logicalTopo.forEach((role, group)->{
+				if(group.checkNodeIsPresent(name))
+				{
+					throw new IllegalArgumentException();
+				}
+			});
+			isNameUnique = true;
+		}
+		catch(IllegalArgumentException e)
+		{
+			logger.error("Parser: Node " + name + " already exists!");
+		}
+		
+		return isNameUnique;
+		
+	}
+	
 	/**
 	 * Adds the line from the file to the topology
 	 * @param the line from the file
@@ -160,8 +182,16 @@ public class TopologyFileParser {
 					{
 						if(checkProperRoles(splitLine[NODE_ROLE_LOCATION]))
 						{
-							logger.trace("Parser: Line " + linesRead + "'s syntax checks out.");
-							addLineToTopo(splitLine);
+							if(checkUniqueName(splitLine[NODE_NAME_LOCATION]))
+							{
+								logger.trace("Parser: Line " + linesRead + "'s syntax checks out.");
+								addLineToTopo(splitLine);
+							}
+							else
+							{
+								isParseSuccessful = false;
+								logger.error("Parser: Error in Line " + linesRead + " - Duplicate names");
+							}
 						}
 						else
 						{
