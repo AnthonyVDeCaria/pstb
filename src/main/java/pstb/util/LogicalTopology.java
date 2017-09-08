@@ -1,7 +1,9 @@
 /**
  * @author padres-dev-4187
  * 
- * Contains a collection of all the NodeRole PubSubGroups for this topology.
+ * The Logical Topology.
+ * Contains a collection of all the NodeRole PubSubGroups that make this topology.
+ * I.e. the needed broker and client nodes.
  *
  */
 package pstb.util;
@@ -57,21 +59,21 @@ public class LogicalTopology {
 	}
 	
 	/**
-	 * Prints out all the "B" nodes that do not reciprocate each other
+	 * Prints out all the "B" nodes that are not mutually connected
 	 */
-	public void printNonReciprocatingNodes()
+	public void printNonMutuallyConnectedNodes()
 	{
 		if(!problemNodes.isEmpty())
 		{
 			problemNodes.forEach((l)->{
 				String n = l.getProblematicNode();
 				String mC = l.getMissingConnection();
-				System.out.println("Node " + n + " doesn't reciprocate Node " + mC);
+				System.out.println("Node " + n + " doesn't reciprocate Node " + mC + "'s connection.");
 			});
 		}
 		else
 		{
-			System.out.println("All B Nodes reciprocate each other");
+			System.out.println("All B Nodes are mutually connected.");
 		}
 	}
 	
@@ -131,7 +133,7 @@ public class LogicalTopology {
 				{
 					allBrokersMC = false;
 					logger.warn("Topology: Node " + iTHNode + 
-							" is not mutually connected with Node " + node);
+							" does not reciprocate Node " + node + "'s connection.");
 					NonMutuallyConnectedNodes problemPair = new NonMutuallyConnectedNodes(iTHNode, node);
 					problemNodes.add(problemPair);
 				}
