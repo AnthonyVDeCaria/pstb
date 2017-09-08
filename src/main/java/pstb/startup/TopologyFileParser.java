@@ -10,7 +10,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -18,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.util.LogicalTopology;
 import pstb.util.NodeRole;
+import pstb.util.PSTBUtil;
 
 public class TopologyFileParser {	
 	private LogicalTopology logicalTopo;
@@ -154,7 +154,7 @@ public class TopologyFileParser {
 		String[] nodeRoles = splitLine[NODE_ROLE_LOCATION].split(COMMA);
 		String name = splitLine[NODE_NAME_LOCATION];
 		String[] connections = splitLine[NODE_CONN_LOCATION].split(COMMA);
-		ArrayList<String> aLConnections = new ArrayList<String>(Arrays.asList(connections));
+		ArrayList<String> aLConnections = PSTBUtil.turnStringArrayIntoArrayListString(connections);
 		
 		logicalTopo.addNewNodeToTopo(nodeRoles, name, aLConnections);
 	}

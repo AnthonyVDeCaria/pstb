@@ -13,7 +13,8 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.util.Check;
+import pstb.util.PSTBUtil;
+import pstb.util.ValidProtocol;
 
 public class BenchmarkVariables {
 	private static final Logger logger = LogManager.getRootLogger();
@@ -21,6 +22,7 @@ public class BenchmarkVariables {
 	String topologyFileName;
 	Integer numRunsPerExperiment;
 	ArrayList<Integer> idealMessageRates;
+	ArrayList<ValidProtocol> protocols;
 	
 	/**
 	 * Empty constructor
@@ -30,6 +32,7 @@ public class BenchmarkVariables {
 		topologyFileName = new String();
 		numRunsPerExperiment = new Integer(0);
 		idealMessageRates = new ArrayList<Integer>();
+		protocols = new ArrayList<ValidProtocol>();
 	}
 	
 	/**
@@ -40,7 +43,7 @@ public class BenchmarkVariables {
 	{
 		setTopologyFileName(givenProperty.getProperty("pstb.topologyFileLocation"));
 		
-		if(Check.isInteger(givenProperty.getProperty("pstb.numRunsPerExperiment")))
+		if(PSTBUtil.isInteger(givenProperty.getProperty("pstb.numRunsPerExperiment")))
 		{
 			setNumRunsPerExperiment(Integer.parseInt(givenProperty.getProperty("pstb.numRunsPerExperiment")));
 		}
@@ -52,7 +55,7 @@ public class BenchmarkVariables {
 			String[] splitIMR = sIMR.split(",");
 			for(int i = 0 ; i < splitIMR.length ; i++)
 			{
-				if(!Check.isInteger(splitIMR[i]))
+				if(!PSTBUtil.isInteger(splitIMR[i]))
 				{
 					iMR.clear();
 					break;
@@ -64,6 +67,28 @@ public class BenchmarkVariables {
 			}
 		}
 		setIdealMessgaeRates(iMR);
+		
+		String unbrokenProtocols = givenProperty.getProperty("pstb.protocols");
+		ArrayList<ValidProtocol> propProto = new ArrayList<ValidProtocol>();
+		if(unbrokenProtocols != null)
+		{
+			String[] splitProtocols = unbrokenProtocols.split(",");
+			for(int i = 0 ; i < splitProtocols.length ; i++ )
+			{
+				try
+				{
+					ValidProtocol sPI = ValidProtocol.valueOf(splitProtocols[i]);
+					propProto.add(sPI);
+				}
+				catch(IllegalArgumentException e)
+				{
+					propProto.clear();
+					logger.error("Properties: " + splitProtocols[i] + " is not a valid protocol.", e);
+				}
+			}
+		}
+		setProtocols(propProto);
+		
 	}
 	
 	/**
@@ -99,6 +124,11 @@ public class BenchmarkVariables {
 			logger.error("Properties: No Ideal Message Rate(s) was given!");
 			anyFieldNull = true;
 		}
+		else if(protocols.isEmpty())
+		{
+			logger.error("Properties: No Protocol(s) was given!");
+			anyFieldNull = true;
+		}
 		return anyFieldNull;
 	}
 	
@@ -117,6 +147,11 @@ public class BenchmarkVariables {
 		return this.idealMessageRates;
 	}
 	
+	public ArrayList<ValidProtocol> getProtocols()
+	{
+		return this.protocols;
+	}
+	
 	private void setTopologyFileName(String tFN)
 	{
 		topologyFileName = tFN;
@@ -130,5 +165,10 @@ public class BenchmarkVariables {
 	private void setIdealMessgaeRates(ArrayList<Integer> iMR)
 	{
 		idealMessageRates = iMR;
+	}
+	
+	private void setProtocols(ArrayList<ValidProtocol> proto)
+	{
+		protocols = proto;
 	}
 }

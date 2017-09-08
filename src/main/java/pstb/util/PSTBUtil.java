@@ -1,13 +1,14 @@
 /**
- * 
+ * @author padres-dev-4187
+ *
+ * A collection of useful functions.
  */
 package pstb.util;
 
-/**
- * @author padres-dev-4187
- *
- */
-public class Check {
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class PSTBUtil {
 	
 	public static boolean isInteger(String s) 
 	{
@@ -23,6 +24,11 @@ public class Check {
 			// s is not an integer
 		}
 		return isValidInteger;
+	}
+	
+	public static ArrayList<String> turnStringArrayIntoArrayListString(String[] input)
+	{
+		return new ArrayList<String>(Arrays.asList(input));
 	}
 
 }

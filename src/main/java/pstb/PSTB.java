@@ -22,9 +22,11 @@ public class PSTB {
 	
 	private static Properties loadProperties(String propertyFile, Properties defaultProperties) throws IOException {
 		Properties properties = new Properties(defaultProperties);
+		
 		FileInputStream propFileStream = new FileInputStream(propertyFile);
 		properties.load(propFileStream);
 		propFileStream.close();
+		
 		return properties;
 	}
 	
@@ -106,11 +108,12 @@ public class PSTB {
 							}
 							catch(IllegalArgumentException e)
 							{
-								logger.warn("Topology: Problem forcing mutual connectivity", e);
+								logger.error("Topology: Problem forcing mutual connectivity", e);
+								logger.info("Ending program.");
+								System.exit(0);
 							}
 						}
 					}
-					
 					boolean topoCheck = network.confirmTopoConnectivity();
 					if(!topoCheck)
 					{
