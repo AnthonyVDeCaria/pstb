@@ -14,7 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSTBUtil;
-import pstb.util.ValidDistributedValues;
+import pstb.util.ValidDistributedValue;
 import pstb.util.ValidProtocol;
 
 public class BenchmarkVariables {
@@ -25,7 +25,7 @@ public class BenchmarkVariables {
 	
 	ArrayList<ValidProtocol> protocols;
 	ArrayList<String> topologyFilesPaths;
-	ArrayList<ValidDistributedValues> distributed;
+	ArrayList<ValidDistributedValue> distributed;
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	
@@ -42,7 +42,7 @@ public class BenchmarkVariables {
 		idealMessageRates = new ArrayList<Integer>();
 		protocols = new ArrayList<ValidProtocol>();
 		topologyFilesPaths = new ArrayList<String>();
-		distributed = new ArrayList<ValidDistributedValues>();
+		distributed = new ArrayList<ValidDistributedValue>();
 	}
 	
 	/**
@@ -174,7 +174,7 @@ public class BenchmarkVariables {
 		 * distributed
 		 */
 		String unsplitDis = givenProperty.getProperty("pstb.distributed");
-		ArrayList<ValidDistributedValues> propDis = new ArrayList<ValidDistributedValues>();
+		ArrayList<ValidDistributedValue> propDis = new ArrayList<ValidDistributedValue>();
 		if(unsplitDis != null)
 		{
 			String[] splitDis = unsplitDis.split(",");
@@ -185,7 +185,7 @@ public class BenchmarkVariables {
 				{
 					try
 					{
-						ValidDistributedValues sDI = ValidDistributedValues.valueOf(splitDis[i]);
+						ValidDistributedValue sDI = ValidDistributedValue.valueOf(splitDis[i]);
 						propDis.add(sDI);
 					}
 					catch(IllegalArgumentException e)
@@ -317,7 +317,7 @@ public class BenchmarkVariables {
 	 * Gets the distributed
 	 * @return distributed - the list of wither each topology is distributed or not
 	 */
-	public ArrayList<ValidDistributedValues> getDistributed()
+	public ArrayList<ValidDistributedValue> getDistributed()
 	{
 		return this.distributed;
 	}
@@ -376,7 +376,7 @@ public class BenchmarkVariables {
 	 * Sets the protocols
 	 * @param dis - the new distributed
 	 */
-	private void setDistributed(ArrayList<ValidDistributedValues> dis)
+	private void setDistributed(ArrayList<ValidDistributedValue> dis)
 	{
 		distributed = dis;
 	}

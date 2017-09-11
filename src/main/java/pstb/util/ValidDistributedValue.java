@@ -1,5 +1,5 @@
 package pstb.util;
 
-public enum ValidDistributedValues {
+public enum ValidDistributedValue {
 	Yes, No, Both
 }

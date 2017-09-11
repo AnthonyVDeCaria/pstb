@@ -17,7 +17,7 @@ public class PSTBUtil {
 	/**
 	 * Sees if a given string is an Integer
 	 * @param s - the string to look at
-	 * @param logError - a bool that determines if the error should be logged or not
+	 * @param logError - a boolean that determines if the error should be logged or not
 	 * @return true if the string is an Integer; false otherwise
 	 */
 	public static boolean isInteger(String s, boolean logError) 
