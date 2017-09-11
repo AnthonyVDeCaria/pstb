@@ -14,6 +14,12 @@ import org.apache.logging.log4j.Logger;
 public class PSTBUtil {
 	private static final Logger logger = LogManager.getRootLogger();
 	
+	/**
+	 * Sees if a given string is an Integer
+	 * @param s - the string to look at
+	 * @param logError - a bool that determines if the error should be logged or not
+	 * @return true if the string is an Integer; false otherwise
+	 */
 	public static boolean isInteger(String s, boolean logError) 
 	{
 		boolean isValidInteger = false;
@@ -34,6 +40,11 @@ public class PSTBUtil {
 		return isValidInteger;
 	}
 	
+	/**
+	 * Turns a String[] into a ArrayList<String>
+	 * @param input - the String[]
+	 * @return the resulting ArrayList<String>
+	 */
 	public static ArrayList<String> turnStringArrayIntoArrayListString(String[] input)
 	{
 		return new ArrayList<String>(Arrays.asList(input));

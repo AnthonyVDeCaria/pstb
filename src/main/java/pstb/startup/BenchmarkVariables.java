@@ -241,22 +241,22 @@ public class BenchmarkVariables {
 		}
 		if(runLengths.isEmpty())
 		{
-			logger.error("Properties: No Run Length was given!");
+			logger.error("Properties: No Run Length(s) were given!");
 			anyFieldNull = true;
 		}
 		if(idealMessageRates.isEmpty())
 		{
-			logger.error("Properties: No Ideal Message Rate(s) was given!");
+			logger.error("Properties: No Ideal Message Rate(s) were given!");
 			anyFieldNull = true;
 		}
 		if(protocols.isEmpty())
 		{
-			logger.error("Properties: No Protocol(s) was given!");
+			logger.error("Properties: No Protocol(s) were given!");
 			anyFieldNull = true;
 		}
 		if(topologyFilesPaths.isEmpty())
 		{
-			logger.error("Properties: No Topology File(s) was given!");
+			logger.error("Properties: No Topology File(s) were given!");
 			anyFieldNull = true;
 		}
 		if(distributed.isEmpty())
