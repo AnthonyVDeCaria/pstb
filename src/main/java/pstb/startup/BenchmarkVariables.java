@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSTBUtil;
+import pstb.util.ValidDistributedValues;
 import pstb.util.ValidProtocol;
 
 public class BenchmarkVariables {
@@ -24,7 +25,7 @@ public class BenchmarkVariables {
 	
 	ArrayList<ValidProtocol> protocols;
 	ArrayList<String> topologyFilesPaths;
-	
+	ArrayList<ValidDistributedValues> distributed;
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	
@@ -41,6 +42,7 @@ public class BenchmarkVariables {
 		idealMessageRates = new ArrayList<Integer>();
 		protocols = new ArrayList<ValidProtocol>();
 		topologyFilesPaths = new ArrayList<String>();
+		distributed = new ArrayList<ValidDistributedValues>();
 	}
 	
 	/**
@@ -58,6 +60,9 @@ public class BenchmarkVariables {
 	{
 		boolean everythingisProper = true;
 		
+		/*
+		 * numRunsPerExperiment
+		 */
 		String sNRPE = givenProperty.getProperty("pstb.numRunsPerExperiment");
 		if(PSTBUtil.isInteger(sNRPE, true))
 		{
@@ -68,6 +73,9 @@ public class BenchmarkVariables {
 			everythingisProper = false;			
 		}
 		
+		/*
+		 * runLengths
+		 */
 		String sRL = givenProperty.getProperty("pstb.runLengths");
 		ArrayList<Integer> rL = new ArrayList<Integer>();
 		if(sRL != null)
@@ -92,21 +100,24 @@ public class BenchmarkVariables {
 		}
 		setRunLengths(rL);
 		
-		String sIMR = givenProperty.getProperty("pstb.idealMessageRates");
-		ArrayList<Integer> iMR = new ArrayList<Integer>();
-		if(sIMR != null)
+		/*
+		 * idealMessageRates
+		 */
+		String unsplitIMR = givenProperty.getProperty("pstb.idealMessageRates");
+		ArrayList<Integer> propIMR = new ArrayList<Integer>();
+		if(unsplitIMR != null)
 		{
-			String[] splitIMR = sIMR.split(",");
+			String[] splitIMR = unsplitIMR.split(",");
 			for(int i = 0 ; i < splitIMR.length ; i++)
 			{
 				if(!PSTBUtil.isInteger(splitIMR[i], true))
 				{
-					iMR.clear();
+					propIMR.clear();
 					break;
 				}
 				else
 				{
-					iMR.add(Integer.parseInt(splitIMR[i]));
+					propIMR.add(Integer.parseInt(splitIMR[i]));
 				}
 			}
 		}
@@ -114,13 +125,16 @@ public class BenchmarkVariables {
 		{
 			everythingisProper = false;
 		}
-		setIdealMessgaeRates(iMR);
+		setIdealMessgaeRates(propIMR);
 		
-		String unbrokenProtocols = givenProperty.getProperty("pstb.protocols");
+		/*
+		 * Protocols
+		 */
+		String unsplitProtocols = givenProperty.getProperty("pstb.protocols");
 		ArrayList<ValidProtocol> propProto = new ArrayList<ValidProtocol>();
-		if(unbrokenProtocols != null)
+		if(unsplitProtocols != null)
 		{
-			String[] splitProtocols = unbrokenProtocols.split(",");
+			String[] splitProtocols = unsplitProtocols.split(",");
 			int numGivenProtocols = splitProtocols.length;
 			if(numGivenProtocols <= ValidProtocol.values().length)
 			{
@@ -138,6 +152,10 @@ public class BenchmarkVariables {
 					}
 				}
 			}
+			else
+			{
+				everythingisProper = false;
+			}
 		}
 		else
 		{
@@ -145,9 +163,52 @@ public class BenchmarkVariables {
 		}
 		setProtocols(propProto);
 		
-		String sTFP = givenProperty.getProperty("pstb.topologyFileLocation");
-		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(sTFP.split(",")));
+		/*
+		 * topologyFilesPaths
+		 */
+		String unsplitTFP = givenProperty.getProperty("pstb.topologyFilesPaths");
+		String[] splitTFP = unsplitTFP.split(",");
+		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(splitTFP));
 		
+		/*
+		 * distributed
+		 */
+		String unsplitDis = givenProperty.getProperty("pstb.distributed");
+		ArrayList<ValidDistributedValues> propDis = new ArrayList<ValidDistributedValues>();
+		if(unsplitDis != null)
+		{
+			String[] splitDis = unsplitDis.split(",");
+			int numGivenDis = splitDis.length;
+			if(numGivenDis == splitTFP.length)
+			{
+				for(int i = 0 ; i < numGivenDis ; i++ )
+				{
+					try
+					{
+						ValidDistributedValues sDI = ValidDistributedValues.valueOf(splitDis[i]);
+						propDis.add(sDI);
+					}
+					catch(IllegalArgumentException e)
+					{
+						propDis.clear();
+						logger.error("Properties: " + splitDis[i] + " is not a valid Distributed value.", e);
+					}
+				}
+			}
+			else
+			{
+				everythingisProper = false;
+			}
+		}
+		else
+		{
+			everythingisProper = false;
+		}
+		setDistributed(propDis);
+		
+		/*
+		 * return
+		 */
 		return everythingisProper;
 	}
 	
@@ -160,7 +221,8 @@ public class BenchmarkVariables {
 		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
 		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
 		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
-		logger.info("Properties: topologyFileName = " + topologyFilesPaths);
+		logger.info("Properties: topologyFilesPaths = " + Arrays.toString(topologyFilesPaths.toArray()));
+		logger.info("Properties: distributed = " + Arrays.toString(distributed.toArray()));
 	}
 	
 	/**
@@ -172,33 +234,37 @@ public class BenchmarkVariables {
 	{
 		boolean anyFieldNull = false;
 		
-		
 		if(numRunsPerExperiment.equals(0))
 		{
 			logger.error("Properties: No Number of Experiment Runs was given!");
 			anyFieldNull = true;
 		}
-		else if(runLengths.isEmpty())
+		if(runLengths.isEmpty())
 		{
 			logger.error("Properties: No Run Length was given!");
 			anyFieldNull = true;
 		}
-		else if(idealMessageRates.isEmpty())
+		if(idealMessageRates.isEmpty())
 		{
 			logger.error("Properties: No Ideal Message Rate(s) was given!");
 			anyFieldNull = true;
 		}
-		else if(protocols.isEmpty())
+		if(protocols.isEmpty())
 		{
 			logger.error("Properties: No Protocol(s) was given!");
 			anyFieldNull = true;
 		}
-		
 		if(topologyFilesPaths.isEmpty())
 		{
-			logger.error("Properties: No Topology File was given!");
+			logger.error("Properties: No Topology File(s) was given!");
 			anyFieldNull = true;
 		}
+		if(distributed.isEmpty())
+		{
+			logger.error("Properties: No Distributed information was given!");
+			anyFieldNull = true;
+		}
+		
 		return anyFieldNull;
 	}
 	
@@ -245,6 +311,15 @@ public class BenchmarkVariables {
 	public ArrayList<String> getTopologyFilesPaths()
 	{
 		return this.topologyFilesPaths;
+	}
+	
+	/**
+	 * Gets the distributed
+	 * @return distributed - the list of wither each topology is distributed or not
+	 */
+	public ArrayList<ValidDistributedValues> getDistributed()
+	{
+		return this.distributed;
 	}
 	
 	/**
@@ -295,5 +370,14 @@ public class BenchmarkVariables {
 	private void setTopologyFilesPaths(ArrayList<String> tFP)
 	{
 		topologyFilesPaths = tFP;
+	}
+	
+	/**
+	 * Sets the protocols
+	 * @param dis - the new distributed
+	 */
+	private void setDistributed(ArrayList<ValidDistributedValues> dis)
+	{
+		distributed = dis;
 	}
 }

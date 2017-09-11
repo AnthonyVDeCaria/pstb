@@ -35,10 +35,9 @@ public class PSTB {
 	{
 		logger.info("Starting program.");
 		Scanner simpleUserInput = new Scanner(System.in);
-		
-		logger.info("Starting Properties Parsing.");
 		Properties defaultProp = null;
 		
+		logger.info("Starting Properties Parsing...");
 		try
 		{
 			defaultProp = loadProperties("etc/defaultBenchmark.properties", null);
@@ -56,13 +55,15 @@ public class PSTB {
 			boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
 			if (!customBenchPropAns)
 			{
+				logger.info("Loading the default Properties file...");
 				benchmarkRules.setBenchmarkVariable(defaultProp);
 			}
 			else
 			{
 				try
 				{
-					Properties userProp = loadProperties("src/test/java/userBenchmark2.properties", defaultProp);
+					logger.info("Loading the user Properties file...");
+					Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
 					benchmarkRules.setBenchmarkVariable(userProp);
 				}
 				catch (IOException e)
@@ -73,15 +74,15 @@ public class PSTB {
 			
 			if(benchmarkRules.checkForNullFields())
 			{
-				logger.error("Error with properties file.");
+				logger.error("Error with properties file!");
 			}
 			else
 			{
-				logger.info("Starting to disect Topology Files.");
-				
+				logger.info("No errors loading the Properties file!");
 				boolean allToposOk = true;
 				ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
 				
+				logger.info("Starting to disect Topology Files...");
 				for(int i = 0 ; i < allTopoFiles.size(); i++)
 				{
 					TopologyFileParser parserTopo = new TopologyFileParser();
