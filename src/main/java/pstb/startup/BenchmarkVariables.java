@@ -138,6 +138,8 @@ public class BenchmarkVariables {
 		logger.info("Properties: topologyFileName = " + topologyFileName);
 		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
 		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
+		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
+		logger.info("Properties: runLength = " + runLength);
 	}
 	
 	/**
