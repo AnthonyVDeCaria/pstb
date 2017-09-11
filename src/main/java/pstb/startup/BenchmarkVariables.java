@@ -17,11 +17,14 @@ import pstb.util.PSTBUtil;
 import pstb.util.ValidProtocol;
 
 public class BenchmarkVariables {
-	ArrayList<String> topologyFilesPaths;
 	Integer numRunsPerExperiment;
+	
+	ArrayList<Integer> runLengths;
 	ArrayList<Integer> idealMessageRates;
+	
 	ArrayList<ValidProtocol> protocols;
-	Integer runLength;
+	ArrayList<String> topologyFilesPaths;
+	
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	
@@ -33,11 +36,11 @@ public class BenchmarkVariables {
 	 */
 	public BenchmarkVariables()
 	{
-		topologyFilesPaths = new ArrayList<String>();
 		numRunsPerExperiment = new Integer(0);
+		runLengths = new ArrayList<Integer>();
 		idealMessageRates = new ArrayList<Integer>();
 		protocols = new ArrayList<ValidProtocol>();
-		runLength = new Integer(0);
+		topologyFilesPaths = new ArrayList<String>();
 	}
 	
 	/**
@@ -55,9 +58,6 @@ public class BenchmarkVariables {
 	{
 		boolean everythingisProper = true;
 		
-		String sTFP = givenProperty.getProperty("pstb.topologyFileLocation");
-		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(sTFP.split(",")));
-		
 		String sNRPE = givenProperty.getProperty("pstb.numRunsPerExperiment");
 		if(PSTBUtil.isInteger(sNRPE, true))
 		{
@@ -67,6 +67,30 @@ public class BenchmarkVariables {
 		{
 			everythingisProper = false;			
 		}
+		
+		String sRL = givenProperty.getProperty("pstb.runLengths");
+		ArrayList<Integer> rL = new ArrayList<Integer>();
+		if(sRL != null)
+		{
+			String[] splitRL = sRL.split(",");
+			for(int i = 0 ; i < splitRL.length ; i++)
+			{
+				if(!PSTBUtil.isInteger(splitRL[i], true))
+				{
+					rL.clear();
+					break;
+				}
+				else
+				{
+					rL.add(Integer.parseInt(splitRL[i]));
+				}
+			}
+		}
+		else
+		{
+			everythingisProper = false;
+		}
+		setRunLengths(rL);
 		
 		String sIMR = givenProperty.getProperty("pstb.idealMessageRates");
 		ArrayList<Integer> iMR = new ArrayList<Integer>();
@@ -121,15 +145,8 @@ public class BenchmarkVariables {
 		}
 		setProtocols(propProto);
 		
-		String sRL = givenProperty.getProperty("pstb.runLength");
-		if(PSTBUtil.isInteger(sRL, true))
-		{
-			setRunLength(Integer.parseInt(sRL));
-		}
-		else
-		{
-			everythingisProper = false;
-		}
+		String sTFP = givenProperty.getProperty("pstb.topologyFileLocation");
+		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(sTFP.split(",")));
 		
 		return everythingisProper;
 	}
@@ -139,11 +156,11 @@ public class BenchmarkVariables {
 	 */
 	public void printAllFields()
 	{
-		logger.info("Properties: topologyFileName = " + topologyFilesPaths);
 		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
+		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
 		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
 		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
-		logger.info("Properties: runLength = " + runLength);
+		logger.info("Properties: topologyFileName = " + topologyFilesPaths);
 	}
 	
 	/**
@@ -155,14 +172,15 @@ public class BenchmarkVariables {
 	{
 		boolean anyFieldNull = false;
 		
-		if(topologyFilesPaths.isEmpty())
-		{
-			logger.error("Properties: No Topology File was given!");
-			anyFieldNull = true;
-		}
-		else if(numRunsPerExperiment.equals(0))
+		
+		if(numRunsPerExperiment.equals(0))
 		{
 			logger.error("Properties: No Number of Experiment Runs was given!");
+			anyFieldNull = true;
+		}
+		else if(runLengths.isEmpty())
+		{
+			logger.error("Properties: No Run Length was given!");
 			anyFieldNull = true;
 		}
 		else if(idealMessageRates.isEmpty())
@@ -175,21 +193,13 @@ public class BenchmarkVariables {
 			logger.error("Properties: No Protocol(s) was given!");
 			anyFieldNull = true;
 		}
-		else if(runLength.equals(0))
+		
+		if(topologyFilesPaths.isEmpty())
 		{
-			logger.error("Properties: No Run Length was given!");
+			logger.error("Properties: No Topology File was given!");
 			anyFieldNull = true;
 		}
 		return anyFieldNull;
-	}
-	
-	/**
-	 * Gets the topologyFilesPaths
-	 * @return topologyFilesPaths - the paths to all the Topology Files
-	 */
-	public ArrayList<String> getTopologyFilesPaths()
-	{
-		return this.topologyFilesPaths;
 	}
 	
 	/**
@@ -199,6 +209,15 @@ public class BenchmarkVariables {
 	public Integer getNumRunsPerExperiment()
 	{
 		return this.numRunsPerExperiment;
+	}
+	
+	/**
+	 * Gets the runLength
+	 * @return  runLength - the list of minutes each experiment's run's will take
+	 */
+	public ArrayList<Integer> getRunLengths()
+	{
+		return this.runLengths;
 	}
 
 	/**
@@ -220,12 +239,12 @@ public class BenchmarkVariables {
 	}
 	
 	/**
-	 * Gets the runLength
-	 * @return  runLength - the length in minutes of a single run
+	 * Gets the topologyFilesPaths
+	 * @return topologyFilesPaths - the paths to all the Topology Files
 	 */
-	public Integer getRunLength()
+	public ArrayList<String> getTopologyFilesPaths()
 	{
-		return this.runLength;
+		return this.topologyFilesPaths;
 	}
 	
 	/**
@@ -234,21 +253,21 @@ public class BenchmarkVariables {
 	 */
 	
 	/**
-	 * Sets the topologyFilesPaths
-	 * @param tFP - the new topologyFilesPaths
-	 */
-	private void setTopologyFilesPaths(ArrayList<String> tFP)
-	{
-		topologyFilesPaths = tFP;
-	}
-	
-	/**
 	 * Sets the numRunsPerExperiment
 	 * @param nRPE - the new numRunsPerExperiment
 	 */
 	private void setNumRunsPerExperiment(Integer nRPE)
 	{
 		numRunsPerExperiment = nRPE;
+	}
+	
+	/**
+	 * Sets the runLength
+	 * @param proto - the new protocols
+	 */
+	private void setRunLengths(ArrayList<Integer> rL)
+	{
+		runLengths = rL;
 	}
 	
 	/**
@@ -270,11 +289,11 @@ public class BenchmarkVariables {
 	}
 	
 	/**
-	 * Sets the runLength
-	 * @param proto - the new protocols
+	 * Sets the topologyFilesPaths
+	 * @param tFP - the new topologyFilesPaths
 	 */
-	private void setRunLength(Integer rL)
+	private void setTopologyFilesPaths(ArrayList<String> tFP)
 	{
-		runLength = rL;
+		topologyFilesPaths = tFP;
 	}
 }
