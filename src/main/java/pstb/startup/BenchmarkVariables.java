@@ -17,7 +17,7 @@ import pstb.util.PSTBUtil;
 import pstb.util.ValidProtocol;
 
 public class BenchmarkVariables {
-	String topologyFileName;
+	ArrayList<String> topologyFilesPaths;
 	Integer numRunsPerExperiment;
 	ArrayList<Integer> idealMessageRates;
 	ArrayList<ValidProtocol> protocols;
@@ -33,7 +33,7 @@ public class BenchmarkVariables {
 	 */
 	public BenchmarkVariables()
 	{
-		topologyFileName = new String();
+		topologyFilesPaths = new ArrayList<String>();
 		numRunsPerExperiment = new Integer(0);
 		idealMessageRates = new ArrayList<Integer>();
 		protocols = new ArrayList<ValidProtocol>();
@@ -45,14 +45,18 @@ public class BenchmarkVariables {
 	 * (Seeing as some of these fields have to go from String to other types)
 	 * If there is any errors, these fields will either not be set (the Integers),
 	 * or be made empty (ArrayLists).
-	 * @param givenProperty - the Properties object that contains all the benchmark values.
+	 * The tested fields are numRunsPerExperiment, idealMessageRates,
+	 * protocols, runLength.
+	 * 
+	 * @param givenProperty - the Properties object that contains the desired values.
 	 * @return true if everything sets successfully; false otherwise
 	 */
 	public boolean setBenchmarkVariable(Properties givenProperty)
 	{
 		boolean everythingisProper = true;
 		
-		setTopologyFileName(givenProperty.getProperty("pstb.topologyFileLocation"));
+		String sTFP = givenProperty.getProperty("pstb.topologyFileLocation");
+		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(sTFP.split(",")));
 		
 		String sNRPE = givenProperty.getProperty("pstb.numRunsPerExperiment");
 		if(PSTBUtil.isInteger(sNRPE, true))
@@ -135,7 +139,7 @@ public class BenchmarkVariables {
 	 */
 	public void printAllFields()
 	{
-		logger.info("Properties: topologyFileName = " + topologyFileName);
+		logger.info("Properties: topologyFileName = " + topologyFilesPaths);
 		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
 		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
 		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
@@ -151,7 +155,7 @@ public class BenchmarkVariables {
 	{
 		boolean anyFieldNull = false;
 		
-		if(topologyFileName.isEmpty())
+		if(topologyFilesPaths.isEmpty())
 		{
 			logger.error("Properties: No Topology File was given!");
 			anyFieldNull = true;
@@ -180,12 +184,12 @@ public class BenchmarkVariables {
 	}
 	
 	/**
-	 * Gets the topologyFileNameProtocols
-	 * @return topologyFileName - the name of the Topology File
+	 * Gets the topologyFilesPaths
+	 * @return topologyFilesPaths - the paths to all the Topology Files
 	 */
-	public String getTopologyFileName()
+	public ArrayList<String> getTopologyFilesPaths()
 	{
-		return this.topologyFileName;
+		return this.topologyFilesPaths;
 	}
 	
 	/**
@@ -230,12 +234,12 @@ public class BenchmarkVariables {
 	 */
 	
 	/**
-	 * Sets the topologyFileName
-	 * @param tFN - the new topologyFileName
+	 * Sets the topologyFilesPaths
+	 * @param tFP - the new topologyFilesPaths
 	 */
-	private void setTopologyFileName(String tFN)
+	private void setTopologyFilesPaths(ArrayList<String> tFP)
 	{
-		topologyFileName = tFN;
+		topologyFilesPaths = tFP;
 	}
 	
 	/**

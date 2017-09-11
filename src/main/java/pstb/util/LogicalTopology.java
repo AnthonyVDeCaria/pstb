@@ -287,24 +287,26 @@ public class LogicalTopology {
 		
 		brokerGroup.forEach((name, connections)->visitedBrokerNodes.put(name, VisitedState.NOTVISITED));
 		
+		logger.info("Topology: Beginning to check broker connectivity.");
 		boolean attemptFinishedProperly = attemptToReachAllBrokerNodes(brokerGroup, visitedBrokerNodes);
+		
         if(!attemptFinishedProperly)
 		{
-        	logger.error("Topology: Found a node missing connections");
+        	logger.error("Topology: Found a node missing connections.");
         	topoConnected = false;
 		}
         else
         {
         	if(visitedBrokerNodes.containsValue(VisitedState.NOTVISITED))
         	{
-        		logger.error("Topology: Not all nodes were reached");
+        		logger.error("Topology: Not all nodes were reached.");
             	topoConnected = false;
         	}
         	else
         	{
         		logger.info("Topology: All brokers are connected.");
         		
-        		logger.info("Topology: Looking at the clients...");
+        		logger.info("Topology: Looking at client connections...");
         		try
         		{
         			network.forEach((k, v) -> {

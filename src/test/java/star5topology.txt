@@ -1,0 +1,15 @@
+#Brokers
+B0 B B1,B2,B3,B4,B5
+B1 B B0
+B2 B B0
+B3 B B0
+B4 B B0
+B5 B B0
+
+#Clients
+P0 P B0
+S0 S B1
+S1 S B2
+S2 S B3
+S3 S B4
+S4 S B5

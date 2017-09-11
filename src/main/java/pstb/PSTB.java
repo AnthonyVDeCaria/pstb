@@ -6,6 +6,7 @@ package pstb;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -61,7 +62,7 @@ public class PSTB {
 			{
 				try
 				{
-					Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
+					Properties userProp = loadProperties("src/test/java/userBenchmark2.properties", defaultProp);
 					benchmarkRules.setBenchmarkVariable(userProp);
 				}
 				catch (IOException e)
@@ -70,66 +71,89 @@ public class PSTB {
 				}
 			}
 			
-			if(!benchmarkRules.checkForNullFields())
+			if(benchmarkRules.checkForNullFields())
 			{
-				logger.info("Starting Topology File Parse.");
-				TopologyFileParser parserTopo = new TopologyFileParser();
-				boolean parseCheck = parserTopo.parse(benchmarkRules.getTopologyFileName());
-				if(!parseCheck)
-				{
-					logger.error("Parse Failed!");
-				}
-				else
-				{
-					logger.info("Parse Complete.");
-					LogicalTopology network = parserTopo.getLogicalTopo();
-					
-					logger.info("Starting Topology Testing.");
-					boolean mCCheck = network.confirmBrokerMutualConnectivity();
-					if(!mCCheck)
-					{
-						logger.info("Topology File has one way connections.");
-						
-						String fixBroker = "The given Topology File is not mutually connected\n"
-								+ "Would you like us to fix this internally before testing topology Y/n?\n"
-								+ "Answering 'n' will terminate the program.";
-						boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
-						if (!fixBrokerAns)
-						{
-							logger.info("Ending program.");
-							simpleUserInput.close();
-							System.exit(0);
-						}
-						else
-						{
-							try
-							{
-								network.forceMutualConnectivity();
-							}
-							catch(IllegalArgumentException e)
-							{
-								logger.error("Topology: Problem forcing mutual connectivity", e);
-								logger.info("Ending program.");
-								System.exit(0);
-							}
-						}
-					}
-					boolean topoCheck = network.confirmTopoConnectivity();
-					if(!topoCheck)
-					{
-						logger.error("Topology Check Failed!");
-					}
-					else
-					{
-						logger.info("Topology Check Complete.");
-					}
-				}
+				logger.error("Error with properties file.");
 			}
 			else
 			{
-				logger.error("Error with custom properties file.");
+				logger.info("Starting to disect Topology Files.");
+				
+				boolean allToposOk = true;
+				ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
+				
+				for(int i = 0 ; i < allTopoFiles.size(); i++)
+				{
+					TopologyFileParser parserTopo = new TopologyFileParser();
+					String topoI = allTopoFiles.get(i);
+					
+					logger.info("Parsing Topology File " + topoI + "...");
+					boolean parseCheck = parserTopo.parse(topoI);
+					
+					if(!parseCheck)
+					{
+						allToposOk = false;
+						logger.error("Parse Failed for file " + topoI + "!");
+					}
+					else
+					{
+						logger.info("Parse Complete for file " + topoI + "!");
+						
+						LogicalTopology network = parserTopo.getLogicalTopo();
+						
+						logger.info("Starting Topology Testing with topology " + topoI + "...");
+						boolean mCCheck = network.confirmBrokerMutualConnectivity();
+						if(!mCCheck)
+						{
+							logger.info("Topology File " + topoI + " has one way connections.");
+							
+							String fixBroker = topoI + " is not mutually connected\n"
+									+ "Would you like us to fix this internally before testing topology Y/n?\n"
+									+ "Answering 'n' will terminate the program.";
+							boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
+							
+							if (!fixBrokerAns)
+							{
+								logger.info("Ending program.");
+								simpleUserInput.close();
+								System.exit(0);
+							}
+							else
+							{
+								try
+								{
+									network.forceMutualConnectivity();
+								}
+								catch(IllegalArgumentException e)
+								{
+									logger.error("Topology: Problem forcing mutual connectivity for topology " 
+											+ topoI, e);
+									logger.info("Ending program.");
+									System.exit(0);
+								}
+							}
+						}
+						
+						boolean topoCheck = network.confirmTopoConnectivity();
+						if(!topoCheck)
+						{
+							allToposOk = false;
+							logger.error("Topology Check Failed for topology " + topoI + "!");
+						}
+						else
+						{
+							logger.info("Topology Check Complete for topology " + topoI + "!");
+						}
+					}
+				}
+				
+				if(allToposOk)
+				{
+					logger.info("All topologies valid!!");
+				}
 			}
 		}
+		
 		logger.info("Ending program.");
 		simpleUserInput.close();
 	}
