@@ -49,20 +49,20 @@ public class PSTB {
 		
 		if(defaultProp != null)
 		{			
-			BenchmarkVariables test = new BenchmarkVariables();
+			BenchmarkVariables benchmarkRules = new BenchmarkVariables();
 			
 			String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
 			boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
 			if (!customBenchPropAns)
 			{
-				test.setBenchmarkVariable(defaultProp);
+				benchmarkRules.setBenchmarkVariable(defaultProp);
 			}
 			else
 			{
 				try
 				{
 					Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
-					test.setBenchmarkVariable(userProp);
+					benchmarkRules.setBenchmarkVariable(userProp);
 				}
 				catch (IOException e)
 				{
@@ -70,11 +70,11 @@ public class PSTB {
 				}
 			}
 			
-			if(!test.checkForNullFields())
+			if(!benchmarkRules.checkForNullFields())
 			{
 				logger.info("Starting Topology File Parse.");
 				TopologyFileParser parserTopo = new TopologyFileParser();
-				boolean parseCheck = parserTopo.parse(test.getTopologyFileName());
+				boolean parseCheck = parserTopo.parse(benchmarkRules.getTopologyFileName());
 				if(!parseCheck)
 				{
 					logger.error("Parse Failed!");

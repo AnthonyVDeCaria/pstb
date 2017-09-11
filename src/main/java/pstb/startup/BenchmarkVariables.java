@@ -27,6 +27,9 @@ public class BenchmarkVariables {
 	
 	/**
 	 * Empty constructor
+	 * 
+	 * The Integers are set to 0, as these are not valid numbers
+	 * (You can't have no runs per experiment, or run for 0 minutes) 
 	 */
 	public BenchmarkVariables()
 	{
@@ -38,17 +41,27 @@ public class BenchmarkVariables {
 	}
 	
 	/**
-	 * Sets all the benchmark variables' values 
+	 * Sets all the benchmark variables' values after doing some quick parsing
+	 * (Seeing as some of these fields have to go from String to other types)
+	 * If there is any errors, these fields will either not be set (the Integers),
+	 * or be made empty (ArrayLists).
 	 * @param givenProperty - the Properties object that contains all the benchmark values.
+	 * @return true if everything sets successfully; false otherwise
 	 */
-	public void setBenchmarkVariable(Properties givenProperty)
+	public boolean setBenchmarkVariable(Properties givenProperty)
 	{
+		boolean everythingisProper = true;
+		
 		setTopologyFileName(givenProperty.getProperty("pstb.topologyFileLocation"));
 		
 		String sNRPE = givenProperty.getProperty("pstb.numRunsPerExperiment");
-		if(PSTBUtil.isInteger(sNRPE, false))
+		if(PSTBUtil.isInteger(sNRPE, true))
 		{
 			setNumRunsPerExperiment(Integer.parseInt(sNRPE));
+		}
+		else
+		{
+			everythingisProper = false;			
 		}
 		
 		String sIMR = givenProperty.getProperty("pstb.idealMessageRates");
@@ -58,7 +71,7 @@ public class BenchmarkVariables {
 			String[] splitIMR = sIMR.split(",");
 			for(int i = 0 ; i < splitIMR.length ; i++)
 			{
-				if(!PSTBUtil.isInteger(splitIMR[i], false))
+				if(!PSTBUtil.isInteger(splitIMR[i], true))
 				{
 					iMR.clear();
 					break;
@@ -68,6 +81,10 @@ public class BenchmarkVariables {
 					iMR.add(Integer.parseInt(splitIMR[i]));
 				}
 			}
+		}
+		else
+		{
+			everythingisProper = false;
 		}
 		setIdealMessgaeRates(iMR);
 		
@@ -94,14 +111,23 @@ public class BenchmarkVariables {
 				}
 			}
 		}
+		else
+		{
+			everythingisProper = false;
+		}
 		setProtocols(propProto);
 		
 		String sRL = givenProperty.getProperty("pstb.runLength");
-		if(PSTBUtil.isInteger(sRL, false))
+		if(PSTBUtil.isInteger(sRL, true))
 		{
 			setRunLength(Integer.parseInt(sRL));
 		}
+		else
+		{
+			everythingisProper = false;
+		}
 		
+		return everythingisProper;
 	}
 	
 	/**
@@ -115,7 +141,8 @@ public class BenchmarkVariables {
 	}
 	
 	/**
-	 * Checks if any of the fields are "null" - not been set
+	 * Checks if any of the fields are "null"
+	 * I.e. Not been set
 	 * @return false if no field is "null", true if one is
 	 */
 	public boolean checkForNullFields()
