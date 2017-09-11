@@ -65,9 +65,9 @@ public class LogicalTopology {
 	{
 		if(!problemNodes.isEmpty())
 		{
-			problemNodes.forEach((l)->{
-				String n = l.getProblematicNode();
-				String mC = l.getMissingConnection();
+			problemNodes.forEach((pair)->{
+				String n = pair.getProblematicNode();
+				String mC = pair.getMissingConnection();
 				System.out.println("Node " + n + " doesn't reciprocate Node " + mC + "'s connection.");
 			});
 		}
@@ -205,6 +205,9 @@ public class LogicalTopology {
 		brokerVisitedList.put(startingNode, VisitedState.VISITED);
 		queue.add(startingNode);
 		
+		/*
+		 * The BFS
+		 */
 		while (!queue.isEmpty())
 		{
 			String element = queue.remove();
@@ -212,6 +215,11 @@ public class LogicalTopology {
 			
 			if(connections == null)
 			{
+				/*
+				 * Since TopologyFileParser.parse should be run first, 
+				 * this bit of code should never be called
+				 * However, it's here in case there are changes in the future.
+				 */
 				nodesHaveConnections = false;
 				break;
 			}

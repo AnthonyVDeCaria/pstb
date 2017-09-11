@@ -8,9 +8,13 @@ package pstb.util;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class PSTBUtil {
+	private static final Logger logger = LogManager.getRootLogger();
 	
-	public static boolean isInteger(String s) 
+	public static boolean isInteger(String s, boolean logError) 
 	{
 		boolean isValidInteger = false;
 		try
@@ -22,6 +26,10 @@ public class PSTBUtil {
 		catch (NumberFormatException ex)
 		{
 			// s is not an integer
+			if(logError)
+			{
+				logger.error("isInt: " + s + " is not an integer", ex);
+			}
 		}
 		return isValidInteger;
 	}
