@@ -23,9 +23,6 @@ public class TopologyFileParser {
 	private LogicalTopology logicalTopo;
 	
 	private static final Logger logger = LogManager.getRootLogger();
-		
-	private final String SPACE = " ";
-	private final String COMMA = ",";
 	
 	private final int SEGMENTSNUM = 3;
 	private final int NODE_NAME_LOCATION = 0;
@@ -33,10 +30,7 @@ public class TopologyFileParser {
 	private final int NODE_CONN_LOCATION = 2;
 	
 	/**
-	 * FileReader Constructor
-	 * 
-	 * This constructor assumes that something else has made the FileReader
-	 * And is passing it to us so we can manipulate it.
+	 * Empty Constructor
 	 */
 	public TopologyFileParser()
     {
@@ -92,7 +86,7 @@ public class TopologyFileParser {
 	 */
 	private boolean checkProperRoles(String roles)
 	{		
-		String[] brokenTypes = roles.split(COMMA);
+		String[] brokenTypes = roles.split(PSTBUtil.COMMA);
 		
 		List<NodeRole> nodeTypeLedger = new ArrayList<NodeRole>();
 		
@@ -123,6 +117,12 @@ public class TopologyFileParser {
 		return true;
 	}
 	
+	/**
+	 * Determines if the given name is unique
+	 * I.e. doesn't already exist in any of the groups.
+	 * @param name - the name to check
+	 * @return true if the name is unique; false if it isn't
+	 */
 	private boolean checkUniqueName(String name)
 	{	
 		boolean isNameUnique = false;
@@ -142,7 +142,6 @@ public class TopologyFileParser {
 		}
 		
 		return isNameUnique;
-		
 	}
 	
 	/**
@@ -151,9 +150,9 @@ public class TopologyFileParser {
 	 */
 	private void addLineToTopo(String[] splitLine)
 	{
-		String[] nodeRoles = splitLine[NODE_ROLE_LOCATION].split(COMMA);
+		String[] nodeRoles = splitLine[NODE_ROLE_LOCATION].split(PSTBUtil.COMMA);
 		String name = splitLine[NODE_NAME_LOCATION];
-		String[] connections = splitLine[NODE_CONN_LOCATION].split(COMMA);
+		String[] connections = splitLine[NODE_CONN_LOCATION].split(PSTBUtil.COMMA);
 		ArrayList<String> aLConnections = PSTBUtil.turnStringArrayIntoArrayListString(connections);
 		
 		logicalTopo.addNewNodeToTopo(nodeRoles, name, aLConnections);
@@ -176,7 +175,7 @@ public class TopologyFileParser {
 				linesRead++;
 				if(!checkIfLineIgnorable(line))
 				{
-					String[] splitLine = line.split(SPACE);
+					String[] splitLine = line.split(PSTBUtil.SPACE);
 					
 					if(checkProperSpacing(splitLine))
 					{

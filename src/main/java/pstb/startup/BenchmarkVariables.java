@@ -80,7 +80,7 @@ public class BenchmarkVariables {
 		ArrayList<Integer> rL = new ArrayList<Integer>();
 		if(sRL != null)
 		{
-			String[] splitRL = sRL.split(",");
+			String[] splitRL = sRL.split(PSTBUtil.COMMA);
 			for(int i = 0 ; i < splitRL.length ; i++)
 			{
 				if(!PSTBUtil.isInteger(splitRL[i], true))
@@ -107,7 +107,7 @@ public class BenchmarkVariables {
 		ArrayList<Integer> propIMR = new ArrayList<Integer>();
 		if(unsplitIMR != null)
 		{
-			String[] splitIMR = unsplitIMR.split(",");
+			String[] splitIMR = unsplitIMR.split(PSTBUtil.COMMA);
 			for(int i = 0 ; i < splitIMR.length ; i++)
 			{
 				if(!PSTBUtil.isInteger(splitIMR[i], true))
@@ -134,7 +134,7 @@ public class BenchmarkVariables {
 		ArrayList<ValidProtocol> propProto = new ArrayList<ValidProtocol>();
 		if(unsplitProtocols != null)
 		{
-			String[] splitProtocols = unsplitProtocols.split(",");
+			String[] splitProtocols = unsplitProtocols.split(PSTBUtil.COMMA);
 			int numGivenProtocols = splitProtocols.length;
 			if(numGivenProtocols <= ValidProtocol.values().length)
 			{
@@ -167,7 +167,7 @@ public class BenchmarkVariables {
 		 * topologyFilesPaths
 		 */
 		String unsplitTFP = givenProperty.getProperty("pstb.topologyFilesPaths");
-		String[] splitTFP = unsplitTFP.split(",");
+		String[] splitTFP = unsplitTFP.split(PSTBUtil.COMMA);
 		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(splitTFP));
 		
 		/*
@@ -177,7 +177,7 @@ public class BenchmarkVariables {
 		ArrayList<ValidDistributedValue> propDis = new ArrayList<ValidDistributedValue>();
 		if(unsplitDis != null)
 		{
-			String[] splitDis = unsplitDis.split(",");
+			String[] splitDis = unsplitDis.split(PSTBUtil.COMMA);
 			int numGivenDis = splitDis.length;
 			if(numGivenDis == splitTFP.length)
 			{

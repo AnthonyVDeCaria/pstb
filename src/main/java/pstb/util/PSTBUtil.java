@@ -14,6 +14,9 @@ import org.apache.logging.log4j.Logger;
 public class PSTBUtil {
 	private static final Logger logger = LogManager.getRootLogger();
 	
+	public static final String SPACE = " ";
+	public static final String COMMA = ",";
+	
 	/**
 	 * Sees if a given string is an Integer
 	 * @param s - the string to look at
