@@ -87,8 +87,8 @@ public class TopologyFileParser {
 	private boolean checkProperRoles(String roles)
 	{		
 		String[] brokenTypes = roles.split(PSTBUtil.COMMA);
-		
 		List<NodeRole> nodeTypeLedger = new ArrayList<NodeRole>();
+		boolean allRolesProper = true;
 		
 		for(int i = 0 ; i < brokenTypes.length ; i++)
 		{
@@ -99,8 +99,8 @@ public class TopologyFileParser {
 			}
 			catch(IllegalArgumentException e)
 			{
+				allRolesProper = false;
 				logger.error("Parser: " + brokenTypes[i] + " is not a valid type.", e);
-				return false;
 			}
 			
 			if(!nodeTypeLedger.contains(brokenTypesI))
@@ -109,12 +109,12 @@ public class TopologyFileParser {
 			}
 			else
 			{
-				logger.error("Parser: More than one of the same type, " + brokenTypesI + ", selected.");
-				return false;
+				allRolesProper = false;
+				logger.error("Parser: More than one of the same type, " + brokenTypesI + ", requested.");
 			}
 		}
 		
-		return true;
+		return allRolesProper;
 	}
 	
 	/**

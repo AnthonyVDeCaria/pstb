@@ -17,7 +17,7 @@ import pstb.util.PSTBUtil;
 import pstb.util.ValidDistributedValue;
 import pstb.util.ValidProtocol;
 
-public class BenchmarkVariables {
+public class BenchmarkConfig {
 	Integer numRunsPerExperiment;
 	
 	ArrayList<Integer> runLengths;
@@ -33,9 +33,9 @@ public class BenchmarkVariables {
 	 * Empty constructor
 	 * 
 	 * The Integers are set to 0, as these are not valid numbers
-	 * (You can't have no runs per experiment, or run for 0 minutes) 
+	 * (You can't have 0 runs per experiment) 
 	 */
-	public BenchmarkVariables()
+	public BenchmarkConfig()
 	{
 		numRunsPerExperiment = new Integer(0);
 		runLengths = new ArrayList<Integer>();
@@ -47,50 +47,55 @@ public class BenchmarkVariables {
 	
 	/**
 	 * Sets all the benchmark variables' values after doing some quick parsing
-	 * (Seeing as some of these fields have to go from String to other types)
+	 * (seeing as some of these fields have to go from String to other types).
 	 * If there is any errors, these fields will either not be set (the Integers),
 	 * or be made empty (ArrayLists).
-	 * The tested fields are numRunsPerExperiment, idealMessageRates,
-	 * protocols, runLength.
+	 * The tested fields are numRunsPerExperiment, runLengths, idealMessageRates,
+	 * protocols, and distributed.
 	 * 
 	 * @param givenProperty - the Properties object that contains the desired values.
 	 * @return true if everything sets successfully; false otherwise
 	 */
-	public boolean setBenchmarkVariable(Properties givenProperty)
+	public boolean setBenchmarkConfig(Properties givenProperty)
 	{
 		boolean everythingisProper = true;
 		
 		/*
 		 * numRunsPerExperiment
 		 */
-		String sNRPE = givenProperty.getProperty("pstb.numRunsPerExperiment");
-		if(PSTBUtil.isInteger(sNRPE, true))
+		String givenNRPE = givenProperty.getProperty("pstb.numRunsPerExperiment");
+		try
 		{
-			setNumRunsPerExperiment(Integer.parseInt(sNRPE));
+			Integer intNRPE = Integer.parseInt(givenNRPE);
+			setNumRunsPerExperiment(intNRPE);
 		}
-		else
+		catch(IllegalArgumentException e)
 		{
-			everythingisProper = false;			
+			logger.error("Properties: " + givenNRPE + " is not a valid Integer.", e);
+			everythingisProper = false;
 		}
 		
 		/*
 		 * runLengths
 		 */
-		String sRL = givenProperty.getProperty("pstb.runLengths");
-		ArrayList<Integer> rL = new ArrayList<Integer>();
-		if(sRL != null)
+		String unsplitRL = givenProperty.getProperty("pstb.runLengths");
+		ArrayList<Integer> propRL = new ArrayList<Integer>();
+		if(unsplitRL != null)
 		{
-			String[] splitRL = sRL.split(PSTBUtil.COMMA);
+			String[] splitRL = unsplitRL.split(PSTBUtil.COMMA);
 			for(int i = 0 ; i < splitRL.length ; i++)
 			{
-				if(!PSTBUtil.isInteger(splitRL[i], true))
+				try
 				{
-					rL.clear();
-					break;
+					Integer sRLI = Integer.parseInt(splitRL[i]);
+					propRL.add(sRLI);
 				}
-				else
+				catch(IllegalArgumentException e)
 				{
-					rL.add(Integer.parseInt(splitRL[i]));
+					everythingisProper = false;
+					propRL.clear();
+					logger.error("Properties: " + splitRL[i] + " is not a valid Integer.", e);
+					break;
 				}
 			}
 		}
@@ -98,7 +103,7 @@ public class BenchmarkVariables {
 		{
 			everythingisProper = false;
 		}
-		setRunLengths(rL);
+		setRunLengths(propRL);
 		
 		/*
 		 * idealMessageRates
@@ -110,14 +115,17 @@ public class BenchmarkVariables {
 			String[] splitIMR = unsplitIMR.split(PSTBUtil.COMMA);
 			for(int i = 0 ; i < splitIMR.length ; i++)
 			{
-				if(!PSTBUtil.isInteger(splitIMR[i], true))
+				try
 				{
-					propIMR.clear();
-					break;
+					Integer sIMRI = Integer.parseInt(splitIMR[i]);
+					propIMR.add(sIMRI);
 				}
-				else
+				catch(IllegalArgumentException e)
 				{
-					propIMR.add(Integer.parseInt(splitIMR[i]));
+					everythingisProper = false;
+					propIMR.clear();
+					logger.error("Properties: " + splitIMR[i] + " is not a valid Integer.", e);
+					break;
 				}
 			}
 		}
@@ -147,8 +155,10 @@ public class BenchmarkVariables {
 					}
 					catch(IllegalArgumentException e)
 					{
+						everythingisProper = false;
 						propProto.clear();
-						logger.error("Properties: " + splitProtocols[i] + " is not a valid protocol.", e);
+						logger.error("Properties: " + splitProtocols[i] + " is not a valid Protocol.", e);
+						break;
 					}
 				}
 			}
@@ -190,6 +200,7 @@ public class BenchmarkVariables {
 					}
 					catch(IllegalArgumentException e)
 					{
+						everythingisProper = false;
 						propDis.clear();
 						logger.error("Properties: " + splitDis[i] + " is not a valid Distributed value.", e);
 					}

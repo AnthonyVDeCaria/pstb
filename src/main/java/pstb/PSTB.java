@@ -13,7 +13,7 @@ import java.util.Scanner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.BenchmarkVariables;
+import pstb.startup.BenchmarkConfig;
 import pstb.startup.TopologyFileParser;
 import pstb.util.LogicalTopology;
 import pstb.util.UI;
@@ -21,16 +21,43 @@ import pstb.util.UI;
 public class PSTB {
 	private static final Logger logger = LogManager.getRootLogger();
 	
-	private static Properties loadProperties(String propertyFile, Properties defaultProperties) throws IOException {
+	/**
+	 * Extracts the properties from a given properties file 
+	 * and stores it in a new Property object.
+	 * Throws an IOExpection if it cannot find the file along the path specified
+	 * @param propertyFilePath - the path to the properties file
+	 * @param defaultProperties - any existing properties files. 
+	 *        If none exist, add null.
+	 * @return a loaded properties file
+	 * @throws IOException
+	 */
+	private static Properties loadProperties(String propertyFilePath, Properties defaultProperties) throws IOException {
 		Properties properties = new Properties(defaultProperties);
 		
-		FileInputStream propFileStream = new FileInputStream(propertyFile);
+		FileInputStream propFileStream = new FileInputStream(propertyFilePath);
 		properties.load(propFileStream);
 		propFileStream.close();
 		
 		return properties;
 	}
 	
+	/**
+	 * Ends the main program
+	 * @param errorClassification - the type of error that occurred - including no error
+	 * @param simpleUserInput - the UI scanner used for the yes or no answers
+	 * @see TODO: error handling on exit
+	 */
+	private static void endProgram(Integer errorClassification, Scanner simpleUserInput)
+	{
+		logger.info("Ending program.");
+		simpleUserInput.close();
+		System.exit(errorClassification);
+	}
+	
+	/**
+	 * The main function
+	 * @param args - the arguments to the main function
+	 */
 	public static void main(String[] args)
 	{
 		logger.info("Starting program.");
@@ -44,118 +71,117 @@ public class PSTB {
 		}
 		catch (IOException e)
 		{
-			logger.error("Properties: Couldn't load default properties file", e);
+			logger.error("Properties: Couldn't find default properties file", e);
+			endProgram(1, simpleUserInput);
+		}
+				
+		BenchmarkConfig benchmarkRules = new BenchmarkConfig();
+		
+		String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
+		boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
+		if (!customBenchPropAns)
+		{
+			logger.info("Loading the default Properties file...");
+			benchmarkRules.setBenchmarkConfig(defaultProp);
+		}
+		else
+		{
+			try
+			{
+				logger.info("Loading the user Properties file...");
+				Properties userProp = loadProperties("src/test/java/userBenchmar2.properties", defaultProp);
+				benchmarkRules.setBenchmarkConfig(userProp);
+			}
+			catch (IOException e)
+			{
+				logger.error("Properties: Couldn't find user properties file", e);
+				endProgram(1, simpleUserInput);
+			}
 		}
 		
-		if(defaultProp != null)
-		{			
-			BenchmarkVariables benchmarkRules = new BenchmarkVariables();
+		if(benchmarkRules.checkForNullFields())
+		{
+			logger.error("Errors loading the properties file!");
+			endProgram(1, simpleUserInput);
+		}
+		
+		logger.info("No errors loading the Properties file!");
+		
+		boolean allToposOk = true;
+		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
+		
+		logger.info("Starting to disect Topology Files...");
+		
+		for(int i = 0 ; i < allTopoFiles.size(); i++)
+		{
+			TopologyFileParser parserTopo = new TopologyFileParser();
+			String topoI = allTopoFiles.get(i);
 			
-			String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
-			boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
-			if (!customBenchPropAns)
+			logger.info("Parsing Topology File " + topoI + "...");
+			
+			boolean parseCheck = parserTopo.parse(topoI);
+			if(!parseCheck)
 			{
-				logger.info("Loading the default Properties file...");
-				benchmarkRules.setBenchmarkVariable(defaultProp);
+				allToposOk = false;
+				logger.error("Parse Failed for file " + topoI + "!");
 			}
 			else
 			{
-				try
-				{
-					logger.info("Loading the user Properties file...");
-					Properties userProp = loadProperties("src/test/java/userBenchmark2.properties", defaultProp);
-					benchmarkRules.setBenchmarkVariable(userProp);
-				}
-				catch (IOException e)
-				{
-					logger.error("Properties: Couldn't load user properties file", e);
-				}
-			}
-			
-			if(benchmarkRules.checkForNullFields())
-			{
-				logger.error("Error with properties file!");
-			}
-			else
-			{
-				logger.info("No errors loading the Properties file!");
-				boolean allToposOk = true;
-				ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
+				logger.info("Parse Complete for file " + topoI + "!");
 				
-				logger.info("Starting to disect Topology Files...");
-				for(int i = 0 ; i < allTopoFiles.size(); i++)
+				LogicalTopology network = parserTopo.getLogicalTopo();
+				
+				logger.info("Starting Topology Testing with topology " + topoI + "...");
+				
+				boolean mCCheck = network.confirmBrokerMutualConnectivity();
+				if(!mCCheck)
 				{
-					TopologyFileParser parserTopo = new TopologyFileParser();
-					String topoI = allTopoFiles.get(i);
+					logger.info("Topology File " + topoI + " has one way connections.");
 					
-					logger.info("Parsing Topology File " + topoI + "...");
-					boolean parseCheck = parserTopo.parse(topoI);
+					String fixBroker = topoI + " is not mutually connected\n"
+							+ "Would you like us to fix this internally before testing topology Y/n?\n"
+							+ "Answering 'n' will terminate the program.";
 					
-					if(!parseCheck)
+					boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
+					if (!fixBrokerAns)
 					{
-						allToposOk = false;
-						logger.error("Parse Failed for file " + topoI + "!");
+						endProgram(2, simpleUserInput);
 					}
 					else
 					{
-						logger.info("Parse Complete for file " + topoI + "!");
-						
-						LogicalTopology network = parserTopo.getLogicalTopo();
-						
-						logger.info("Starting Topology Testing with topology " + topoI + "...");
-						boolean mCCheck = network.confirmBrokerMutualConnectivity();
-						if(!mCCheck)
+						try
 						{
-							logger.info("Topology File " + topoI + " has one way connections.");
-							
-							String fixBroker = topoI + " is not mutually connected\n"
-									+ "Would you like us to fix this internally before testing topology Y/n?\n"
-									+ "Answering 'n' will terminate the program.";
-							boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
-							
-							if (!fixBrokerAns)
-							{
-								logger.info("Ending program.");
-								simpleUserInput.close();
-								System.exit(0);
-							}
-							else
-							{
-								try
-								{
-									network.forceMutualConnectivity();
-								}
-								catch(IllegalArgumentException e)
-								{
-									logger.error("Topology: Problem forcing mutual connectivity for topology " 
-											+ topoI, e);
-									logger.info("Ending program.");
-									System.exit(0);
-								}
-							}
+							network.forceMutualConnectivity();
 						}
-						
-						boolean topoCheck = network.confirmTopoConnectivity();
-						if(!topoCheck)
+						catch(IllegalArgumentException e)
 						{
-							allToposOk = false;
-							logger.error("Topology Check Failed for topology " + topoI + "!");
-						}
-						else
-						{
-							logger.info("Topology Check Complete for topology " + topoI + "!");
+							logger.error("Topology: Problem forcing mutual connectivity for topology " 
+									+ topoI, e);
+							endProgram(2, simpleUserInput);
 						}
 					}
 				}
 				
-				if(allToposOk)
+				boolean topoCheck = network.confirmTopoConnectivity();
+				if(!topoCheck)
 				{
-					logger.info("All topologies valid!!");
+					allToposOk = false;
+					logger.error("Topology Check Failed for topology " + topoI + "!");
+				}
+				else
+				{
+					logger.info("Topology Check Complete for topology " + topoI + "!");
 				}
 			}
 		}
 		
-		logger.info("Ending program.");
-		simpleUserInput.close();
+		if(!allToposOk)
+		{
+			endProgram(2, simpleUserInput);
+		}
+		
+		logger.info("All topologies valid!!");
+		
+		endProgram(0, simpleUserInput);
 	}
 }

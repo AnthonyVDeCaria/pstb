@@ -16,6 +16,7 @@ public class UI {
 	 * And returns it as a boolean.
 	 * 
 	 * @param prompt - A prompt for the user
+	 * @param userInterface - the scanner the user is utilizing to give their response
 	 * @return true if the user typed y or Y; false if they typed n or N
 	 */
 	public static boolean getYNAnswerFromUser(String prompt, Scanner userInterface)
