@@ -109,6 +109,7 @@ public class PSTB {
 		
 		boolean allToposOk = true;
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
+		ArrayList<LogicalTopology> allTopos = new ArrayList<LogicalTopology>();
 		
 		logger.info("Starting to disect Topology Files...");
 		
@@ -166,10 +167,12 @@ public class PSTB {
 				if(!topoCheck)
 				{
 					allToposOk = false;
+					allTopos.clear();
 					logger.error("Topology Check Failed for topology " + topoI + "!");
 				}
 				else
 				{
+					allTopos.add(network);
 					logger.info("Topology Check Complete for topology " + topoI + "!");
 				}
 			}
@@ -177,6 +180,7 @@ public class PSTB {
 		
 		if(!allToposOk)
 		{
+			allTopos.clear();
 			endProgram(2, simpleUserInput);
 		}
 		
