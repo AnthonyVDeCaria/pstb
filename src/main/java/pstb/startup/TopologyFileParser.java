@@ -88,7 +88,6 @@ public class TopologyFileParser {
 	{		
 		String[] brokenTypes = roles.split(PSTBUtil.COMMA);
 		List<NodeRole> nodeTypeLedger = new ArrayList<NodeRole>();
-		boolean allRolesProper = true;
 		
 		for(int i = 0 ; i < brokenTypes.length ; i++)
 		{
@@ -99,22 +98,34 @@ public class TopologyFileParser {
 			}
 			catch(IllegalArgumentException e)
 			{
-				allRolesProper = false;
 				logger.error("Parser: " + brokenTypes[i] + " is not a valid type.", e);
+				return false;
 			}
 			
-			if(!nodeTypeLedger.contains(brokenTypesI))
+			if(nodeTypeLedger.contains(brokenTypesI))
 			{
-				nodeTypeLedger.add(brokenTypesI);
-			}
-			else
-			{
-				allRolesProper = false;
 				logger.error("Parser: More than one of the same type, " + brokenTypesI + ", requested.");
+				return false;
 			}
+			
+			if( (brokenTypesI.equals(NodeRole.P) || brokenTypesI.equals(NodeRole.S)) 
+					&& nodeTypeLedger.contains(NodeRole.B))
+			{
+				logger.error("Parser: A broker cannot be a client.");
+				return false;
+			}
+			
+			if ( (brokenTypesI.equals(NodeRole.B)) 
+					&& (nodeTypeLedger.contains(NodeRole.P) || nodeTypeLedger.contains(NodeRole.S) ) )
+			{
+				logger.error("Parser: A client cannot be a broker.");
+				return false;
+			}
+			
+			nodeTypeLedger.add(brokenTypesI);
 		}
 		
-		return allRolesProper;
+		return true;
 	}
 	
 	/**
@@ -125,7 +136,6 @@ public class TopologyFileParser {
 	 */
 	private boolean checkUniqueName(String name)
 	{	
-		boolean isNameUnique = false;
 		try
 		{
 			logicalTopo.forEach((role, group)->{
@@ -134,14 +144,14 @@ public class TopologyFileParser {
 					throw new IllegalArgumentException();
 				}
 			});
-			isNameUnique = true;
 		}
 		catch(IllegalArgumentException e)
 		{
 			logger.error("Parser: Node " + name + " already exists!");
+			return false;
 		}
 		
-		return isNameUnique;
+		return true;
 	}
 	
 	/**

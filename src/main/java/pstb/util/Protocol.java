@@ -1,5 +1,5 @@
 package pstb.util;
 
-public enum ValidProtocol {
+public enum Protocol {
 	socket, rmi
 }

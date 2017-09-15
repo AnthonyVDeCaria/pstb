@@ -89,7 +89,7 @@ public class PSTB {
 			try
 			{
 				logger.info("Loading the user Properties file...");
-				Properties userProp = loadProperties("src/test/java/userBenchmar2.properties", defaultProp);
+				Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
 				benchmarkRules.setBenchmarkConfig(userProp);
 			}
 			catch (IOException e)

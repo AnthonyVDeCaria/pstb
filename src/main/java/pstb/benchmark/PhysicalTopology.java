@@ -5,10 +5,10 @@
 package pstb.benchmark;
 
 import pstb.util.LogicalTopology;
-import pstb.util.ValidDistributedState;
+import pstb.util.DistributedState;
 
 public class PhysicalTopology {
-	private ValidDistributedState disInfo;
+	private DistributedState disInfo;
 	private LogicalTopology topo;
 	//TODO: Clients
 	//TODO: Brokers
@@ -16,7 +16,8 @@ public class PhysicalTopology {
 	/**
 	 * 
 	 */
-	public PhysicalTopology() {
+	public PhysicalTopology() 
+	{
 		
 	}
 	

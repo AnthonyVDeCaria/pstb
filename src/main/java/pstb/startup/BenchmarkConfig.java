@@ -14,8 +14,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSTBUtil;
-import pstb.util.ValidDistributedState;
-import pstb.util.ValidProtocol;
+import pstb.util.DistributedState;
+import pstb.util.Protocol;
 
 public class BenchmarkConfig {
 	Integer numRunsPerExperiment;
@@ -23,9 +23,9 @@ public class BenchmarkConfig {
 	ArrayList<Integer> runLengths;
 	ArrayList<Integer> idealMessageRates;
 	
-	ArrayList<ValidProtocol> protocols;
+	ArrayList<Protocol> protocols;
 	ArrayList<String> topologyFilesPaths;
-	ArrayList<ValidDistributedState> distributed;
+	ArrayList<DistributedState> distributed;
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	
@@ -40,9 +40,9 @@ public class BenchmarkConfig {
 		numRunsPerExperiment = new Integer(0);
 		runLengths = new ArrayList<Integer>();
 		idealMessageRates = new ArrayList<Integer>();
-		protocols = new ArrayList<ValidProtocol>();
+		protocols = new ArrayList<Protocol>();
 		topologyFilesPaths = new ArrayList<String>();
-		distributed = new ArrayList<ValidDistributedState>();
+		distributed = new ArrayList<DistributedState>();
 	}
 	
 	/**
@@ -139,18 +139,18 @@ public class BenchmarkConfig {
 		 * Protocols
 		 */
 		String unsplitProtocols = givenProperty.getProperty("pstb.protocols");
-		ArrayList<ValidProtocol> propProto = new ArrayList<ValidProtocol>();
+		ArrayList<Protocol> propProto = new ArrayList<Protocol>();
 		if(unsplitProtocols != null)
 		{
 			String[] splitProtocols = unsplitProtocols.split(PSTBUtil.COMMA);
 			int numGivenProtocols = splitProtocols.length;
-			if(numGivenProtocols <= ValidProtocol.values().length)
+			if(numGivenProtocols <= Protocol.values().length)
 			{
 				for(int i = 0 ; i < numGivenProtocols ; i++ )
 				{
 					try
 					{
-						ValidProtocol sPI = ValidProtocol.valueOf(splitProtocols[i]);
+						Protocol sPI = Protocol.valueOf(splitProtocols[i]);
 						propProto.add(sPI);
 					}
 					catch(IllegalArgumentException e)
@@ -184,7 +184,7 @@ public class BenchmarkConfig {
 		 * distributed
 		 */
 		String unsplitDis = givenProperty.getProperty("pstb.distributed");
-		ArrayList<ValidDistributedState> propDis = new ArrayList<ValidDistributedState>();
+		ArrayList<DistributedState> propDis = new ArrayList<DistributedState>();
 		if(unsplitDis != null)
 		{
 			String[] splitDis = unsplitDis.split(PSTBUtil.COMMA);
@@ -195,7 +195,7 @@ public class BenchmarkConfig {
 				{
 					try
 					{
-						ValidDistributedState sDI = ValidDistributedState.valueOf(splitDis[i]);
+						DistributedState sDI = DistributedState.valueOf(splitDis[i]);
 						propDis.add(sDI);
 					}
 					catch(IllegalArgumentException e)
@@ -310,7 +310,7 @@ public class BenchmarkConfig {
 	 * Gets the protocols
 	 * @return protocols - the list of protocols to be use in different runs
 	 */
-	public ArrayList<ValidProtocol> getProtocols()
+	public ArrayList<Protocol> getProtocols()
 	{
 		return this.protocols;
 	}
@@ -328,7 +328,7 @@ public class BenchmarkConfig {
 	 * Gets the distributed
 	 * @return distributed - the list of wither each topology is distributed or not
 	 */
-	public ArrayList<ValidDistributedState> getDistributed()
+	public ArrayList<DistributedState> getDistributed()
 	{
 		return this.distributed;
 	}
@@ -369,7 +369,7 @@ public class BenchmarkConfig {
 	 * Sets the protocols
 	 * @param proto - the new protocols
 	 */
-	private void setProtocols(ArrayList<ValidProtocol> proto)
+	private void setProtocols(ArrayList<Protocol> proto)
 	{
 		protocols = proto;
 	}
@@ -387,7 +387,7 @@ public class BenchmarkConfig {
 	 * Sets the protocols
 	 * @param dis - the new distributed
 	 */
-	private void setDistributed(ArrayList<ValidDistributedState> dis)
+	private void setDistributed(ArrayList<DistributedState> dis)
 	{
 		distributed = dis;
 	}
