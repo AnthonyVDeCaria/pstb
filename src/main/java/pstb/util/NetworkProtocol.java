@@ -1,5 +1,5 @@
 package pstb.util;
 
-public enum Protocol {
+public enum NetworkProtocol {
 	socket, rmi
 }

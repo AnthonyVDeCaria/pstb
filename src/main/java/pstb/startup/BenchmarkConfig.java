@@ -15,15 +15,17 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSTBUtil;
 import pstb.util.DistributedState;
-import pstb.util.Protocol;
+import pstb.util.NetworkProtocol;
 
 public class BenchmarkConfig {
 	Integer numRunsPerExperiment;
+	String pubWorkloadFilePath;
+	String subWorkloadFilePath;
 	
 	ArrayList<Integer> runLengths;
 	ArrayList<Integer> idealMessageRates;
 	
-	ArrayList<Protocol> protocols;
+	ArrayList<NetworkProtocol> protocols;
 	ArrayList<String> topologyFilesPaths;
 	ArrayList<DistributedState> distributed;
 	
@@ -38,9 +40,11 @@ public class BenchmarkConfig {
 	public BenchmarkConfig()
 	{
 		numRunsPerExperiment = new Integer(0);
+		pubWorkloadFilePath = new String();
+		subWorkloadFilePath = new String();
 		runLengths = new ArrayList<Integer>();
 		idealMessageRates = new ArrayList<Integer>();
-		protocols = new ArrayList<Protocol>();
+		protocols = new ArrayList<NetworkProtocol>();
 		topologyFilesPaths = new ArrayList<String>();
 		distributed = new ArrayList<DistributedState>();
 	}
@@ -74,6 +78,18 @@ public class BenchmarkConfig {
 			logger.error("Properties: " + givenNRPE + " is not a valid Integer.", e);
 			everythingisProper = false;
 		}
+		
+		/*
+		 * pubWorkloadFilePath
+		 */
+		String propPWFP = givenProperty.getProperty("pstb.pubWorkloadFilePath");
+		setPubWorkloadFilePath(propPWFP);
+		
+		/*
+		 * subWorkloadFilePath
+		 */
+		String propSWFP = givenProperty.getProperty("pstb.subWorkloadFilePath");
+		setSubWorkloadFilePath(propSWFP);
 		
 		/*
 		 * runLengths
@@ -139,18 +155,18 @@ public class BenchmarkConfig {
 		 * Protocols
 		 */
 		String unsplitProtocols = givenProperty.getProperty("pstb.protocols");
-		ArrayList<Protocol> propProto = new ArrayList<Protocol>();
+		ArrayList<NetworkProtocol> propProto = new ArrayList<NetworkProtocol>();
 		if(unsplitProtocols != null)
 		{
 			String[] splitProtocols = unsplitProtocols.split(PSTBUtil.COMMA);
 			int numGivenProtocols = splitProtocols.length;
-			if(numGivenProtocols <= Protocol.values().length)
+			if(numGivenProtocols <= NetworkProtocol.values().length)
 			{
 				for(int i = 0 ; i < numGivenProtocols ; i++ )
 				{
 					try
 					{
-						Protocol sPI = Protocol.valueOf(splitProtocols[i]);
+						NetworkProtocol sPI = NetworkProtocol.valueOf(splitProtocols[i]);
 						propProto.add(sPI);
 					}
 					catch(IllegalArgumentException e)
@@ -229,6 +245,8 @@ public class BenchmarkConfig {
 	public void printAllFields()
 	{
 		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
+		logger.info("Properties: pubWorkloadFilePath = " + pubWorkloadFilePath);
+		logger.info("Properties: subWorkloadFilePath = " + subWorkloadFilePath);
 		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
 		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
 		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
@@ -310,7 +328,7 @@ public class BenchmarkConfig {
 	 * Gets the protocols
 	 * @return protocols - the list of protocols to be use in different runs
 	 */
-	public ArrayList<Protocol> getProtocols()
+	public ArrayList<NetworkProtocol> getProtocols()
 	{
 		return this.protocols;
 	}
@@ -334,8 +352,26 @@ public class BenchmarkConfig {
 	}
 	
 	/**
+	 * Gets the pubWorkloadFilePath
+	 * @return the pubWorkloadFilePath
+	 */
+	public String getPubWorkloadFilePath()
+	{
+		return this.pubWorkloadFilePath;
+	}
+	
+	/**
+	 * Gets the subWorkloadFilePath
+	 * @return the subWorkloadFilePath
+	 */
+	public String getSubWorkloadFilePath()
+	{
+		return this.subWorkloadFilePath;
+	}
+	
+	/**
 	 * NOTE: All the setter functions are private 
-	 * as the only "setter" that should be accessed is setBenchmarkVariable
+	 * as the only "setter" that should be accessed is setBenchmarkConfig
 	 */
 	
 	/**
@@ -345,6 +381,24 @@ public class BenchmarkConfig {
 	private void setNumRunsPerExperiment(Integer nRPE)
 	{
 		numRunsPerExperiment = nRPE;
+	}
+	
+	/**
+	 * Sets the pubWorkloadFilePath
+	 * @param nPWFP - the new pubWorkloadFilePath
+	 */
+	private void setPubWorkloadFilePath(String nPWFP)
+	{
+		pubWorkloadFilePath = nPWFP;
+	}
+	
+	/**
+	 * Sets the subWorkloadFilePath
+	 * @param nSWFP - the new subWorkloadFilePath
+	 */
+	private void setSubWorkloadFilePath(String nSWFP)
+	{
+		subWorkloadFilePath = nSWFP;
 	}
 	
 	/**
@@ -369,7 +423,7 @@ public class BenchmarkConfig {
 	 * Sets the protocols
 	 * @param proto - the new protocols
 	 */
-	private void setProtocols(ArrayList<Protocol> proto)
+	private void setProtocols(ArrayList<NetworkProtocol> proto)
 	{
 		protocols = proto;
 	}
@@ -384,7 +438,7 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Sets the protocols
+	 * Sets the distributed array
 	 * @param dis - the new distributed
 	 */
 	private void setDistributed(ArrayList<DistributedState> dis)

@@ -18,7 +18,7 @@ public class PADRESClient{
 	private static final Logger clientLogger = LogManager.getRootLogger();
 	
 	private Client actualClient;
-	private ArrayList<BrokerState> connectedBrokerStates;
+	private ArrayList<BrokerState> connectedBrokers;
 	private Thread listens;
 	private MessageQueue receivedQueue;
 	
@@ -99,7 +99,7 @@ public class PADRESClient{
 			String iTHURI = brokerURIs.get(i);
 			try
 			{
-				connectedBrokerStates.add(actualClient.connect(iTHURI));
+				connectedBrokers.add(actualClient.connect(iTHURI));
 			}
 			catch (ClientException e)
 			{
@@ -134,18 +134,37 @@ public class PADRESClient{
 		 * 				start listening
 		 * If we are a publisher
 		 */
-
-//		createDiaryEntry() 
+		
+	}
+	
+	/**
+	 * Starts the listening thread
+	 */
+	public void listen() 
+	{
+		actualClient.addMessageQueue(receivedQueue);
+		listens = new Thread (new PADRESListen());
+		listens.start();
+	}
+	
+	private boolean exectueAction(ClientAction givenAction, String attributes)
+	{
+		boolean actionSuccessful = false;
+		createDiaryEntry(givenAction, attributes); 
 		Long startTime = System.nanoTime();
-//		handleAction();
+		actionSuccessful = handleAction(givenAction, attributes);
 		Long endTime = System.nanoTime();
 		
-		Long timeDiff = endTime - startTime;
+		if(actionSuccessful)
+		{
+			Long timeDiff = endTime - startTime;
+			
+			updateDiaryEntry(DiaryHeader.TimeStartedAction, startTime.toString(), givenAction.toString(), attributes);
+			updateDiaryEntry(DiaryHeader.TimeBrokerAck, endTime.toString(), givenAction.toString(), attributes);
+			updateDiaryEntry(DiaryHeader.AckDelay, timeDiff.toString(), givenAction.toString(), attributes);
+		}
 		
-//		updateDiaryEntry(DiaryHeader.TimeStartedAction, startTime.toString());
-//		updateDiaryEntry(DiaryHeader.TimeBrokerAck, endTime.toString());
-//		updateDiaryEntry(DiaryHeader.AckDelay, timeDiff.toString());
-		
+		return actionSuccessful;
 	}
 
 	private boolean handleAction(ClientAction givenAction, String attributes) 
@@ -198,16 +217,6 @@ public class PADRESClient{
 		
 		return true;
 	}
-	
-	/**
-	 * Starts the listening thread
-	 */
-	public void listen() 
-	{
-		actualClient.addMessageQueue(receivedQueue);
-		listens = new Thread (new PADRESListen());
-		listens.start();
-	}
 
 	/**
 	 * Creates a new diary entry
@@ -229,17 +238,17 @@ public class PADRESClient{
 	 * @param newHeader - the new header
 	 * @param newData - the new data to add
 	 * @param attributes - the given attributes
-	 * @param ClientAction - the client action associated with this transaction
+	 * @param clientAction - the client action associated with this transaction
 	 * @return false on error; true if successful
 	 */
-	private boolean updateDiaryEntry(DiaryHeader newHeader, String newData, String ClientAction, String attributes) 
+	private boolean updateDiaryEntry(DiaryHeader newHeader, String newData, String clientAction, String attributes) 
 	{
 		boolean successfulUpdate = false;
 		
 		for(int i = 0; i < diary.size() ; i++)
 		{
 			HashMap<DiaryHeader, String> iTHEntry = diary.get(i);
-			if(iTHEntry.containsValue(ClientAction) && iTHEntry.containsValue(attributes))
+			if(iTHEntry.containsValue(clientAction) && iTHEntry.containsValue(attributes))
 			{
 				iTHEntry.put(newHeader, newData);
 				successfulUpdate = true;
