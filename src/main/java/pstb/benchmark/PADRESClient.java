@@ -13,6 +13,7 @@ import ca.utoronto.msrg.padres.common.comm.MessageQueue;
 import ca.utoronto.msrg.padres.common.message.Message;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.ClientAction;
+import pstb.util.Workload;
 
 public class PADRESClient{
 	private static final Logger clientLogger = LogManager.getRootLogger();
@@ -24,8 +25,7 @@ public class PADRESClient{
 	
 	private String clientName;
 	private ArrayList<String> brokerURIs;
-	//TODO: Publisher Workload
-	//TODO: Subscriber Workload
+	private HashMap<ClientAction, ArrayList<Workload>> actions;
 	private ArrayList<HashMap<DiaryHeader, String>> diary;
 	
 	public PADRESClient()
@@ -34,17 +34,19 @@ public class PADRESClient{
 		brokerURIs = new ArrayList<String>();
 		diary = new ArrayList<HashMap<DiaryHeader, String>>();
 		receivedQueue = new MessageQueue();
+		actions = new HashMap<ClientAction, ArrayList<Workload>>();
 	}
 
 	/**
 	 * Sets some of the variables and creates a new Client
 	 * (The idea being you would initialize a general Client first before giving it it's tasks
 	 * @param givenName - the name of the client
-	 * @param givenRoles - the roles of this client
 	 * @param givenURIs - the BrokerURIs this client will connect to
+	 * @param givenActionSet - the set of actions this client will have to do
 	 * @return false if there's a failure; true otherwise
 	 */
-	public boolean initialize(String givenName, ArrayList<String> givenURIs) 
+	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
+			HashMap<ClientAction, ArrayList<Workload>> givenActionSet) 
 	{
 		clientLogger.info("Client: Attempting to initialize client " + givenName);
 		
@@ -60,6 +62,7 @@ public class PADRESClient{
 		
 		clientName = givenName;
 		brokerURIs = givenURIs;
+		actions = givenActionSet;
 		clientLogger.info("Client:  Initialized client " + givenName);
 		return true;
 	}
@@ -125,16 +128,7 @@ public class PADRESClient{
 
 	public void startRun() 
 	{
-		/*
-		 * Get roles
-		 * If we are a subscriber
-		 * 		get what we're subscribing to
-		 * 		attempt to subscribe to it
-		 * 			if we can
-		 * 				start listening
-		 * If we are a publisher
-		 */
-		
+				
 	}
 	
 	/**
@@ -179,26 +173,31 @@ public class PADRESClient{
 				{
 					clientLogger.info(generalLog + "advertize " + attributes);
 					actualClient.advertise(attributes, brokerURIs.get(0));
+					break;
 				}
 				case V:
 				{
 					clientLogger.info(generalLog + "unadvertize " + attributes);
 					actualClient.unAdvertiseAll(); // For now
+					break;
 				}
 				case P:
 				{
 					clientLogger.info(generalLog + "publish " + attributes);
 					actualClient.publish(attributes, brokerURIs.get(0));
+					break;
 				}
 				case S:
 				{
 					clientLogger.info(generalLog + "subscribe to " + attributes);
 					actualClient.subscribe(attributes, brokerURIs.get(0));
+					break;
 				}
 				case U:
 				{
 					clientLogger.info(generalLog + "unsubscribe from " + attributes);
 					actualClient.unsubscribeAll(); // For now
+					break;
 				}
 				default:
 					break;

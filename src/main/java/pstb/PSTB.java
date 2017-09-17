@@ -15,7 +15,9 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.startup.BenchmarkConfig;
 import pstb.startup.TopologyFileParser;
+import pstb.startup.WorkloadFileParser;
 import pstb.util.LogicalTopology;
+import pstb.util.NodeRole;
 import pstb.util.UI;
 
 public class PSTB {
@@ -115,12 +117,12 @@ public class PSTB {
 		
 		for(int i = 0 ; i < allTopoFiles.size(); i++)
 		{
-			TopologyFileParser parserTopo = new TopologyFileParser();
 			String topoI = allTopoFiles.get(i);
+			TopologyFileParser parseTopo = new TopologyFileParser(topoI);
 			
 			logger.info("Parsing Topology File " + topoI + "...");
 			
-			boolean parseCheck = parserTopo.parse(topoI);
+			boolean parseCheck = parseTopo.parse();
 			if(!parseCheck)
 			{
 				allToposOk = false;
@@ -130,7 +132,7 @@ public class PSTB {
 			{
 				logger.info("Parse Complete for file " + topoI + "!");
 				
-				LogicalTopology network = parserTopo.getLogicalTopo();
+				LogicalTopology network = parseTopo.getLogicalTopo();
 				
 				logger.info("Starting Topology Testing with topology " + topoI + "...");
 				
@@ -185,6 +187,32 @@ public class PSTB {
 		}
 		
 		logger.info("All topologies valid!!");
+		
+		WorkloadFileParser pub = new WorkloadFileParser(benchmarkRules.getPubWorkloadFilePath());
+		WorkloadFileParser sub = new WorkloadFileParser(benchmarkRules.getSubWorkloadFilePath());
+		
+		logger.info("Parsing Workload Files...");
+		
+		logger.info("Parsing Publisher Workload...");
+		boolean pubCheck = pub.parse(NodeRole.P);
+		logger.info("Parsing Subscriber Workload...");
+		boolean subCheck = sub.parse(NodeRole.S);
+		
+		if(!pubCheck)
+		{
+			logger.error("Publisher Workload File failed parsing!");
+			endProgram(3, simpleUserInput);
+		}
+		if(!subCheck)
+		{
+			logger.error("Subscriber Workload File failed parsing!");
+			endProgram(3, simpleUserInput);
+		}
+		
+		logger.info("Both workload files valid!!");
+		
+		pub.printActions();
+		sub.printActions();
 		
 		endProgram(0, simpleUserInput);
 	}

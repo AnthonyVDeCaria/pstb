@@ -3,6 +3,9 @@
  * 
  * Handles the Topology File parsing.
  * 
+ * This code will take a given Topology File
+ * and convert it into a Logical Topology 
+ * 
  */
 package pstb.startup;
 
@@ -21,20 +24,23 @@ import pstb.util.PSTBUtil;
 
 public class TopologyFileParser {	
 	private LogicalTopology logicalTopo;
-	
-	private static final Logger logger = LogManager.getRootLogger();
+	private String topoFilePath;
 	
 	private final int SEGMENTSNUM = 3;
 	private final int NODE_NAME_LOCATION = 0;
 	private final int NODE_ROLE_LOCATION = 1;
 	private final int NODE_CONN_LOCATION = 2;
 	
+	private final String logHeader = "Topology Parser: ";
+	private static final Logger logger = LogManager.getRootLogger();
+	
 	/**
-	 * Empty Constructor
+	 * FilePath Constructor
 	 */
-	public TopologyFileParser()
+	public TopologyFileParser(String nTPF)
     {
 		logicalTopo = new LogicalTopology();
+		topoFilePath = nTPF;
     }
 	
 	/**
@@ -44,6 +50,62 @@ public class TopologyFileParser {
 	public LogicalTopology getLogicalTopo()
 	{
 		return logicalTopo;
+	}
+	
+	/**
+	 * @author padres-dev-4187
+	 * Parses the given Topology File
+	 * @returns false if there is an error; true if the parse is successful
+	 */
+	public boolean parse()
+	{
+		boolean isParseSuccessful = true;
+		String line = null;
+		int linesRead = 0;
+		try {
+			BufferedReader tFReader = new BufferedReader(new FileReader(topoFilePath));
+			while( (line = tFReader.readLine()) != null)
+			{
+				linesRead++;
+				if(!checkIfLineIgnorable(line))
+				{
+					String[] splitLine = line.split(PSTBUtil.SPACE);
+					
+					if(checkProperSpacing(splitLine))
+					{
+						if(checkProperRoles(splitLine[NODE_ROLE_LOCATION]))
+						{
+							if(checkUniqueName(splitLine[NODE_NAME_LOCATION]))
+							{
+								logger.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
+								addLineToTopo(splitLine);
+							}
+							else
+							{
+								isParseSuccessful = false;
+								logger.error(logHeader + "Error in Line " + linesRead + " - Duplicate names");
+							}
+						}
+						else
+						{
+							isParseSuccessful = false;
+							logger.error(logHeader + "Error in Line " + linesRead + " - Error with Types");
+						}
+					}
+					else
+					{
+						isParseSuccessful = false;
+						logger.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct");
+					}
+				}
+			}
+			tFReader.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			isParseSuccessful = false;
+			logger.error("Parser: Cannot find file", e);
+		}
+		return isParseSuccessful;
 	}
 	
 	/**
@@ -98,13 +160,13 @@ public class TopologyFileParser {
 			}
 			catch(IllegalArgumentException e)
 			{
-				logger.error("Parser: " + brokenTypes[i] + " is not a valid type.", e);
+				logger.error(logHeader + brokenTypes[i] + " is not a valid type.", e);
 				return false;
 			}
 			
 			if(nodeTypeLedger.contains(brokenTypesI))
 			{
-				logger.error("Parser: More than one of the same type, " + brokenTypesI + ", requested.");
+				logger.error(logHeader + "More than one of the same type, " + brokenTypesI + ", requested.");
 				return false;
 			}
 			
@@ -166,61 +228,5 @@ public class TopologyFileParser {
 		ArrayList<String> aLConnections = PSTBUtil.turnStringArrayIntoArrayListString(connections);
 		
 		logicalTopo.addNewNodeToTopo(nodeRoles, name, aLConnections);
-	}
-	
-	/**
-	 * @author padres-dev-4187
-	 * Parses the file in reader
-	 * @returns false if there is an error; true if the parse is successful
-	 */
-	public boolean parse(String fileName)
-	{
-		boolean isParseSuccessful = true;
-		String line;
-		int linesRead = 0;
-		try {
-			BufferedReader reader = new BufferedReader(new FileReader(fileName));
-			while( (line = reader.readLine()) != null)
-			{
-				linesRead++;
-				if(!checkIfLineIgnorable(line))
-				{
-					String[] splitLine = line.split(PSTBUtil.SPACE);
-					
-					if(checkProperSpacing(splitLine))
-					{
-						if(checkProperRoles(splitLine[NODE_ROLE_LOCATION]))
-						{
-							if(checkUniqueName(splitLine[NODE_NAME_LOCATION]))
-							{
-								logger.trace("Parser: Line " + linesRead + "'s syntax checks out.");
-								addLineToTopo(splitLine);
-							}
-							else
-							{
-								isParseSuccessful = false;
-								logger.error("Parser: Error in Line " + linesRead + " - Duplicate names");
-							}
-						}
-						else
-						{
-							isParseSuccessful = false;
-							logger.error("Parser: Error in Line " + linesRead + " - Error with Types");
-						}
-					}
-					else
-					{
-						isParseSuccessful = false;
-						logger.error("Parser: Error in Line " + linesRead + " - Length isn't correct");
-					}
-				}
-			}
-			reader.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			isParseSuccessful = false;
-			logger.error("Parser: Cannot find file", e);
-		}
-		return isParseSuccessful;
 	}
 }

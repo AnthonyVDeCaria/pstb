@@ -18,16 +18,16 @@ import pstb.util.DistributedState;
 import pstb.util.NetworkProtocol;
 
 public class BenchmarkConfig {
-	Integer numRunsPerExperiment;
-	String pubWorkloadFilePath;
-	String subWorkloadFilePath;
+	private Integer numRunsPerExperiment;
+	private String pubWorkloadFilePath;
+	private String subWorkloadFilePath;
 	
-	ArrayList<Integer> runLengths;
-	ArrayList<Integer> idealMessageRates;
+	private ArrayList<Integer> runLengths;
+	private ArrayList<Integer> idealMessageRates;
 	
-	ArrayList<NetworkProtocol> protocols;
-	ArrayList<String> topologyFilesPaths;
-	ArrayList<DistributedState> distributed;
+	private ArrayList<NetworkProtocol> protocols;
+	private ArrayList<String> topologyFilesPaths;
+	private ArrayList<DistributedState> distributed;
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	
