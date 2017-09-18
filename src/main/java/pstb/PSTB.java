@@ -188,7 +188,7 @@ public class PSTB {
 		
 		logger.info("All topologies valid!!");
 		
-		WorkloadFileParser pub = new WorkloadFileParser(benchmarkRules.getPubWorkloadFilePath());
+		/*WorkloadFileParser pub = new WorkloadFileParser(benchmarkRules.getPubWorkloadFilePath());
 		WorkloadFileParser sub = new WorkloadFileParser(benchmarkRules.getSubWorkloadFilePath());
 		
 		logger.info("Parsing Workload Files...");
@@ -211,8 +211,8 @@ public class PSTB {
 		
 		logger.info("Both workload files valid!!");
 		
-		pub.printActions();
-		sub.printActions();
+		pub.printWorkload();
+		sub.printWorkload();*/
 		
 		endProgram(0, simpleUserInput);
 	}

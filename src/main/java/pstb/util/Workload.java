@@ -4,58 +4,68 @@
  */
 package pstb.util;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public class Workload {
-	private String attributes;
-	private Integer payloadSize;
-	private Integer timeActive;
+	private ArrayList<PSAction> workloadA;
+	private ArrayList<PSAction> workloadS;
+	private HashMap<String, ArrayList<PSAction>> workloadP;
 	
-	/**
-	 * Empty Constructor
-	 * Both Integers are set to unrealistic numbers
-	 * i.e. the payload can't be -1 bytes,
-	 * nor can the time active be 0 TK(units)
-	 */
 	public Workload()
 	{
-		attributes = new String();
-		payloadSize = new Integer(-1);
-		timeActive = new Integer(0);
+		workloadA = new ArrayList<PSAction>();
+		workloadS = new ArrayList<PSAction>();
+		workloadP = new HashMap<String, ArrayList<PSAction>>();
+	}
+	
+	public void updateWorkloadS(PSAction newSub)
+	{
+		workloadS.add(newSub);
 	}
 	
 	/**
-	 * Gets the attributes
-	 * @return the attributes
+	 * Updates the advertiser
+	 * @param givenAction - the action being updated
 	 */
-	public String getAttributes() {
-		return attributes;
+	public void updateWorkloadA(PSAction newAd)
+	{
+		workloadA.add(newAd);
+		workloadP.put(newAd.getAttributes(), new ArrayList<PSAction>());
 	}
 	
-	/**
-	 * Gets the payload size (bytes)
-	 * @return the payload size
-	 */
-	public Integer getPayloadSize() {
-		return payloadSize;
+	public boolean updateWorkloadP(String attributes, PSAction newPublication)
+	{
+		boolean foundProperAd = false;
+		
+		if(workloadP.containsKey(attributes))
+		{
+			ArrayList<PSAction> temp = workloadP.get(attributes);
+			temp.add(newPublication);
+			workloadP.put(attributes, temp);
+			foundProperAd = true;
+		}
+		
+		return foundProperAd;
 	}
 	
-	/**
-	 * Gets the time active
-	 * @return the time active ()
-	 */
-	public Integer getTimeActive() {
-		return timeActive;
+	public ArrayList<PSAction> getWorkloadA()
+	{
+		return workloadA;
 	}
 	
-	public void setAttributes(String attributes) {
-		this.attributes = attributes;
+	public ArrayList<PSAction> getWorkloadS()
+	{
+		return workloadS;
 	}
 	
-	public void setPayloadSize(Integer payloadSize) {
-		this.payloadSize = payloadSize;
+	public HashMap<String, ArrayList<PSAction>> getWorkloadP()
+	{
+		return workloadP;
 	}
-
-	public void setTimeActive(Integer timeActive) {
-		this.timeActive = timeActive;
+	
+	public void printWorkload()
+	{
+		
 	}
-
 }

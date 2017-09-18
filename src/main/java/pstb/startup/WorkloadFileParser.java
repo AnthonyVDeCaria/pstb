@@ -5,10 +5,10 @@
 package pstb.startup;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,10 +17,12 @@ import pstb.util.ClientAction;
 import pstb.util.NodeRole;
 import pstb.util.PSTBUtil;
 import pstb.util.Workload;
+import pstb.util.PSAction;
 
 public class WorkloadFileParser {
-	private String workloadFilePath;
-	private HashMap<ClientAction, ArrayList<Workload>> actions;
+	private String subWorkloadFilePath;
+	ArrayList<String> pubWorkloadFilesPaths;
+	private Workload wload;
 	
 	private final int SEGMENTSNUM = 3;
 	private final int LOC_CLIENT_ACTION = 0;
@@ -32,44 +34,22 @@ public class WorkloadFileParser {
 	
 	/**
 	 * FilePath constructor
-	 * @param nWFP - the new Workload File Path
+	 * @param nSWFP - the new path to the subscriber workload file
+	 * @param nPWFP - the array containing all the paths to the publisher workload files
 	 */
-	public WorkloadFileParser(String nWFP)
+	public WorkloadFileParser(String nSWFP, ArrayList<String> nPWFP)
 	{
-		workloadFilePath = nWFP;
-		actions = new HashMap<ClientAction, ArrayList<Workload>>();
-		
-		ArrayList<Workload> advertisements = new ArrayList<Workload>();
-//		ArrayList<Workload> unadvertisements = new ArrayList<Workload>();
-		ArrayList<Workload> publications = new ArrayList<Workload>();
-		ArrayList<Workload> subscriptions = new ArrayList<Workload>();
-//		ArrayList<Workload> unsubscriptions = new ArrayList<Workload>();
-		
-		actions.put(ClientAction.A, advertisements);
-//		actions.put(ClientAction.V, unadvertisements);
-		actions.put(ClientAction.P, publications);
-		actions.put(ClientAction.S, subscriptions);
-//		actions.put(ClientAction.U, unsubscriptions);
+		subWorkloadFilePath = nSWFP;
+		pubWorkloadFilesPaths = nPWFP;
+		wload = new Workload();
 	}
 	
 	/**
-	 * Updates the actions map with the new Workload
-	 * @param givenAction - the action being updated
-	 * @param newWorkload - the new workload that must be done
-	 */
-	private void updateActions(ClientAction givenAction, Workload newWorkload)
-	{
-		ArrayList<Workload> givenWorkloadList = actions.get(givenAction);
-		givenWorkloadList.add(newWorkload);
-		actions.put(givenAction, givenWorkloadList);
-	}
-	
-	/**
-	 * Parses the given workload file
+	 * Parses the given subscriber workload file
 	 * @param clientType - the type of clients this workload file is supposed to influence
 	 * @return true is everything's ok; false otherwise
 	 */
-	public boolean parse(NodeRole clientType)
+	public boolean parseSubscriberFile()
 	{
 		boolean isParseSuccessful = true;
 		String line = null;
@@ -77,84 +57,150 @@ public class WorkloadFileParser {
 		
 		try
 		{
-			BufferedReader wFReader = new BufferedReader(new FileReader(workloadFilePath));
-			while( (line = wFReader.readLine()) != null)
+			BufferedReader sWFReader = new BufferedReader(new FileReader(subWorkloadFilePath));
+			while( (line = sWFReader.readLine()) != null)
 			{
 				linesRead++;
 				String[] splitLine = line.split("	");
 
 				if(checkProperLength(splitLine))
 				{
-					if(checkPayloadTimeActiveInt(splitLine[LOC_PAYLOAD_TIME_ACTIVE]))
+					if(checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), NodeRole.S) == ClientAction.S)
 					{
-						ClientAction givenClientAction = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), clientType);
-						if(givenClientAction != null)
+						Long timeActive = PSTBUtil.checkIfLong(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false);
+						
+						if(timeActive != null)
 						{
-							Workload newWorkload = new Workload();
-							newWorkload.setAttributes(splitLine[LOC_ATTRIBUTES]);
-							
-							if(givenClientAction.equals(ClientAction.A) || givenClientAction.equals(ClientAction.S))
-							{
-								Integer timeActive = Integer.parseInt(splitLine[LOC_PAYLOAD_TIME_ACTIVE]);
-								newWorkload.setPayloadSize(timeActive);
-							}
-							else if(givenClientAction.equals(ClientAction.P))
-							{
-								Integer payload = Integer.parseInt(splitLine[LOC_PAYLOAD_TIME_ACTIVE]);
-								newWorkload.setPayloadSize(payload);
-							}
-							// don't need to check for others - it should be given by checkProperClientAction
-										
-							updateActions(givenClientAction, newWorkload);
+							PSAction newSub = new PSAction();
+							newSub.setAttributes(splitLine[LOC_ATTRIBUTES]);
+							newSub.setTimeActive(timeActive);
+							wload.updateWorkloadS(newSub);
 						}
 						else
 						{
 							isParseSuccessful = false;
-							actions.clear();
-							logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action");
+							logger.error(logHeader + "line " + linesRead + " has an incorrect Time Active value");
 						}
 					}
 					else
 					{
 						isParseSuccessful = false;
-						actions.clear();
-						logger.error(logHeader + "line " + linesRead + " has an incorrect Payload/Time Active value");
+						logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action");
 					}
 				}
 				else
 				{
 					isParseSuccessful = false;
-					actions.clear();
 					logger.error(logHeader + "line " + linesRead + " is not the proper length");
 				}
 			}
-			wFReader.close();
+			sWFReader.close();
 		}
 		catch (IOException e) 
 		{
-			isParseSuccessful = false;
 			logger.error(logHeader + "Cannot find file", e);
+			return false;
 		}
 		
 		return isParseSuccessful;
 	}
 	
-	public void printActions()
+	public boolean parsePublisherFiles()
 	{
-		logger.info("For workloadFile "+ workloadFilePath);
-		actions.forEach((action, workloadList)->{
-			Integer wLLS = workloadList.size();
-			if(wLLS > 0)
+		boolean isParseSuccessful = true;
+		String line = null;
+		int linesRead = 0;
+		
+		ArrayList<FileReader> fileList = tryToAccessPubWorkloadFiles();
+		
+		if(fileList != null)
+		{
+			for(int i = 0 ; i < fileList.size() ; i++)
 			{
-				logger.info("Action " + action + " has these workloads:");
+				BufferedReader iTHFileReader = new BufferedReader(fileList.get(i));
+				try
+				{
+					while( (line = iTHFileReader.readLine()) != null)
+					{
+						linesRead++;
+						String[] splitLine = line.split("	");
+						PSAction fileAd = new PSAction();
+						
+						if(checkProperLength(splitLine))
+						{
+							if(checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), NodeRole.P) 
+									== ClientAction.A)
+							{
+								Long timeActive = PSTBUtil.checkIfLong(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false);
+								
+								if(timeActive != null)
+								{
+									PSAction newAd = new PSAction();
+									newAd.setAttributes(splitLine[LOC_ATTRIBUTES]);
+									newAd.setTimeActive(timeActive);
+									fileAd = newAd;
+									wload.updateWorkloadA(newAd);
+								}
+								else
+								{
+									isParseSuccessful = false;
+									logger.error(logHeader + "line " + linesRead + " has an incorrect Time Active value");
+								}
+							}
+							else if(checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), NodeRole.P) 
+									== ClientAction.P)
+							{
+								if(!fileAd.getAttributes().isEmpty())
+								{
+									Integer payloadSize = PSTBUtil.checkIfInteger(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false);
+									
+									if(payloadSize != null)
+									{
+										PSAction newPub = new PSAction();
+										newPub.setAttributes(splitLine[LOC_ATTRIBUTES]);
+										newPub.setPayloadSize(payloadSize);
+										wload.updateWorkloadP(fileAd.getAttributes(), newPub);
+									}
+									else
+									{
+										isParseSuccessful = false;
+										logger.error(logHeader + "line " + linesRead + " has an incorrect Payload Size value");
+									}	
+								}
+								else
+								{
+									isParseSuccessful = false;
+									logger.error(logHeader + "line " + linesRead + " is referencing an Ad that doesn't exist");
+								}
+							}
+							else
+							{
+								isParseSuccessful = false;
+								logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action");
+							}
+						}
+						else
+						{
+							isParseSuccessful = false;
+							logger.error(logHeader + "line " + linesRead + " is not the proper length");
+						}
+					}
+					iTHFileReader.close();
+				}
+				catch (IOException e) 
+				{
+					// we SHOULD never get here, but if we do
+					logger.error(logHeader + "Major error", e);
+					return false;
+				}
 			}
-			for(int i = 0 ; i < wLLS; i++)
-			{
-				logger.info("Attributes: " + workloadList.get(i).getAttributes());
-				logger.info("PayloadSize: " + workloadList.get(i).getPayloadSize());
-				logger.info("TimeActive: " + workloadList.get(i).getTimeActive());
-			}
-		});
+		}
+		else
+		{
+			logger.error(logHeader + "Error reading Publisher Files");
+		}
+		
+		return isParseSuccessful;
 	}
 	
 	/**
@@ -213,13 +259,25 @@ public class WorkloadFileParser {
 		return test;
 	}
 	
-	/**
-	 * Checks if the payload/time active string is an integer
-	 * @param givenPayloadTimeActive - the string to test
-	 * @return true if int; false otherwise
-	 */
-	private boolean checkPayloadTimeActiveInt(String givenPayloadTimeActive)
+	private ArrayList<FileReader> tryToAccessPubWorkloadFiles()
 	{
-		return PSTBUtil.isInteger(givenPayloadTimeActive, false);
+		ArrayList<FileReader> temp = new ArrayList<FileReader>();
+		for(int i = 0 ; i < pubWorkloadFilesPaths.size(); i++)
+		{
+			FileReader iTHFR = null;
+			try
+			{
+				iTHFR = new FileReader(pubWorkloadFilesPaths.get(i));
+			}
+			catch (FileNotFoundException e) 
+			{
+				logger.error(logHeader + "Cannot find file", e);
+				temp.clear();
+				return temp;
+			}
+			temp.add(iTHFR);
+		}
+		
+		return temp;
 	}
 }

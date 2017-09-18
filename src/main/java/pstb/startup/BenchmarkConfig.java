@@ -19,7 +19,7 @@ import pstb.util.NetworkProtocol;
 
 public class BenchmarkConfig {
 	private Integer numRunsPerExperiment;
-	private String pubWorkloadFilePath;
+	private ArrayList<String> pubWorkloadFilesPaths;
 	private String subWorkloadFilePath;
 	
 	private ArrayList<Integer> runLengths;
@@ -40,7 +40,7 @@ public class BenchmarkConfig {
 	public BenchmarkConfig()
 	{
 		numRunsPerExperiment = new Integer(0);
-		pubWorkloadFilePath = new String();
+		pubWorkloadFilesPaths = new ArrayList<String>();
 		subWorkloadFilePath = new String();
 		runLengths = new ArrayList<Integer>();
 		idealMessageRates = new ArrayList<Integer>();
@@ -80,10 +80,11 @@ public class BenchmarkConfig {
 		}
 		
 		/*
-		 * pubWorkloadFilePath
+		 * pubWorkloadFilesPaths
 		 */
-		String propPWFP = givenProperty.getProperty("pstb.pubWorkloadFilePath");
-		setPubWorkloadFilePath(propPWFP);
+		String unsplitPWFP = givenProperty.getProperty("pstb.pubWorkloadFilesPaths");
+		String[] splitPWFP = unsplitPWFP.split(PSTBUtil.COMMA);
+		setPubWorkloadFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(splitPWFP));
 		
 		/*
 		 * subWorkloadFilePath
@@ -245,7 +246,7 @@ public class BenchmarkConfig {
 	public void printAllFields()
 	{
 		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
-		logger.info("Properties: pubWorkloadFilePath = " + pubWorkloadFilePath);
+		logger.info("Properties: pubWorkloadFilePath = " + pubWorkloadFilesPaths);
 		logger.info("Properties: subWorkloadFilePath = " + subWorkloadFilePath);
 		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
 		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
@@ -355,9 +356,9 @@ public class BenchmarkConfig {
 	 * Gets the pubWorkloadFilePath
 	 * @return the pubWorkloadFilePath
 	 */
-	public String getPubWorkloadFilePath()
+	public ArrayList<String> getPubWorkloadFilePath()
 	{
-		return this.pubWorkloadFilePath;
+		return this.pubWorkloadFilesPaths;
 	}
 	
 	/**
@@ -385,11 +386,11 @@ public class BenchmarkConfig {
 	
 	/**
 	 * Sets the pubWorkloadFilePath
-	 * @param nPWFP - the new pubWorkloadFilePath
+	 * @param nPWFP - the new pubWorkloadFilesPaths
 	 */
-	private void setPubWorkloadFilePath(String nPWFP)
+	private void setPubWorkloadFilesPaths(ArrayList<String> nPWFP)
 	{
-		pubWorkloadFilePath = nPWFP;
+		pubWorkloadFilesPaths = nPWFP;
 	}
 	
 	/**

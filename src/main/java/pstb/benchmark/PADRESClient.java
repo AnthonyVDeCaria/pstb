@@ -13,28 +13,30 @@ import ca.utoronto.msrg.padres.common.comm.MessageQueue;
 import ca.utoronto.msrg.padres.common.message.Message;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.ClientAction;
+import pstb.util.PSAction;
 import pstb.util.Workload;
 
-public class PADRESClient{
-	private static final Logger clientLogger = LogManager.getRootLogger();
-	
+public class PADRESClient{	
 	private Client actualClient;
 	private ArrayList<BrokerState> connectedBrokers;
-	private Thread listens;
-	private MessageQueue receivedQueue;
 	
 	private String clientName;
 	private ArrayList<String> brokerURIs;
-	private HashMap<ClientAction, ArrayList<Workload>> actions;
+	private Workload clientWorkload;
 	private ArrayList<HashMap<DiaryHeader, String>> diary;
+	
+	private Integer idealMessageRate;
+	private Integer runLength;
+	
+	private final String logHeader = "Client: ";
+	private static final Logger clientLogger = LogManager.getRootLogger();
 	
 	public PADRESClient()
 	{
 		clientName = new String();
 		brokerURIs = new ArrayList<String>();
 		diary = new ArrayList<HashMap<DiaryHeader, String>>();
-		receivedQueue = new MessageQueue();
-		actions = new HashMap<ClientAction, ArrayList<Workload>>();
+		clientWorkload = new Workload();
 	}
 
 	/**
@@ -42,13 +44,13 @@ public class PADRESClient{
 	 * (The idea being you would initialize a general Client first before giving it it's tasks
 	 * @param givenName - the name of the client
 	 * @param givenURIs - the BrokerURIs this client will connect to
-	 * @param givenActionSet - the set of actions this client will have to do
+	 * @param givenWorkload - the set of actions this client will have to do
 	 * @return false if there's a failure; true otherwise
 	 */
 	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
-			HashMap<ClientAction, ArrayList<Workload>> givenActionSet) 
+			Workload givenWorkload, Integer givenIMR, Integer givenRL) 
 	{
-		clientLogger.info("Client: Attempting to initialize client " + givenName);
+		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
 		
 		try 
 		{
@@ -56,14 +58,16 @@ public class PADRESClient{
 		} 
 		catch (ClientException e)
 		{
-			clientLogger.error("Client: Cannot initialize new client " + givenName, e);
+			clientLogger.error(logHeader + "Cannot initialize new client " + givenName, e);
 			return false;
 		}
 		
 		clientName = givenName;
 		brokerURIs = givenURIs;
-		actions = givenActionSet;
-		clientLogger.info("Client:  Initialized client " + givenName);
+		clientWorkload = givenWorkload;
+		idealMessageRate = givenIMR;
+		runLength = givenRL;
+		clientLogger.info(logHeader + "Initialized client " + givenName);
 		return true;
 	}
 
@@ -73,7 +77,7 @@ public class PADRESClient{
 	 */
 	public boolean shutdown() 
 	{
-		clientLogger.info("Client: Attempting to shutdown client " + clientName);
+		clientLogger.info(logHeader + "Attempting to shutdown client " + clientName);
 		
 		try 
 		{
@@ -81,11 +85,11 @@ public class PADRESClient{
 		}
 		catch (ClientException e) 
 		{
-			clientLogger.error("Client: Cannot shutdown client " + clientName, e);
+			clientLogger.error(logHeader + "Cannot shutdown client " + clientName, e);
 			return false;
 		}
 		
-		clientLogger.info("Client: Shutdown client " + clientName);
+		clientLogger.info(logHeader + "Shutdown client " + clientName);
 		return true;
 	}
 
@@ -95,7 +99,7 @@ public class PADRESClient{
 	 */
 	public boolean connect() 
 	{
-		clientLogger.info("Client: Attempting to connect client " + clientName + " to network.");
+		clientLogger.info(logHeader + "Attempting to connect client " + clientName + " to network.");
 		
 		for(int i = 0 ; i < brokerURIs.size() ; i++)
 		{
@@ -106,14 +110,14 @@ public class PADRESClient{
 			}
 			catch (ClientException e)
 			{
-				clientLogger.error("Client: Cannot connect client " + clientName + 
+				clientLogger.error(logHeader + "Cannot connect client " + clientName + 
 							" to broker " + iTHURI, e);
 				disconnect();
 				return false;
 			}
 		}
 		
-		clientLogger.info("Client: Added client " + clientName + " to network.");
+		clientLogger.info(logHeader + "Added client " + clientName + " to network.");
 		return true;
 	}
 
@@ -122,40 +126,112 @@ public class PADRESClient{
 	 */
 	public void disconnect() 
 	{
-		clientLogger.info("Client: Disconnecting client " + clientName + " from network.");
+		clientLogger.info(logHeader + "Disconnecting client " + clientName + " from network.");
 		actualClient.disconnectAll();
 	}
 
 	public void startRun() 
 	{
-				
-	}
-	
-	/**
-	 * Starts the listening thread
-	 */
-	public void listen() 
-	{
-		actualClient.addMessageQueue(receivedQueue);
-		listens = new Thread (new PADRESListen());
-		listens.start();
+		if(!clientWorkload.getWorkloadS().isEmpty())
+		{
+			// Subscriber
+		}
+		else
+		{
+			// Publisher
+			ArrayList<PSAction> advertisement = clientWorkload.getWorkloadA();
+			int i = 0;
+			int pubsSent = 0;
+			
+//			boolean checkAction = exectueAction(ClientAction.A, advertisement.getAttributes());
+//			
+//			if(!checkAction)
+//			{
+//				clientLogger.error(logHeader + "Error sending advertizement " + advertisement.getAttributes() + 
+//						" from client " + clientName);
+//				return;
+//			}
+//			else
+//			{
+//				Long timeActive = advertisement.getTimeActive();
+//				
+//				while(timeActive > 0)
+//				{
+//					Long start = System.currentTimeMillis();
+//					String iTHAttri = publications.get(i).getAttributes();
+//					checkAction = exectueAction(ClientAction.P, iTHAttri);
+//					
+//					if(!checkAction)
+//					{
+//						clientLogger.error(logHeader + "Error sending publication " + pubsSent + 
+//								" " + iTHAttri + " from client " + clientName);
+//						return;
+//					}
+//					else
+//					{
+//						pubsSent++;
+//						i++;
+//						if(i >= publications.size())
+//						{
+//							i = 0;
+//						}
+//						Long end = System.currentTimeMillis();
+//						timeActive -= (end - start);
+//					}
+//				}
+//			}
+		}
 	}
 	
 	private boolean exectueAction(ClientAction givenAction, String attributes)
 	{
 		boolean actionSuccessful = false;
 		createDiaryEntry(givenAction, attributes); 
-		Long startTime = System.nanoTime();
+		Long startAction = System.nanoTime();
 		actionSuccessful = handleAction(givenAction, attributes);
-		Long endTime = System.nanoTime();
+		Long actionAcked = System.nanoTime();
 		
 		if(actionSuccessful)
 		{
-			Long timeDiff = endTime - startTime;
+			Long timeDiff = actionAcked - startAction;
 			
-			updateDiaryEntry(DiaryHeader.TimeStartedAction, startTime.toString(), givenAction.toString(), attributes);
-			updateDiaryEntry(DiaryHeader.TimeBrokerAck, endTime.toString(), givenAction.toString(), attributes);
-			updateDiaryEntry(DiaryHeader.AckDelay, timeDiff.toString(), givenAction.toString(), attributes);
+			HashMap<DiaryHeader, String> thisEntry = getDiaryEntry(givenAction.toString(), attributes);
+			
+			updateDiaryEntry(DiaryHeader.TimeStartedAction, startAction.toString(), thisEntry);
+			updateDiaryEntry(DiaryHeader.TimeBrokerAck, actionAcked.toString(), thisEntry);
+			updateDiaryEntry(DiaryHeader.AckDelay, timeDiff.toString(), thisEntry);
+			
+			if(givenAction.equals(ClientAction.U) || givenAction.equals(ClientAction.V))
+			{
+				HashMap<DiaryHeader, String> ascAction = null;
+				
+				if(givenAction.equals(ClientAction.U))
+				{
+					ascAction = getDiaryEntry(ClientAction.S.toString(), attributes);
+				}
+				else
+				{
+					ascAction = getDiaryEntry(ClientAction.A.toString(), attributes);
+				}
+				
+				if (ascAction == null)
+				{
+					clientLogger.error(logHeader + "Counldn't find asscociated action to " + givenAction 
+							+ " " + attributes);
+					return false;
+				}
+				else
+				{
+					Long aAStarted = Long.parseLong(ascAction.get(DiaryHeader.TimeStartedAction));
+					Long aAAcked = Long.parseLong(ascAction.get(DiaryHeader.TimeBrokerAck));
+					
+					Long startedDif = startAction - aAStarted;
+					Long ackedDif = actionAcked - aAAcked;
+					
+					updateDiaryEntry(DiaryHeader.TimeActiveStarted, startedDif.toString(), thisEntry);
+					updateDiaryEntry(DiaryHeader.TimeActiveAck, ackedDif.toString(), thisEntry);
+				}
+			}
 		}
 		
 		return actionSuccessful;
@@ -171,31 +247,31 @@ public class PADRESClient{
 			{
 				case A:
 				{
-					clientLogger.info(generalLog + "advertize " + attributes);
+					clientLogger.info(logHeader + generalLog + "advertize " + attributes);
 					actualClient.advertise(attributes, brokerURIs.get(0));
 					break;
 				}
 				case V:
 				{
-					clientLogger.info(generalLog + "unadvertize " + attributes);
+					clientLogger.info(logHeader + generalLog + "unadvertize " + attributes);
 					actualClient.unAdvertiseAll(); // For now
 					break;
 				}
 				case P:
 				{
-					clientLogger.info(generalLog + "publish " + attributes);
+					clientLogger.info(logHeader + generalLog + "publish " + attributes);
 					actualClient.publish(attributes, brokerURIs.get(0));
 					break;
 				}
 				case S:
 				{
-					clientLogger.info(generalLog + "subscribe to " + attributes);
+					clientLogger.info(logHeader + generalLog + "subscribe to " + attributes);
 					actualClient.subscribe(attributes, brokerURIs.get(0));
 					break;
 				}
 				case U:
 				{
-					clientLogger.info(generalLog + "unsubscribe from " + attributes);
+					clientLogger.info(logHeader + generalLog + "unsubscribe from " + attributes);
 					actualClient.unsubscribeAll(); // For now
 					break;
 				}
@@ -205,12 +281,12 @@ public class PADRESClient{
 		}
 		catch(ClientException e)
 		{
-			clientLogger.error("Client: Client Error", e);
+			clientLogger.error(logHeader + "Client Error", e);
 			return false;
 		}
 		catch (ParseException e)
 		{
-			clientLogger.error("Client: Error Parsing", e);
+			clientLogger.error(logHeader + "Error Parsing", e);
 			return false;
 		}
 		
@@ -233,64 +309,35 @@ public class PADRESClient{
 	}
 	
 	/**
-	 * Given an ClientAction and attributes, update the diary entry with new data 
-	 * @param newHeader - the new header
-	 * @param newData - the new data to add
-	 * @param attributes - the given attributes
-	 * @param clientAction - the client action associated with this transaction
-	 * @return false on error; true if successful
+	 * Gets a diary entry given it's associated client action and attributes
+	 * @param clientAction - the associated client action 
+	 * @param attributes - the associated attributes
+	 * @return Either the given diary entry, or null
 	 */
-	private boolean updateDiaryEntry(DiaryHeader newHeader, String newData, String clientAction, String attributes) 
+	private HashMap<DiaryHeader, String> getDiaryEntry(String clientAction, String attributes)
 	{
-		boolean successfulUpdate = false;
-		
+		HashMap<DiaryHeader, String> appropriateDiary = null;
 		for(int i = 0; i < diary.size() ; i++)
 		{
 			HashMap<DiaryHeader, String> iTHEntry = diary.get(i);
 			if(iTHEntry.containsValue(clientAction) && iTHEntry.containsValue(attributes))
 			{
-				iTHEntry.put(newHeader, newData);
-				successfulUpdate = true;
+				appropriateDiary = iTHEntry;
 				break;
 			}
 		}
-		
-		return successfulUpdate;
+		return appropriateDiary;
 	}
 	
 	/**
-	 * Listens for incoming publications.
-	 * Thread waits for notify() signals, which are sent when a new publication is received.
-	 * Once it receives a new publication - it creates a new diary entry
+	 * Given an ClientAction and attributes, update the diary entry with new data 
+	 * @param newHeader - the new header
+	 * @param newData - the new data to add
+	 * @param givenEntry - the entry to be updated
 	 */
-	private class PADRESListen implements Runnable
+	private void updateDiaryEntry(DiaryHeader newHeader, String newData, HashMap<DiaryHeader, String> givenEntry) 
 	{
-		public void run() 
-		{	
-			while(true)
-			{
-				try 
-				{
-					synchronized(receivedQueue)
-					{
-						receivedQueue.wait();
-					}
-				} 
-				catch (InterruptedException e) 
-				{
-					clientLogger.error("Client: Listening Error", e);
-				}
-				
-				// Pop publication from Message Queue
-				Message newMsg = receivedQueue.removeFirst();
-				if(newMsg != null)
-				{
-					//TODO: creating a new thread to handle the recieved message
-					//		i.e. adding it to the diary
-					System.out.println(newMsg.toString());
-				}
-			}
-		}
+		givenEntry.put(newHeader, newData);
 	}
-
+	
 }
