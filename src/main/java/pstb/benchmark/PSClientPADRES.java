@@ -47,6 +47,7 @@ public class PSClientPADRES
 		brokerURIs = new ArrayList<String>();
 		diary = new ClientDiary();
 		clientWorkload = new Workload();
+		clientRoles = new ArrayList<NodeRole>();
 	}
 
 	/**
@@ -58,7 +59,7 @@ public class PSClientPADRES
 	 * @return false if there's a failure; true otherwise
 	 */
 	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
-			Workload givenWorkload, Long givenIMP, Integer givenRL, ArrayList<NodeRole> givenRoles) 
+			Workload givenWorkload, Long givenIMP, Integer givenRL) 
 	{
 		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
 		
@@ -72,24 +73,11 @@ public class PSClientPADRES
 			return false;
 		}
 		
-		if(givenRoles.size() > 2)
-		{
-			clientLogger.error(logHeader + "too many roles given to client" + givenName);
-			return false;
-		}
-		
-		if(givenRoles.contains(NodeRole.B))
-		{
-			clientLogger.error(logHeader + "a client is not a broker");
-			return false;
-		}
-		
 		clientName = givenName;
 		brokerURIs = givenURIs;
 		clientWorkload = givenWorkload;
 		idealMessagePeriod = givenIMP;
 		runLength = givenRL;
-		clientRoles = givenRoles;
 		
 		clientLogger.info(logHeader + "Initialized client " + givenName);
 		return true;
@@ -97,6 +85,8 @@ public class PSClientPADRES
 	
 	/**
 	 * Adds a new NodeRole to clientRoles
+	 * Only if it's not a B(roker) Role
+	 * And it's not already there
 	 * @param newNodeRole - the new Role
 	 * @return false on failure; true otherwise
 	 */

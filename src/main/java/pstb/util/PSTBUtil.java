@@ -76,5 +76,17 @@ public class PSTBUtil {
 	{
 		return new ArrayList<String>(Arrays.asList(input));
 	}
+	
+	/**
+	 * Sees if an int is within a certain bound
+	 * @param lowerBound - the lower bound
+	 * @param upperBound - the upper bound
+	 * @param testVariable - the variable being testing
+	 * @return true if it is; false otherwise
+	 */
+	public static boolean isWithinInclusiveBound(int lowerBound, int upperBound, int testVariable)
+	{
+		return (testVariable >= lowerBound) && (testVariable <= lowerBound);
+	}
 
 }
