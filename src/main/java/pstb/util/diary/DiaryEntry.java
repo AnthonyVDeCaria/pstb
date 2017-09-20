@@ -23,7 +23,7 @@ public class DiaryEntry {
 		TimeStartedAction, TimeBrokerAck, AckDelay, 
 		Attributes, PayloadSize, 
 		TimeActiveStarted, TimeActiveAck,
-		TimeCreated, TimeReceived
+		TimeCreated, TimeReceived, TimeDifference
 	}
 	
 	/**
@@ -100,6 +100,11 @@ public class DiaryEntry {
 		page.put(DiaryHeader.TimeReceived, givenTR.toString());
 	}
 	
+	public void addTimeDifference(Long givenTD)
+	{
+		page.put(DiaryHeader.TimeDifference, givenTD.toString());
+	}
+	
 	public ClientAction getClientAction()
 	{
 		String storedClientAction = page.get(DiaryHeader.ClientAction);
@@ -157,6 +162,12 @@ public class DiaryEntry {
 	{
 		String storedTimeReceived = page.get(DiaryHeader.TimeReceived);
 		return PSTBUtil.checkIfLong(storedTimeReceived, false);
+	}
+	
+	public Long getTimeDifference()
+	{
+		String storedTimeDifference = page.get(DiaryHeader.TimeDifference);
+		return PSTBUtil.checkIfLong(storedTimeDifference, false);
 	}
 	
 	/**

@@ -8,25 +8,28 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import ca.utoronto.msrg.padres.client.BrokerState;
-import ca.utoronto.msrg.padres.client.Client;
 import ca.utoronto.msrg.padres.client.ClientException;
+import ca.utoronto.msrg.padres.common.message.Message;
+import ca.utoronto.msrg.padres.common.message.Publication;
+import ca.utoronto.msrg.padres.common.message.PublicationMessage;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.ClientAction;
+import pstb.util.NodeRole;
 import pstb.util.PSAction;
 import pstb.util.Workload;
 import pstb.util.diary.ClientDiary;
 import pstb.util.diary.DiaryEntry;
 
-public class PADRESClient 
+public class PSClientPADRES 
 {	
-	private Client actualClient;
+	private PADRESClientExtension actualClient;
 	private ArrayList<BrokerState> connectedBrokers;
 	
 	private String clientName;
 	private ArrayList<String> brokerURIs;
+	private NodeRole clientJob;
 	private Workload clientWorkload;
 	private ClientDiary diary;
-	
 	private Integer idealMessagePeriod;
 	private Integer runLength;
 	
@@ -38,7 +41,7 @@ public class PADRESClient
 	/**
 	 * Empty Constructor
 	 */
-	public PADRESClient()
+	public PSClientPADRES()
 	{
 		clientName = new String();
 		brokerURIs = new ArrayList<String>();
@@ -55,17 +58,23 @@ public class PADRESClient
 	 * @return false if there's a failure; true otherwise
 	 */
 	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
-			Workload givenWorkload, Integer givenIMP, Integer givenRL) 
+			Workload givenWorkload, Integer givenIMP, Integer givenRL, NodeRole givenRole) 
 	{
 		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
 		
 		try 
 		{
-			actualClient = new Client(givenName);
+			actualClient = new PADRESClientExtension(givenName, this);
 		} 
 		catch (ClientException e)
 		{
 			clientLogger.error(logHeader + "Cannot initialize new client " + givenName, e);
+			return false;
+		}
+		
+		if(givenRole.equals(NodeRole.B))
+		{
+			clientLogger.error(logHeader + "a client is not a broker");
 			return false;
 		}
 		
@@ -74,6 +83,7 @@ public class PADRESClient
 		clientWorkload = givenWorkload;
 		idealMessagePeriod = givenIMP;
 		runLength = givenRL;
+		clientJob = givenRole;
 		
 		clientLogger.info(logHeader + "Initialized client " + givenName);
 		return true;
@@ -146,16 +156,16 @@ public class PADRESClient
 	{
 		Long runStart = System.nanoTime();
 		
-		if(!clientWorkload.getWorkloadS().isEmpty())
+		if(clientJob.equals(NodeRole.S))
 		{
 			// Subscriber
 			Long currentTime = System.nanoTime();
 			
-			ArrayList<PSAction> subsList = clientWorkload.getWorkloadS();
+			ArrayList<PSAction> activeSubsList = clientWorkload.getWorkloadS();
 			
-			for(int i = 0 ; i < subsList.size() ; i++)
+			for(int i = 0 ; i < activeSubsList.size() ; i++)
 			{
-				PSAction subI = subsList.get(i);
+				PSAction subI = activeSubsList.get(i);
 				
 				boolean checkSub = exectueAction(ClientAction.S, subI);
 				if(!checkSub)
@@ -167,6 +177,35 @@ public class PADRESClient
 			
 			while( (currentTime - runStart) < runLength)
 			{
+				/*
+				 * Make sure our subs are active
+				 * If not, stop them
+				 */
+				Integer numActiveSubs = activeSubsList.size();
+				if(numActiveSubs > 0)
+				{
+					for(int i = 0 ; i < numActiveSubs ; i++)
+					{
+						PSAction activeSubI = activeSubsList.get(i);
+						
+						currentTime = System.nanoTime(); // This isn't really needed, but it looks proper
+						
+						Long activeSubIStartTime = diary.
+								getDiaryEntryGivenCAA(ClientAction.S.toString(), activeSubI.getAttributes())
+								.getTimeStartedAction();
+						
+						if((currentTime - activeSubIStartTime) >= activeSubI.getTimeActive())
+						{
+							boolean checkSub = exectueAction(ClientAction.U, activeSubI);
+							if(!checkSub)
+							{
+								clientLogger.error(logHeader + " Error unsubscribing " + activeSubI);
+								return false;
+							}
+						}
+					}
+				}
+				
 				/*
 				 * Wait for idealMessagePeriod
 				 */
@@ -183,11 +222,11 @@ public class PADRESClient
 				currentTime = System.nanoTime();
 			}
 		}
-		else
+		else if(clientJob.equals(NodeRole.P))
 		{
 			// Publisher
 			ArrayList<PSAction> activeAdsList = clientWorkload.getWorkloadA();
-			HashMap<PSAction, Integer> activeAdsPublicationI = new HashMap<PSAction, Integer>();
+			HashMap<PSAction, Integer> activeAdsPublicationJ = new HashMap<PSAction, Integer>();
 			Random activeAdIGenerator = new Random(adSeed);
 			
 			/*
@@ -199,7 +238,7 @@ public class PADRESClient
 			{
 				PSAction adI = activeAdsList.get(i);
 				
-				activeAdsPublicationI.put(adI, 0);
+				activeAdsPublicationJ.put(adI, 0);
 				
 				boolean checkAd = exectueAction(ClientAction.A, adI);
 				if(!checkAd)
@@ -213,14 +252,20 @@ public class PADRESClient
 			
 			while( (currentTime - runStart) < runLength)
 			{
-				Integer i = activeAdIGenerator.nextInt(activeAdsList.size());
-				PSAction activeAdI = null; 
+				PSAction activeAdI = null;
+				Integer numActiveAds = activeAdsList.size();
 				
 				/*
 				 * Get a pseudo-random advertisement
+				 * If this advertisement should be no longer active
+				 * 	- unadvertise it
+				 * 	- look for a new one
+				 * 	- ... unless they are gone
 				 */
-				while(activeAdI == null && activeAdsList.size() > 0)
+				while(activeAdI == null && numActiveAds > 0)
 				{
+					Integer i = activeAdIGenerator.nextInt(numActiveAds);
+					
 					activeAdI = activeAdsList.get(i);
 					
 					currentTime = System.nanoTime(); // This isn't really needed, but it looks proper
@@ -231,7 +276,7 @@ public class PADRESClient
 					
 					if( (currentTime - activeAdIStartTime) >= activeAdI.getTimeActive() )
 					{
-						activeAdsPublicationI.remove(activeAdI);
+						activeAdsPublicationJ.remove(activeAdI);
 						activeAdsList.remove(activeAdI);
 						boolean checkUnad = exectueAction(ClientAction.V, activeAdI);
 						if(!checkUnad)
@@ -242,28 +287,32 @@ public class PADRESClient
 					}
 				}
 				
-				if(activeAdsList.size() > 0)
+				/*
+				 * If we have an Ad
+				 * 	- Get the Jth publication of this ad 
+				 * 	- and publish it
+				 */
+				if(activeAdI != null)
 				{
-					/*
-					 * Get the Ith/Jth publication and publish it
-					 */
 					ArrayList<PSAction> activeAdIsPublications = clientWorkload.getWorkloadP().get(activeAdI);
-					Integer j = activeAdsPublicationI.get(activeAdI);
+					Integer j = activeAdsPublicationJ.get(activeAdI);
 					
-					boolean checkPublication = exectueAction(ClientAction.P, activeAdIsPublications.get(j));
+					PSAction publicationJOfAdI = activeAdIsPublications.get(j);
+					
+					boolean checkPublication = exectueAction(ClientAction.P, publicationJOfAdI);
 					if(!checkPublication)
 					{
-						clientLogger.error(logHeader + " Error launching Publication " + activeAdIsPublications.get(j).getAttributes());
+						clientLogger.error(logHeader + " Error launching Publication " + publicationJOfAdI.getAttributes());
 						return false;
 					}
 					
-					// Update (/reset) the I/J variable
+					// Update (/reset) the J variable
 					j++;
 					if(j >= activeAdIsPublications.size())
 					{
 						j = 0;
 					}
-					activeAdsPublicationI.put(activeAdI, j);
+					activeAdsPublicationJ.put(activeAdI, j);
 				}
 				
 				/*
@@ -396,6 +445,31 @@ public class PADRESClient
 		}
 		
 		return true;
+	}
+
+	public boolean storePublication(Message msg) 
+	{
+		boolean storedMessage = false;
+		
+		if(msg instanceof PublicationMessage)
+		{
+			Long currentTime = System.currentTimeMillis();
+			DiaryEntry receivedMsg = new DiaryEntry();
+			
+			Publication pub = ((PublicationMessage) msg).getPublication();
+			
+			Long timePubCreated = pub.getTimeStamp().getTime();
+			
+			receivedMsg.addClientAction(ClientAction.R);
+			receivedMsg.addAttributes(pub.toString());
+			receivedMsg.addTimeCreated(timePubCreated);
+			receivedMsg.addTimeReceived(currentTime);
+			receivedMsg.addTimeDifference(currentTime - timePubCreated);
+			
+			storedMessage = true;
+		}
+		
+		return storedMessage;
 	}
 	
 }
