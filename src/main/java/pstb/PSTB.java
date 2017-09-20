@@ -108,6 +108,28 @@ public class PSTB {
 		
 		logger.info("No errors loading the Properties file!");
 		
+		WorkloadFileParser parseWLF = new WorkloadFileParser();
+		
+		logger.info("Parsing Workload Files...");
+		
+		logger.info("Parsing Publisher Workload...");
+		boolean pubCheck = parseWLF.parsePublisherFiles(benchmarkRules.getPubWorkloadFilesPaths());
+		logger.info("Parsing Subscriber Workload...");
+		boolean subCheck = parseWLF.parseSubscriberFile(benchmarkRules.getSubWorkloadFilePath());
+		
+		if(!pubCheck)
+		{
+			logger.error("Publisher Workload File failed parsing!");
+			endProgram(3, simpleUserInput);
+		}
+		if(!subCheck)
+		{
+			logger.error("Subscriber Workload File failed parsing!");
+			endProgram(3, simpleUserInput);
+		}
+		
+		logger.info("All workload files valid!!");
+		
 		boolean allToposOk = true;
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
 		ArrayList<LogicalTopology> allTopos = new ArrayList<LogicalTopology>();
@@ -181,33 +203,12 @@ public class PSTB {
 		
 		if(!allToposOk)
 		{
+			logger.error("Error with topology files!");
 			allTopos.clear();
 			endProgram(2, simpleUserInput);
 		}
 		
 		logger.info("All topologies valid!!");
-		
-		WorkloadFileParser parseWLF = new WorkloadFileParser();
-		
-		logger.info("Parsing Workload Files...");
-		
-		logger.info("Parsing Publisher Workload...");
-		boolean pubCheck = parseWLF.parsePublisherFiles(benchmarkRules.getPubWorkloadFilesPaths());
-		logger.info("Parsing Subscriber Workload...");
-		boolean subCheck = parseWLF.parseSubscriberFile(benchmarkRules.getSubWorkloadFilePath());
-		
-		if(!pubCheck)
-		{
-			logger.error("Publisher Workload File failed parsing!");
-			endProgram(3, simpleUserInput);
-		}
-		if(!subCheck)
-		{
-			logger.error("Subscriber Workload File failed parsing!");
-			endProgram(3, simpleUserInput);
-		}
-		
-		logger.info("Both workload files valid!!");
 		
 		endProgram(0, simpleUserInput);
 	}
