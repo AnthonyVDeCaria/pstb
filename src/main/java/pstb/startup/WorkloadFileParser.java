@@ -20,8 +20,6 @@ import pstb.util.Workload;
 import pstb.util.PSAction;
 
 public class WorkloadFileParser {
-	private String subWorkloadFilePath;
-	private ArrayList<String> pubWorkloadFilesPaths;
 	private Workload wload;
 	
 	private final int SEGMENTSNUM = 3;
@@ -37,10 +35,8 @@ public class WorkloadFileParser {
 	 * @param nSWFP - the new path to the subscriber workload file
 	 * @param nPWFP - the array containing all the paths to the publisher workload files
 	 */
-	public WorkloadFileParser(String nSWFP, ArrayList<String> nPWFP)
+	public WorkloadFileParser()
 	{
-		subWorkloadFilePath = nSWFP;
-		pubWorkloadFilesPaths = nPWFP;
 		wload = new Workload();
 	}
 	
@@ -49,7 +45,7 @@ public class WorkloadFileParser {
 	 * @param clientType - the type of clients this workload file is supposed to influence
 	 * @return true is everything's ok; false otherwise
 	 */
-	public boolean parseSubscriberFile()
+	public boolean parseSubscriberFile(String subWorkloadFilePath)
 	{
 		boolean isParseSuccessful = true;
 		String line = null;
@@ -105,26 +101,27 @@ public class WorkloadFileParser {
 		return isParseSuccessful;
 	}
 	
-	public boolean parsePublisherFiles()
+	public boolean parsePublisherFiles(ArrayList<String> pubWorkloadFilesPaths)
 	{
 		boolean isParseSuccessful = true;
 		String line = null;
 		int linesRead = 0;
 		
-		ArrayList<FileReader> fileList = tryToAccessPubWorkloadFiles();
+		ArrayList<FileReader> fileList = tryToAccessPubWorkloadFiles(pubWorkloadFilesPaths);
 		
 		if(fileList != null)
 		{
 			for(int i = 0 ; i < fileList.size() ; i++)
 			{
 				BufferedReader iTHFileReader = new BufferedReader(fileList.get(i));
+				PSAction fileAd = new PSAction();
+				
 				try
 				{
 					while( (line = iTHFileReader.readLine()) != null)
 					{
 						linesRead++;
 						String[] splitLine = line.split("	");
-						PSAction fileAd = new PSAction();
 						
 						if(checkProperLength(splitLine))
 						{
@@ -267,7 +264,7 @@ public class WorkloadFileParser {
 	 * Attempts to read all the PubWorkloadFiles
 	 * @return null if a file cannot be read; an ArrayList of FileReaders if successful
 	 */
-	private ArrayList<FileReader> tryToAccessPubWorkloadFiles()
+	private ArrayList<FileReader> tryToAccessPubWorkloadFiles(ArrayList<String> pubWorkloadFilesPaths)
 	{
 		ArrayList<FileReader> temp = new ArrayList<FileReader>();
 		for(int i = 0 ; i < pubWorkloadFilesPaths.size(); i++)

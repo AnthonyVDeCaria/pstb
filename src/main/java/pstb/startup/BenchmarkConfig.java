@@ -83,8 +83,13 @@ public class BenchmarkConfig {
 		 * pubWorkloadFilesPaths
 		 */
 		String unsplitPWFP = givenProperty.getProperty("pstb.pubWorkloadFilesPaths");
-		String[] splitPWFP = unsplitPWFP.split(PSTBUtil.COMMA);
-		setPubWorkloadFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(splitPWFP));
+		ArrayList<String> propPWFP = new ArrayList<String>();
+		if(unsplitPWFP != null)
+		{
+			String[] splitPWFP = unsplitPWFP.split(PSTBUtil.COMMA);
+			propPWFP = PSTBUtil.turnStringArrayIntoArrayListString(splitPWFP);
+		}
+		setPubWorkloadFilesPaths(propPWFP);
 		
 		/*
 		 * subWorkloadFilePath
@@ -246,7 +251,7 @@ public class BenchmarkConfig {
 	public void printAllFields()
 	{
 		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
-		logger.info("Properties: pubWorkloadFilePath = " + pubWorkloadFilesPaths);
+		logger.info("Properties: pubWorkloadFilePath = " + Arrays.toString(pubWorkloadFilesPaths.toArray()));
 		logger.info("Properties: subWorkloadFilePath = " + subWorkloadFilePath);
 		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
 		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
@@ -267,6 +272,16 @@ public class BenchmarkConfig {
 		if(numRunsPerExperiment.equals(0))
 		{
 			logger.error("Properties: No Number of Experiment Runs was given!");
+			anyFieldNull = true;
+		}
+		if(pubWorkloadFilesPaths.isEmpty())
+		{
+			logger.error("Properties: No Publisher Workload Files were given!");
+			anyFieldNull = true;
+		}
+		if(subWorkloadFilePath.isEmpty())
+		{
+			logger.error("Properties: No Subscriber Workload File was given!");
 			anyFieldNull = true;
 		}
 		if(runLengths.isEmpty())
@@ -385,7 +400,7 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Sets the pubWorkloadFilePath
+	 * Sets the pubWorkloadFilesPaths
 	 * @param nPWFP - the new pubWorkloadFilesPaths
 	 */
 	private void setPubWorkloadFilesPaths(ArrayList<String> nPWFP)

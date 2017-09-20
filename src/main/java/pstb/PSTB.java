@@ -187,16 +187,14 @@ public class PSTB {
 		
 		logger.info("All topologies valid!!");
 		
-		WorkloadFileParser parseWLF = new WorkloadFileParser(
-				benchmarkRules.getSubWorkloadFilePath(), 
-				benchmarkRules.getPubWorkloadFilesPaths());
+		WorkloadFileParser parseWLF = new WorkloadFileParser();
 		
 		logger.info("Parsing Workload Files...");
 		
 		logger.info("Parsing Publisher Workload...");
-		boolean pubCheck = parseWLF.parsePublisherFiles();
+		boolean pubCheck = parseWLF.parsePublisherFiles(benchmarkRules.getPubWorkloadFilesPaths());
 		logger.info("Parsing Subscriber Workload...");
-		boolean subCheck = parseWLF.parseSubscriberFile();
+		boolean subCheck = parseWLF.parseSubscriberFile(benchmarkRules.getSubWorkloadFilePath());
 		
 		if(!pubCheck)
 		{
@@ -211,8 +209,8 @@ public class PSTB {
 		
 		logger.info("Both workload files valid!!");
 		
-		
-		
 		endProgram(0, simpleUserInput);
 	}
 }
+
+

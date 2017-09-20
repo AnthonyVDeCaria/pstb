@@ -30,7 +30,7 @@ public class PSClientPADRES
 	private ArrayList<NodeRole> clientRoles;
 	private Workload clientWorkload;
 	private ClientDiary diary;
-	private Integer idealMessagePeriod;
+	private Long idealMessagePeriod;
 	private Integer runLength;
 	
 	private final int adSeed = 23;
@@ -58,7 +58,7 @@ public class PSClientPADRES
 	 * @return false if there's a failure; true otherwise
 	 */
 	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
-			Workload givenWorkload, Integer givenIMP, Integer givenRL, ArrayList<NodeRole> givenRoles) 
+			Workload givenWorkload, Long givenIMP, Integer givenRL, ArrayList<NodeRole> givenRoles) 
 	{
 		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
 		
