@@ -2,6 +2,7 @@ package pstb.benchmark;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,33 +10,39 @@ import org.apache.logging.log4j.Logger;
 import ca.utoronto.msrg.padres.client.BrokerState;
 import ca.utoronto.msrg.padres.client.Client;
 import ca.utoronto.msrg.padres.client.ClientException;
-import ca.utoronto.msrg.padres.common.comm.MessageQueue;
-import ca.utoronto.msrg.padres.common.message.Message;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.ClientAction;
 import pstb.util.PSAction;
 import pstb.util.Workload;
+import pstb.util.diary.ClientDiary;
+import pstb.util.diary.DiaryEntry;
 
-public class PADRESClient{	
+public class PADRESClient 
+{	
 	private Client actualClient;
 	private ArrayList<BrokerState> connectedBrokers;
 	
 	private String clientName;
 	private ArrayList<String> brokerURIs;
 	private Workload clientWorkload;
-	private ArrayList<HashMap<DiaryHeader, String>> diary;
+	private ClientDiary diary;
 	
-	private Integer idealMessageRate;
+	private Integer idealMessagePeriod;
 	private Integer runLength;
+	
+	private final int adSeed = 23;
 	
 	private final String logHeader = "Client: ";
 	private static final Logger clientLogger = LogManager.getRootLogger();
 	
+	/**
+	 * Empty Constructor
+	 */
 	public PADRESClient()
 	{
 		clientName = new String();
 		brokerURIs = new ArrayList<String>();
-		diary = new ArrayList<HashMap<DiaryHeader, String>>();
+		diary = new ClientDiary();
 		clientWorkload = new Workload();
 	}
 
@@ -48,7 +55,7 @@ public class PADRESClient{
 	 * @return false if there's a failure; true otherwise
 	 */
 	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
-			Workload givenWorkload, Integer givenIMR, Integer givenRL) 
+			Workload givenWorkload, Integer givenIMP, Integer givenRL) 
 	{
 		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
 		
@@ -65,8 +72,9 @@ public class PADRESClient{
 		clientName = givenName;
 		brokerURIs = givenURIs;
 		clientWorkload = givenWorkload;
-		idealMessageRate = givenIMR;
+		idealMessagePeriod = givenIMP;
 		runLength = givenRL;
+		
 		clientLogger.info(logHeader + "Initialized client " + givenName);
 		return true;
 	}
@@ -130,108 +138,205 @@ public class PADRESClient{
 		actualClient.disconnectAll();
 	}
 
-	public void startRun() 
+	/**
+	 * Begins the run for the client
+	 * @return false if there are any errors; true otherwise
+	 */
+	public boolean startRun() 
 	{
+		Long runStart = System.nanoTime();
+		
 		if(!clientWorkload.getWorkloadS().isEmpty())
 		{
 			// Subscriber
+			Long currentTime = System.nanoTime();
+			
+			ArrayList<PSAction> subsList = clientWorkload.getWorkloadS();
+			
+			for(int i = 0 ; i < subsList.size() ; i++)
+			{
+				PSAction subI = subsList.get(i);
+				
+				boolean checkSub = exectueAction(ClientAction.S, subI);
+				if(!checkSub)
+				{
+					clientLogger.error(logHeader + " Error launching subscriptions");
+					return false;
+				}
+			}
+			
+			while( (currentTime - runStart) < runLength)
+			{
+				/*
+				 * Wait for idealMessagePeriod
+				 */
+				try {				
+					clientLogger.trace(logHeader + "pausing for IMR");
+					Thread.sleep(idealMessagePeriod);
+				} 
+				catch (InterruptedException e) 
+				{
+					clientLogger.error(logHeader + "error sleeping in client " + clientName, e);
+					return false;
+				}
+				
+				currentTime = System.nanoTime();
+			}
 		}
 		else
 		{
 			// Publisher
-			ArrayList<PSAction> advertisement = clientWorkload.getWorkloadA();
-			int i = 0;
-			int pubsSent = 0;
+			ArrayList<PSAction> activeAdsList = clientWorkload.getWorkloadA();
+			HashMap<PSAction, Integer> activeAdsPublicationI = new HashMap<PSAction, Integer>();
+			Random activeAdIGenerator = new Random(adSeed);
 			
-//			boolean checkAction = exectueAction(ClientAction.A, advertisement.getAttributes());
-//			
-//			if(!checkAction)
-//			{
-//				clientLogger.error(logHeader + "Error sending advertizement " + advertisement.getAttributes() + 
-//						" from client " + clientName);
-//				return;
-//			}
-//			else
-//			{
-//				Long timeActive = advertisement.getTimeActive();
-//				
-//				while(timeActive > 0)
-//				{
-//					Long start = System.currentTimeMillis();
-//					String iTHAttri = publications.get(i).getAttributes();
-//					checkAction = exectueAction(ClientAction.P, iTHAttri);
-//					
-//					if(!checkAction)
-//					{
-//						clientLogger.error(logHeader + "Error sending publication " + pubsSent + 
-//								" " + iTHAttri + " from client " + clientName);
-//						return;
-//					}
-//					else
-//					{
-//						pubsSent++;
-//						i++;
-//						if(i >= publications.size())
-//						{
-//							i = 0;
-//						}
-//						Long end = System.currentTimeMillis();
-//						timeActive -= (end - start);
-//					}
-//				}
-//			}
+			/*
+			 * Advertise
+			 * 	- create the Publication i Map
+			 * 	- actually advertise
+			 */
+			for(int i = 0 ; i < activeAdsList.size() ; i++)
+			{
+				PSAction adI = activeAdsList.get(i);
+				
+				activeAdsPublicationI.put(adI, 0);
+				
+				boolean checkAd = exectueAction(ClientAction.A, adI);
+				if(!checkAd)
+				{
+					clientLogger.error(logHeader + " Error launching advertisements");
+					return false;
+				}
+			}
+			
+			Long currentTime = System.nanoTime();
+			
+			while( (currentTime - runStart) < runLength)
+			{
+				Integer i = activeAdIGenerator.nextInt(activeAdsList.size());
+				PSAction activeAdI = null; 
+				
+				/*
+				 * Get a pseudo-random advertisement
+				 */
+				while(activeAdI == null && activeAdsList.size() > 0)
+				{
+					activeAdI = activeAdsList.get(i);
+					
+					currentTime = System.nanoTime(); // This isn't really needed, but it looks proper
+					
+					Long activeAdIStartTime = diary.
+							getDiaryEntryGivenCAA(ClientAction.A.toString(), activeAdI.getAttributes())
+							.getTimeStartedAction(); // there is a possibility for null here
+					
+					if( (currentTime - activeAdIStartTime) >= activeAdI.getTimeActive() )
+					{
+						activeAdsPublicationI.remove(activeAdI);
+						activeAdsList.remove(activeAdI);
+						boolean checkUnad = exectueAction(ClientAction.V, activeAdI);
+						if(!checkUnad)
+						{
+							clientLogger.error(logHeader + " Error unadvertising " + activeAdI.getAttributes());
+						}
+						activeAdI = null;
+					}
+				}
+				
+				if(activeAdsList.size() > 0)
+				{
+					/*
+					 * Get the Ith/Jth publication and publish it
+					 */
+					ArrayList<PSAction> activeAdIsPublications = clientWorkload.getWorkloadP().get(activeAdI);
+					Integer j = activeAdsPublicationI.get(activeAdI);
+					
+					boolean checkPublication = exectueAction(ClientAction.P, activeAdIsPublications.get(j));
+					if(!checkPublication)
+					{
+						clientLogger.error(logHeader + " Error launching Publication " + activeAdIsPublications.get(j).getAttributes());
+						return false;
+					}
+					
+					// Update (/reset) the I/J variable
+					j++;
+					if(j >= activeAdIsPublications.size())
+					{
+						j = 0;
+					}
+					activeAdsPublicationI.put(activeAdI, j);
+				}
+				
+				/*
+				 * Wait for idealMessagePeriod
+				 */
+				try {				
+					clientLogger.trace(logHeader + "pausing for IMR");
+					Thread.sleep(idealMessagePeriod);
+				} 
+				catch (InterruptedException e) 
+				{
+					clientLogger.error(logHeader + "error sleeping in client " + clientName, e);
+					return false;
+				}
+				
+				currentTime = System.nanoTime();
+			}
 		}
+		
+		return true;
 	}
 	
-	private boolean exectueAction(ClientAction givenAction, String attributes)
+	private boolean exectueAction(ClientAction givenActionType, PSAction givenAction)
 	{
 		boolean actionSuccessful = false;
-		createDiaryEntry(givenAction, attributes); 
+		DiaryEntry thisEntry = new DiaryEntry();
+		thisEntry.addClientAction(givenActionType);
+		
 		Long startAction = System.nanoTime();
-		actionSuccessful = handleAction(givenAction, attributes);
+		actionSuccessful = handleAction(givenActionType, givenAction.getAttributes());
 		Long actionAcked = System.nanoTime();
 		
 		if(actionSuccessful)
 		{
 			Long timeDiff = actionAcked - startAction;
 			
-			HashMap<DiaryHeader, String> thisEntry = getDiaryEntry(givenAction.toString(), attributes);
+			thisEntry.addTimeStartedAction(startAction);
+			thisEntry.addTimeBrokerAck(actionAcked);
+			thisEntry.addAckDelay(timeDiff);
 			
-			updateDiaryEntry(DiaryHeader.TimeStartedAction, startAction.toString(), thisEntry);
-			updateDiaryEntry(DiaryHeader.TimeBrokerAck, actionAcked.toString(), thisEntry);
-			updateDiaryEntry(DiaryHeader.AckDelay, timeDiff.toString(), thisEntry);
-			
-			if(givenAction.equals(ClientAction.U) || givenAction.equals(ClientAction.V))
+			if(givenActionType.equals(ClientAction.U) || givenActionType.equals(ClientAction.V))
 			{
-				HashMap<DiaryHeader, String> ascAction = null;
+				DiaryEntry ascAction = null;
 				
-				if(givenAction.equals(ClientAction.U))
+				if(givenActionType.equals(ClientAction.U))
 				{
-					ascAction = getDiaryEntry(ClientAction.S.toString(), attributes);
+					ascAction = diary.getDiaryEntryGivenCAA(ClientAction.S.toString(), givenAction.getAttributes());
 				}
 				else
 				{
-					ascAction = getDiaryEntry(ClientAction.A.toString(), attributes);
+					ascAction = diary.getDiaryEntryGivenCAA(ClientAction.A.toString(), givenAction.getAttributes());
 				}
 				
 				if (ascAction == null)
 				{
-					clientLogger.error(logHeader + "Counldn't find asscociated action to " + givenAction 
-							+ " " + attributes);
+					clientLogger.error(logHeader + "Counldn't find asscociated action to " + givenActionType 
+							+ " " + givenAction);
 					return false;
 				}
 				else
 				{
-					Long aAStarted = Long.parseLong(ascAction.get(DiaryHeader.TimeStartedAction));
-					Long aAAcked = Long.parseLong(ascAction.get(DiaryHeader.TimeBrokerAck));
+					Long aAStarted = ascAction.getTimeStartedAction();
+					Long aAAcked = ascAction.getTimeBrokerAck();
 					
 					Long startedDif = startAction - aAStarted;
 					Long ackedDif = actionAcked - aAAcked;
 					
-					updateDiaryEntry(DiaryHeader.TimeActiveStarted, startedDif.toString(), thisEntry);
-					updateDiaryEntry(DiaryHeader.TimeActiveAck, ackedDif.toString(), thisEntry);
+					thisEntry.addTimeActiveStarted(startedDif);
+					thisEntry.addTimeActiveAck(ackedDif);
 				}
 			}
+			
+			diary.addDiaryEntryToDiary(thisEntry);
 		}
 		
 		return actionSuccessful;
@@ -291,53 +396,6 @@ public class PADRESClient{
 		}
 		
 		return true;
-	}
-
-	/**
-	 * Creates a new diary entry
-	 * @param givenAction - the action the client is accomplishing; be it Advertise, Publish, etc
-	 * @param attributes - the Attributes associated with this action
-	 */
-	private void createDiaryEntry(ClientAction givenAction, String attributes) 
-	{
-		HashMap<DiaryHeader, String> newEntry = new HashMap<DiaryHeader, String>();
-		
-		newEntry.put(DiaryHeader.ClientAction, givenAction.toString());
-		newEntry.put(DiaryHeader.Attributes, attributes);
-		
-		diary.add(newEntry);
-	}
-	
-	/**
-	 * Gets a diary entry given it's associated client action and attributes
-	 * @param clientAction - the associated client action 
-	 * @param attributes - the associated attributes
-	 * @return Either the given diary entry, or null
-	 */
-	private HashMap<DiaryHeader, String> getDiaryEntry(String clientAction, String attributes)
-	{
-		HashMap<DiaryHeader, String> appropriateDiary = null;
-		for(int i = 0; i < diary.size() ; i++)
-		{
-			HashMap<DiaryHeader, String> iTHEntry = diary.get(i);
-			if(iTHEntry.containsValue(clientAction) && iTHEntry.containsValue(attributes))
-			{
-				appropriateDiary = iTHEntry;
-				break;
-			}
-		}
-		return appropriateDiary;
-	}
-	
-	/**
-	 * Given an ClientAction and attributes, update the diary entry with new data 
-	 * @param newHeader - the new header
-	 * @param newData - the new data to add
-	 * @param givenEntry - the entry to be updated
-	 */
-	private void updateDiaryEntry(DiaryHeader newHeader, String newData, HashMap<DiaryHeader, String> givenEntry) 
-	{
-		givenEntry.put(newHeader, newData);
 	}
 	
 }

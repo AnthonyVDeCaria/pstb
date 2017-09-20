@@ -10,13 +10,16 @@ import java.util.HashMap;
 public class Workload {
 	private ArrayList<PSAction> workloadA;
 	private ArrayList<PSAction> workloadS;
-	private HashMap<String, ArrayList<PSAction>> workloadP;
+	private HashMap<PSAction, ArrayList<PSAction>> workloadP;
 	
+	/**
+	 * Empty constructor
+	 */
 	public Workload()
 	{
 		workloadA = new ArrayList<PSAction>();
 		workloadS = new ArrayList<PSAction>();
-		workloadP = new HashMap<String, ArrayList<PSAction>>();
+		workloadP = new HashMap<PSAction, ArrayList<PSAction>>();
 	}
 	
 	public void updateWorkloadS(PSAction newSub)
@@ -31,18 +34,18 @@ public class Workload {
 	public void updateWorkloadA(PSAction newAd)
 	{
 		workloadA.add(newAd);
-		workloadP.put(newAd.getAttributes(), new ArrayList<PSAction>());
+		workloadP.put(newAd, new ArrayList<PSAction>());
 	}
 	
-	public boolean updateWorkloadP(String attributes, PSAction newPublication)
+	public boolean updateWorkloadP(PSAction givenAd, PSAction newPublication)
 	{
 		boolean foundProperAd = false;
 		
-		if(workloadP.containsKey(attributes))
+		if(workloadP.containsKey(givenAd))
 		{
-			ArrayList<PSAction> temp = workloadP.get(attributes);
+			ArrayList<PSAction> temp = workloadP.get(givenAd);
 			temp.add(newPublication);
-			workloadP.put(attributes, temp);
+			workloadP.put(givenAd, temp);
 			foundProperAd = true;
 		}
 		
@@ -59,7 +62,7 @@ public class Workload {
 		return workloadS;
 	}
 	
-	public HashMap<String, ArrayList<PSAction>> getWorkloadP()
+	public HashMap<PSAction, ArrayList<PSAction>> getWorkloadP()
 	{
 		return workloadP;
 	}
