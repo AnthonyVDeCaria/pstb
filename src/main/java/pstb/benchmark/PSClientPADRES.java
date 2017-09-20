@@ -27,7 +27,7 @@ public class PSClientPADRES
 	
 	private String clientName;
 	private ArrayList<String> brokerURIs;
-	private NodeRole clientJob;
+	private ArrayList<NodeRole> clientRoles;
 	private Workload clientWorkload;
 	private ClientDiary diary;
 	private Integer idealMessagePeriod;
@@ -58,7 +58,7 @@ public class PSClientPADRES
 	 * @return false if there's a failure; true otherwise
 	 */
 	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
-			Workload givenWorkload, Integer givenIMP, Integer givenRL, NodeRole givenRole) 
+			Workload givenWorkload, Integer givenIMP, Integer givenRL, ArrayList<NodeRole> givenRoles) 
 	{
 		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
 		
@@ -72,7 +72,13 @@ public class PSClientPADRES
 			return false;
 		}
 		
-		if(givenRole.equals(NodeRole.B))
+		if(givenRoles.size() > 2)
+		{
+			clientLogger.error(logHeader + "too many roles given to client" + givenName);
+			return false;
+		}
+		
+		if(givenRoles.contains(NodeRole.B))
 		{
 			clientLogger.error(logHeader + "a client is not a broker");
 			return false;
@@ -83,10 +89,26 @@ public class PSClientPADRES
 		clientWorkload = givenWorkload;
 		idealMessagePeriod = givenIMP;
 		runLength = givenRL;
-		clientJob = givenRole;
+		clientRoles = givenRoles;
 		
 		clientLogger.info(logHeader + "Initialized client " + givenName);
 		return true;
+	}
+	
+	/**
+	 * Adds a new NodeRole to clientRoles
+	 * @param newNodeRole - the new Role
+	 * @return false on failure; true otherwise
+	 */
+	public boolean addToClientRoles(NodeRole newNodeRole)
+	{
+		boolean successfulAdd = false;
+		if(!newNodeRole.equals(NodeRole.B) && !clientRoles.contains(newNodeRole))
+		{
+			clientRoles.add(newNodeRole);
+			successfulAdd = true;
+		}
+		return successfulAdd;
 	}
 
 	/**
@@ -162,9 +184,7 @@ public class PSClientPADRES
 		HashMap<PSAction, Integer> activeAdsPublicationJ = new HashMap<PSAction, Integer>();
 		Random activeAdIGenerator = new Random(adSeed);
 		
-		boolean isSub = clientJob.equals(NodeRole.S);
-		
-		if(isSub)
+		if(clientRoles.contains(NodeRole.S))
 		{		
 			for(int i = 0 ; i < activeSubsList.size() ; i++)
 			{
@@ -178,7 +198,7 @@ public class PSClientPADRES
 				}
 			}
 		}
-		else
+		else if(clientRoles.contains(NodeRole.P))
 		{
 			for(int i = 0 ; i < activeAdsList.size() ; i++)
 			{
@@ -199,7 +219,7 @@ public class PSClientPADRES
 		
 		while( (currentTime - runStart) < runLength)
 		{
-			if(isSub)
+			if(clientRoles.contains(NodeRole.S))
 			{
 				/*
 				 * Make sure our subs are active
@@ -230,7 +250,7 @@ public class PSClientPADRES
 					}
 				}
 			}
-			else 
+			else if(clientRoles.contains(NodeRole.P))
 			{
 				PSAction activeAdI = null;
 				Integer numActiveAds = activeAdsList.size();

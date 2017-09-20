@@ -21,7 +21,7 @@ import pstb.util.PSAction;
 
 public class WorkloadFileParser {
 	private String subWorkloadFilePath;
-	ArrayList<String> pubWorkloadFilesPaths;
+	private ArrayList<String> pubWorkloadFilesPaths;
 	private Workload wload;
 	
 	private final int SEGMENTSNUM = 3;
@@ -74,7 +74,7 @@ public class WorkloadFileParser {
 							PSAction newSub = new PSAction();
 							newSub.setAttributes(splitLine[LOC_ATTRIBUTES]);
 							newSub.setTimeActive(timeActive);
-							wload.updateWorkloadS(newSub);
+							wload.updateSubscriptionWorkload(newSub);
 						}
 						else
 						{
@@ -128,8 +128,9 @@ public class WorkloadFileParser {
 						
 						if(checkProperLength(splitLine))
 						{
-							if(checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), NodeRole.P) 
-									== ClientAction.A)
+							ClientAction linesCA = checkProperClientAction(
+									splitLine[LOC_CLIENT_ACTION].toUpperCase(), NodeRole.P);
+							if(linesCA.equals(ClientAction.A))
 							{
 								Long timeActive = PSTBUtil.checkIfLong(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false);
 								
@@ -139,38 +140,41 @@ public class WorkloadFileParser {
 									newAd.setAttributes(splitLine[LOC_ATTRIBUTES]);
 									newAd.setTimeActive(timeActive);
 									fileAd = newAd;
-									wload.updateWorkloadA(newAd);
+									wload.updateAdvertisementWorkload(newAd);
 								}
 								else
 								{
 									isParseSuccessful = false;
-									logger.error(logHeader + "line " + linesRead + " has an incorrect Time Active value");
+									logger.error(logHeader + "line " + linesRead + 
+											" has an incorrect Time Active value");
 								}
 							}
-							else if(checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), NodeRole.P) 
-									== ClientAction.P)
+							else if(linesCA.equals(ClientAction.P))
 							{
 								if(!fileAd.getAttributes().isEmpty())
 								{
-									Integer payloadSize = PSTBUtil.checkIfInteger(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false);
+									Integer payloadSize = PSTBUtil.checkIfInteger(
+											splitLine[LOC_PAYLOAD_TIME_ACTIVE], false);
 									
 									if(payloadSize != null)
 									{
 										PSAction newPub = new PSAction();
 										newPub.setAttributes(splitLine[LOC_ATTRIBUTES]);
 										newPub.setPayloadSize(payloadSize);
-										wload.updateWorkloadP(fileAd.getAttributes(), newPub);
+										wload.updatePublicationWorkload(fileAd, newPub);
 									}
 									else
 									{
 										isParseSuccessful = false;
-										logger.error(logHeader + "line " + linesRead + " has an incorrect Payload Size value");
+										logger.error(logHeader + "line " + linesRead + 
+												" has an incorrect Payload Size value");
 									}	
 								}
 								else
 								{
 									isParseSuccessful = false;
-									logger.error(logHeader + "line " + linesRead + " is referencing an Ad that doesn't exist");
+									logger.error(logHeader + "line " + linesRead + 
+											" is referencing an Ad that doesn't exist");
 								}
 							}
 							else
@@ -259,6 +263,10 @@ public class WorkloadFileParser {
 		return test;
 	}
 	
+	/**
+	 * Attempts to read all the PubWorkloadFiles
+	 * @return null if a file cannot be read; an ArrayList of FileReaders if successful
+	 */
 	private ArrayList<FileReader> tryToAccessPubWorkloadFiles()
 	{
 		ArrayList<FileReader> temp = new ArrayList<FileReader>();
@@ -279,5 +287,20 @@ public class WorkloadFileParser {
 		}
 		
 		return temp;
+	}
+	
+	private boolean checkIfAttributesAreCorrect(ClientAction givenCA, String unsplitAttributes)
+	{
+		boolean areAttributesCorrect = false;
+		
+		String[] splitAttri = unsplitAttributes.split("],");
+		
+		if(!splitAttri[0].equals("[class,eq,\"oneITS\"]") && !splitAttri[0].equals("[class,eq,'oneITS']"))
+		{
+			areAttributesCorrect = false;
+			logger.error(logHeader + "First attribute isn't [class,eq,\"oneITS\"] or [class,eq,'oneITS']");
+		}
+		
+		return areAttributesCorrect;
 	}
 }

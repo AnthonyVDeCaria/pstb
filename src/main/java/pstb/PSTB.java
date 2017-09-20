@@ -17,7 +17,6 @@ import pstb.startup.BenchmarkConfig;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
 import pstb.util.LogicalTopology;
-import pstb.util.NodeRole;
 import pstb.util.UI;
 
 public class PSTB {
@@ -188,15 +187,16 @@ public class PSTB {
 		
 		logger.info("All topologies valid!!");
 		
-		/*WorkloadFileParser pub = new WorkloadFileParser(benchmarkRules.getPubWorkloadFilePath());
-		WorkloadFileParser sub = new WorkloadFileParser(benchmarkRules.getSubWorkloadFilePath());
+		WorkloadFileParser parseWLF = new WorkloadFileParser(
+				benchmarkRules.getSubWorkloadFilePath(), 
+				benchmarkRules.getPubWorkloadFilesPaths());
 		
 		logger.info("Parsing Workload Files...");
 		
 		logger.info("Parsing Publisher Workload...");
-		boolean pubCheck = pub.parse(NodeRole.P);
+		boolean pubCheck = parseWLF.parsePublisherFiles();
 		logger.info("Parsing Subscriber Workload...");
-		boolean subCheck = sub.parse(NodeRole.S);
+		boolean subCheck = parseWLF.parseSubscriberFile();
 		
 		if(!pubCheck)
 		{
@@ -211,8 +211,7 @@ public class PSTB {
 		
 		logger.info("Both workload files valid!!");
 		
-		pub.printWorkload();
-		sub.printWorkload();*/
+		
 		
 		endProgram(0, simpleUserInput);
 	}

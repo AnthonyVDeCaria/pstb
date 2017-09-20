@@ -353,10 +353,10 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Gets the pubWorkloadFilePath
-	 * @return the pubWorkloadFilePath
+	 * Gets the pubWorkloadFilesPaths
+	 * @return the pubWorkloadFilesPaths
 	 */
-	public ArrayList<String> getPubWorkloadFilePath()
+	public ArrayList<String> getPubWorkloadFilesPaths()
 	{
 		return this.pubWorkloadFilesPaths;
 	}

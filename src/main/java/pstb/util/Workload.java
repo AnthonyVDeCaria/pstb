@@ -68,6 +68,7 @@ public class Workload {
 		
 		return foundProperAd;
 	}
+	
 	/**
 	 * Gets the Advertiser Workload
 	 * @return the Advertiser Workload
