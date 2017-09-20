@@ -156,13 +156,16 @@ public class PSClientPADRES
 	{
 		Long runStart = System.nanoTime();
 		
-		if(clientJob.equals(NodeRole.S))
-		{
-			// Subscriber
-			Long currentTime = System.nanoTime();
-			
-			ArrayList<PSAction> activeSubsList = clientWorkload.getWorkloadS();
-			
+		ArrayList<PSAction> activeSubsList = clientWorkload.getSubscriberWorkload();
+		
+		ArrayList<PSAction> activeAdsList = clientWorkload.getAdvertiserWorkload();
+		HashMap<PSAction, Integer> activeAdsPublicationJ = new HashMap<PSAction, Integer>();
+		Random activeAdIGenerator = new Random(adSeed);
+		
+		boolean isSub = clientJob.equals(NodeRole.S);
+		
+		if(isSub)
+		{		
 			for(int i = 0 ; i < activeSubsList.size() ; i++)
 			{
 				PSAction subI = activeSubsList.get(i);
@@ -174,8 +177,29 @@ public class PSClientPADRES
 					return false;
 				}
 			}
+		}
+		else
+		{
+			for(int i = 0 ; i < activeAdsList.size() ; i++)
+			{
+				PSAction adI = activeAdsList.get(i);
+				
+				activeAdsPublicationJ.put(adI, 0);
+				
+				boolean checkAd = exectueAction(ClientAction.A, adI);
+				if(!checkAd)
+				{
+					clientLogger.error(logHeader + " Error launching advertisements");
+					return false;
+				}
+			}
+		}
 			
-			while( (currentTime - runStart) < runLength)
+		Long currentTime = System.nanoTime();
+		
+		while( (currentTime - runStart) < runLength)
+		{
+			if(isSub)
 			{
 				/*
 				 * Make sure our subs are active
@@ -205,52 +229,8 @@ public class PSClientPADRES
 						}
 					}
 				}
-				
-				/*
-				 * Wait for idealMessagePeriod
-				 */
-				try {				
-					clientLogger.trace(logHeader + "pausing for IMR");
-					Thread.sleep(idealMessagePeriod);
-				} 
-				catch (InterruptedException e) 
-				{
-					clientLogger.error(logHeader + "error sleeping in client " + clientName, e);
-					return false;
-				}
-				
-				currentTime = System.nanoTime();
 			}
-		}
-		else if(clientJob.equals(NodeRole.P))
-		{
-			// Publisher
-			ArrayList<PSAction> activeAdsList = clientWorkload.getWorkloadA();
-			HashMap<PSAction, Integer> activeAdsPublicationJ = new HashMap<PSAction, Integer>();
-			Random activeAdIGenerator = new Random(adSeed);
-			
-			/*
-			 * Advertise
-			 * 	- create the Publication i Map
-			 * 	- actually advertise
-			 */
-			for(int i = 0 ; i < activeAdsList.size() ; i++)
-			{
-				PSAction adI = activeAdsList.get(i);
-				
-				activeAdsPublicationJ.put(adI, 0);
-				
-				boolean checkAd = exectueAction(ClientAction.A, adI);
-				if(!checkAd)
-				{
-					clientLogger.error(logHeader + " Error launching advertisements");
-					return false;
-				}
-			}
-			
-			Long currentTime = System.nanoTime();
-			
-			while( (currentTime - runStart) < runLength)
+			else 
 			{
 				PSAction activeAdI = null;
 				Integer numActiveAds = activeAdsList.size();
@@ -277,11 +257,14 @@ public class PSClientPADRES
 					if( (currentTime - activeAdIStartTime) >= activeAdI.getTimeActive() )
 					{
 						activeAdsPublicationJ.remove(activeAdI);
+						
 						activeAdsList.remove(activeAdI);
+						
 						boolean checkUnad = exectueAction(ClientAction.V, activeAdI);
 						if(!checkUnad)
 						{
 							clientLogger.error(logHeader + " Error unadvertising " + activeAdI.getAttributes());
+							return false;
 						}
 						activeAdI = null;
 					}
@@ -294,7 +277,7 @@ public class PSClientPADRES
 				 */
 				if(activeAdI != null)
 				{
-					ArrayList<PSAction> activeAdIsPublications = clientWorkload.getWorkloadP().get(activeAdI);
+					ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
 					Integer j = activeAdsPublicationJ.get(activeAdI);
 					
 					PSAction publicationJOfAdI = activeAdIsPublications.get(j);
@@ -314,22 +297,22 @@ public class PSClientPADRES
 					}
 					activeAdsPublicationJ.put(activeAdI, j);
 				}
-				
-				/*
-				 * Wait for idealMessagePeriod
-				 */
-				try {				
-					clientLogger.trace(logHeader + "pausing for IMR");
-					Thread.sleep(idealMessagePeriod);
-				} 
-				catch (InterruptedException e) 
-				{
-					clientLogger.error(logHeader + "error sleeping in client " + clientName, e);
-					return false;
-				}
-				
-				currentTime = System.nanoTime();
 			}
+			
+			/*
+			 * Wait for idealMessagePeriod
+			 */
+			try {				
+				clientLogger.trace(logHeader + "pausing for IMR");
+				Thread.sleep(idealMessagePeriod);
+			} 
+			catch (InterruptedException e) 
+			{
+				clientLogger.error(logHeader + "error sleeping in client " + clientName, e);
+				return false;
+			}
+			
+			currentTime = System.nanoTime();
 		}
 		
 		return true;
@@ -390,7 +373,7 @@ public class PSClientPADRES
 		
 		return actionSuccessful;
 	}
-
+	
 	private boolean handleAction(ClientAction givenAction, String attributes) 
 	{
 		String generalLog = "Attempting to ";
