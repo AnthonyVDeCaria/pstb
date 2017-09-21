@@ -6,8 +6,6 @@ package pstb.benchmark;
 
 import java.util.ArrayList;
 
-import pstb.util.ClientAction;
-
 public interface PSClient {
 	
 	public boolean initialize(String givenName);
@@ -20,9 +18,5 @@ public interface PSClient {
 	
 	public void startRun();
 	
-	public boolean handleAction(ClientAction givenAction, String predicates);
-	
-	public void listen();
-
-	public void addDiaryEntry();
+//	public boolean handleAction(ClientAction givenAction, PSAction predicates);
 }

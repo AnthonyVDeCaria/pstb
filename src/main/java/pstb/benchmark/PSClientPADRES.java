@@ -25,11 +25,12 @@ public class PSClientPADRES
 	private PADRESClientExtension actualClient;
 	private ArrayList<BrokerState> connectedBrokers;
 	
+	private ClientDiary diary;
+	private ArrayList<NodeRole> clientRoles;
+	
 	private String clientName;
 	private ArrayList<String> brokerURIs;
-	private ArrayList<NodeRole> clientRoles;
 	private Workload clientWorkload;
-	private ClientDiary diary;
 	private Long idealMessagePeriod;
 	private Integer runLength;
 	
@@ -43,10 +44,7 @@ public class PSClientPADRES
 	 */
 	public PSClientPADRES()
 	{
-		clientName = new String();
-		brokerURIs = new ArrayList<String>();
 		diary = new ClientDiary();
-		clientWorkload = new Workload();
 		clientRoles = new ArrayList<NodeRole>();
 	}
 
@@ -90,7 +88,7 @@ public class PSClientPADRES
 	 * @param newNodeRole - the new Role
 	 * @return false on failure; true otherwise
 	 */
-	public boolean addToClientRoles(NodeRole newNodeRole)
+	public boolean addNewClientRole(NodeRole newNodeRole)
 	{
 		boolean successfulAdd = false;
 		if(!newNodeRole.equals(NodeRole.B) && !clientRoles.contains(newNodeRole))
@@ -335,7 +333,7 @@ public class PSClientPADRES
 		thisEntry.addClientAction(givenActionType);
 		
 		Long startAction = System.nanoTime();
-		actionSuccessful = handleAction(givenActionType, givenAction.getAttributes());
+		actionSuccessful = handleAction(givenActionType, givenAction);
 		Long actionAcked = System.nanoTime();
 		
 		if(actionSuccessful)
@@ -384,41 +382,41 @@ public class PSClientPADRES
 		return actionSuccessful;
 	}
 	
-	private boolean handleAction(ClientAction givenAction, String attributes) 
+	private boolean handleAction(ClientAction givenActionType, PSAction givenAction) 
 	{
 		String generalLog = "Attempting to ";
 		
 		try
 		{
-			switch(givenAction)
+			switch(givenActionType)
 			{
 				case A:
 				{
-					clientLogger.info(logHeader + generalLog + "advertize " + attributes);
-					actualClient.advertise(attributes, brokerURIs.get(0));
+					clientLogger.info(logHeader + generalLog + "advertize " + givenAction);
+					actualClient.advertise(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case V:
 				{
-					clientLogger.info(logHeader + generalLog + "unadvertize " + attributes);
+					clientLogger.info(logHeader + generalLog + "unadvertize " + givenAction);
 					actualClient.unAdvertiseAll(); // For now
 					break;
 				}
 				case P:
 				{
-					clientLogger.info(logHeader + generalLog + "publish " + attributes);
-					actualClient.publish(attributes, brokerURIs.get(0));
+					clientLogger.info(logHeader + generalLog + "publish " + givenAction);
+					actualClient.publish(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case S:
 				{
-					clientLogger.info(logHeader + generalLog + "subscribe to " + attributes);
-					actualClient.subscribe(attributes, brokerURIs.get(0));
+					clientLogger.info(logHeader + generalLog + "subscribe to " + givenAction);
+					actualClient.subscribe(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case U:
 				{
-					clientLogger.info(logHeader + generalLog + "unsubscribe from " + attributes);
+					clientLogger.info(logHeader + generalLog + "unsubscribe from " + givenAction);
 					actualClient.unsubscribeAll(); // For now
 					break;
 				}
