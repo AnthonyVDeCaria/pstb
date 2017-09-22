@@ -22,8 +22,8 @@ public class BenchmarkConfig {
 	private ArrayList<String> pubWorkloadFilesPaths;
 	private String subWorkloadFilePath;
 	
-	private ArrayList<Integer> runLengths;
-	private ArrayList<Integer> idealMessageRates;
+	private ArrayList<Long> runLengths;
+	private ArrayList<Long> idealMessageRates;
 	
 	private ArrayList<NetworkProtocol> protocols;
 	private ArrayList<String> topologyFilesPaths;
@@ -42,8 +42,8 @@ public class BenchmarkConfig {
 		numRunsPerExperiment = new Integer(0);
 		pubWorkloadFilesPaths = new ArrayList<String>();
 		subWorkloadFilePath = new String();
-		runLengths = new ArrayList<Integer>();
-		idealMessageRates = new ArrayList<Integer>();
+		runLengths = new ArrayList<Long>();
+		idealMessageRates = new ArrayList<Long>();
 		protocols = new ArrayList<NetworkProtocol>();
 		topologyFilesPaths = new ArrayList<String>();
 		distributed = new ArrayList<DistributedState>();
@@ -101,7 +101,7 @@ public class BenchmarkConfig {
 		 * runLengths
 		 */
 		String unsplitRL = givenProperty.getProperty("pstb.runLengths");
-		ArrayList<Integer> propRL = new ArrayList<Integer>();
+		ArrayList<Long> propRL = new ArrayList<Long>();
 		if(unsplitRL != null)
 		{
 			String[] splitRL = unsplitRL.split(PSTBUtil.COMMA);
@@ -109,7 +109,7 @@ public class BenchmarkConfig {
 			{
 				try
 				{
-					Integer sRLI = Integer.parseInt(splitRL[i]);
+					Long sRLI = Long.parseLong(splitRL[i]);
 					propRL.add(sRLI);
 				}
 				catch(IllegalArgumentException e)
@@ -131,7 +131,7 @@ public class BenchmarkConfig {
 		 * idealMessageRates
 		 */
 		String unsplitIMR = givenProperty.getProperty("pstb.idealMessageRates");
-		ArrayList<Integer> propIMR = new ArrayList<Integer>();
+		ArrayList<Long> propIMR = new ArrayList<Long>();
 		if(unsplitIMR != null)
 		{
 			String[] splitIMR = unsplitIMR.split(PSTBUtil.COMMA);
@@ -139,7 +139,7 @@ public class BenchmarkConfig {
 			{
 				try
 				{
-					Integer sIMRI = Integer.parseInt(splitIMR[i]);
+					Long sIMRI = Long.parseLong(splitIMR[i]);
 					propIMR.add(sIMRI);
 				}
 				catch(IllegalArgumentException e)
@@ -326,7 +326,7 @@ public class BenchmarkConfig {
 	 * Gets the runLength
 	 * @return  runLength - the list of minutes each experiment's run's will take
 	 */
-	public ArrayList<Integer> getRunLengths()
+	public ArrayList<Long> getRunLengths()
 	{
 		return this.runLengths;
 	}
@@ -335,7 +335,7 @@ public class BenchmarkConfig {
 	 * Gets the idealMessageRates
 	 * @return idealMessageRates - the list of message rates the network should send each run
 	 */
-	public ArrayList<Integer> getIdealMessageRates()
+	public ArrayList<Long> getIdealMessageRates()
 	{
 		return this.idealMessageRates;
 	}
@@ -421,7 +421,7 @@ public class BenchmarkConfig {
 	 * Sets the runLength
 	 * @param proto - the new protocols
 	 */
-	private void setRunLengths(ArrayList<Integer> rL)
+	private void setRunLengths(ArrayList<Long> rL)
 	{
 		runLengths = rL;
 	}
@@ -430,7 +430,7 @@ public class BenchmarkConfig {
 	 * Sets the idealMessageRates
 	 * @param iMR - the new idealMessageRates
 	 */
-	private void setIdealMessgaeRates(ArrayList<Integer> iMR)
+	private void setIdealMessgaeRates(ArrayList<Long> iMR)
 	{
 		idealMessageRates = iMR;
 	}

@@ -13,11 +13,15 @@ import java.util.Scanner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.benchmark.PhysicalTopology;
 import pstb.startup.BenchmarkConfig;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
+import pstb.util.DistributedState;
 import pstb.util.LogicalTopology;
+import pstb.util.NetworkProtocol;
 import pstb.util.UI;
+import pstb.util.Workload;
 
 public class PSTB {
 	private static final Logger logger = LogManager.getRootLogger();
@@ -130,9 +134,11 @@ public class PSTB {
 		
 		logger.info("All workload files valid!!");
 		
+		Workload askedWorkload = parseWLF.getWorkload();
+		
 		boolean allToposOk = true;
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
-		ArrayList<LogicalTopology> allTopos = new ArrayList<LogicalTopology>();
+		ArrayList<LogicalTopology> allLTs = new ArrayList<LogicalTopology>();
 		
 		logger.info("Starting to disect Topology Files...");
 		
@@ -190,12 +196,12 @@ public class PSTB {
 				if(!topoCheck)
 				{
 					allToposOk = false;
-					allTopos.clear();
+					allLTs.clear();
 					logger.error("Topology Check Failed for topology " + topoI + "!");
 				}
 				else
 				{
-					allTopos.add(network);
+					allLTs.add(network);
 					logger.info("Topology Check Complete for topology " + topoI + "!");
 				}
 			}
@@ -204,13 +210,79 @@ public class PSTB {
 		if(!allToposOk)
 		{
 			logger.error("Error with topology files!");
-			allTopos.clear();
+			allLTs.clear();
 			endProgram(2, simpleUserInput);
 		}
 		
 		logger.info("All topologies valid!!");
 		
+		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
+		ArrayList<DistributedState> askedDistributed = benchmarkRules.getDistributed();
+		
+		for(int topologyIndex = 0 ; topologyIndex < allLTs.size(); topologyIndex++)
+		{
+			for(int protocolIndex = 0 ; protocolIndex < askedProtocols.size() ; protocolIndex++)
+			{
+				PhysicalTopology localPT = new PhysicalTopology();
+				PhysicalTopology disPT = new PhysicalTopology();
+				boolean checkDisPT = true;
+				boolean checkLocalPT = true;
+				
+				if(askedDistributed.get(topologyIndex).equals(DistributedState.Yes) 
+						|| askedDistributed.get(topologyIndex).equals(DistributedState.Both) )
+				{
+					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyIndex), 
+													askedWorkload, askedProtocols.get(protocolIndex));
+				}
+				if(askedDistributed.get(topologyIndex).equals(DistributedState.No) 
+						|| askedDistributed.get(topologyIndex).equals(DistributedState.Both) )
+				{
+					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyIndex), 
+													askedWorkload, askedProtocols.get(protocolIndex));
+				}
+				
+				if(!checkDisPT || !checkLocalPT)
+				{
+					logger.error("Error createing physical topology");
+					endProgram(4, simpleUserInput);
+				}
+				
+			}
+		}
+		
 		endProgram(0, simpleUserInput);
+	}
+	
+	private boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
+									ArrayList<Long> givenIMRs, Integer givenNER)
+	{
+		for(int iRL = 0 ; iRL < givenRLs.size(); iRL++)
+		{
+			for(int iIMR = 0 ; iIMR < givenIMRs.size() ; iIMR++)
+			{
+				Long newIMP = convertIMRoIMP(givenIMRs.get(iIMR));
+				
+				givenPT.addIMPToAllClients(newIMP);
+				givenPT.addRunLengthToAllClients(givenRLs.get(iRL));
+				
+//				boolean checkSB = givenPT.startBrokers();
+//				if()
+//				{
+//					
+//				}
+//				
+//				for(int i = 0; i < givenNER; i++)
+//				{
+//					
+//				}
+			}
+		}
+		return false;
+	}
+	
+	private Long convertIMRoIMP(Long idealMessageRate)
+	{
+		return (long)((1 / (double)idealMessageRate) * 60 * 1000);
 	}
 }
 

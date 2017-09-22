@@ -32,7 +32,7 @@ public class PSClientPADRES
 	private ArrayList<String> brokerURIs;
 	private Workload clientWorkload;
 	private Long idealMessagePeriod;
-	private Integer runLength;
+	private Long runLength;
 	
 	private final int adSeed = 23;
 	
@@ -56,8 +56,7 @@ public class PSClientPADRES
 	 * @param givenWorkload - the set of actions this client will have to do
 	 * @return false if there's a failure; true otherwise
 	 */
-	public boolean initialize(String givenName, ArrayList<String> givenURIs, 
-			Workload givenWorkload, Long givenIMP, Integer givenRL) 
+	public boolean initialize(String givenName, ArrayList<String> givenURIs, Workload givenWorkload) 
 	{
 		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
 		
@@ -74,8 +73,6 @@ public class PSClientPADRES
 		clientName = givenName;
 		brokerURIs = givenURIs;
 		clientWorkload = givenWorkload;
-		idealMessagePeriod = givenIMP;
-		runLength = givenRL;
 		
 		clientLogger.info(logHeader + "Initialized client " + givenName);
 		return true;
@@ -97,6 +94,24 @@ public class PSClientPADRES
 			successfulAdd = true;
 		}
 		return successfulAdd;
+	}
+	
+	/**
+	 * Sets the idealMessagePeriod value
+	 * @param givenIMP - the IMP value to be set
+	 */
+	public void addIMP(Long givenIMP)
+	{
+		idealMessagePeriod = givenIMP;
+	}
+	
+	/**
+	 * Sets the runLength value
+	 * @param givenRL - the rL value to be set
+	 */
+	public void addRL(Long givenRL)
+	{
+		runLength = givenRL;
 	}
 
 	/**
@@ -164,6 +179,13 @@ public class PSClientPADRES
 	 */
 	public boolean startRun() 
 	{
+		if(runLength.equals((long)0) || idealMessagePeriod.equals((long)0))
+		{
+			clientLogger.error(logHeader + "missing runLength or idealMessagePeriod\n"
+									+ "Please run either addRL() or addIMP() first");
+			return false;
+		}
+		
 		Long runStart = System.nanoTime();
 		
 		ArrayList<PSAction> activeSubsList = clientWorkload.getSubscriberWorkload();

@@ -41,6 +41,15 @@ public class WorkloadFileParser {
 	}
 	
 	/**
+	 * Gets the Workload object
+	 * @return the Workload
+	 */
+	public Workload getWorkload()
+	{
+		return wload;
+	}
+	
+	/**
 	 * Parses the given subscriber workload file
 	 * @param clientType - the type of clients this workload file is supposed to influence
 	 * @return true is everything's ok; false otherwise
