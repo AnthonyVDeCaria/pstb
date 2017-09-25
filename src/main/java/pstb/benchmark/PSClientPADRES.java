@@ -200,7 +200,7 @@ public class PSClientPADRES
 			{
 				PSAction subI = activeSubsList.get(i);
 				
-				boolean checkSub = exectueAction(ClientAction.S, subI);
+				boolean checkSub = executeAction(ClientAction.S, subI);
 				if(!checkSub)
 				{
 					clientLogger.error(logHeader + " Error launching subscriptions");
@@ -216,7 +216,7 @@ public class PSClientPADRES
 				
 				activeAdsPublicationJ.put(adI, 0);
 				
-				boolean checkAd = exectueAction(ClientAction.A, adI);
+				boolean checkAd = executeAction(ClientAction.A, adI);
 				if(!checkAd)
 				{
 					clientLogger.error(logHeader + " Error launching advertisements");
@@ -250,7 +250,7 @@ public class PSClientPADRES
 						
 						if((currentTime - activeSubIStartTime) >= activeSubI.getTimeActive())
 						{
-							boolean checkSub = exectueAction(ClientAction.U, activeSubI);
+							boolean checkSub = executeAction(ClientAction.U, activeSubI);
 							if(!checkSub)
 							{
 								clientLogger.error(logHeader + " Error unsubscribing " + activeSubI);
@@ -290,7 +290,7 @@ public class PSClientPADRES
 						
 						activeAdsList.remove(activeAdI);
 						
-						boolean checkUnad = exectueAction(ClientAction.V, activeAdI);
+						boolean checkUnad = executeAction(ClientAction.V, activeAdI);
 						if(!checkUnad)
 						{
 							clientLogger.error(logHeader + " Error unadvertising " + activeAdI.getAttributes());
@@ -312,7 +312,7 @@ public class PSClientPADRES
 					
 					PSAction publicationJOfAdI = activeAdIsPublications.get(j);
 					
-					boolean checkPublication = exectueAction(ClientAction.P, publicationJOfAdI);
+					boolean checkPublication = executeAction(ClientAction.P, publicationJOfAdI);
 					if(!checkPublication)
 					{
 						clientLogger.error(logHeader + " Error launching Publication " + publicationJOfAdI.getAttributes());
@@ -348,7 +348,7 @@ public class PSClientPADRES
 		return true;
 	}
 	
-	private boolean exectueAction(ClientAction givenActionType, PSAction givenAction)
+	private boolean executeAction(ClientAction givenActionType, PSAction givenAction)
 	{
 		boolean actionSuccessful = false;
 		DiaryEntry thisEntry = new DiaryEntry();

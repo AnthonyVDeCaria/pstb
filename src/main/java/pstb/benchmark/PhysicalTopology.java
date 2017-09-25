@@ -29,14 +29,14 @@ public class PhysicalTopology {
 	private PubSubGroup publisherList;
 	private PubSubGroup subscriberList; 
 	
-	private static final Integer portStart = 1100;
-	private Integer portNum = portStart;
+	private static final Integer PORTSTART = 1100;
+	private Integer portNum = PORTSTART;
 	
 	private final String logHeader = "Physical Topology: ";
 	private static final Logger logger = LogManager.getRootLogger();
 	
 	/**
-	 * 
+	 * Empty Constructor
 	 */
 	public PhysicalTopology() 
 	{
@@ -44,6 +44,14 @@ public class PhysicalTopology {
 		phyBrokers = new HashMap<String, PSBrokerPADRES>();
 	}
 	
+	/**
+	 * 
+	 * @param distributed
+	 * @param givenTopo
+	 * @param givenWorkload
+	 * @param givenProtocol
+	 * @return
+	 */
 	public boolean developPhysicalTopology(boolean distributed, LogicalTopology givenTopo, Workload givenWorkload,
 												NetworkProtocol givenProtocol)
 	{

@@ -35,7 +35,7 @@ public class PSBrokerPADRES {
 	public boolean createBroker(ArrayList<String> neededURIs)
 	{
 		brokerLogger.info(logHeader + "Starting new broker " + brokerName);
-		String brokerCoreArg = "-uri " +this.createBrokerURI() + " -n ";
+		String brokerCoreArg = "-uri " + this.createBrokerURI() + " -n ";
 		for(int i = 0 ; i < neededURIs.size() ; i++)
 		{
 			brokerCoreArg += neededURIs.get(i);
