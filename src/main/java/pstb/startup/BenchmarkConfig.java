@@ -23,7 +23,6 @@ public class BenchmarkConfig {
 	private String subWorkloadFilePath;
 	
 	private ArrayList<Long> runLengths;
-	private ArrayList<Long> idealMessageRates;
 	
 	private ArrayList<NetworkProtocol> protocols;
 	private ArrayList<String> topologyFilesPaths;
@@ -43,7 +42,6 @@ public class BenchmarkConfig {
 		pubWorkloadFilesPaths = new ArrayList<String>();
 		subWorkloadFilePath = new String();
 		runLengths = new ArrayList<Long>();
-		idealMessageRates = new ArrayList<Long>();
 		protocols = new ArrayList<NetworkProtocol>();
 		topologyFilesPaths = new ArrayList<String>();
 		distributed = new ArrayList<DistributedState>();
@@ -126,36 +124,6 @@ public class BenchmarkConfig {
 			everythingisProper = false;
 		}
 		setRunLengths(propRL);
-		
-		/*
-		 * idealMessageRates
-		 */
-		String unsplitIMR = givenProperty.getProperty("pstb.idealMessageRates");
-		ArrayList<Long> propIMR = new ArrayList<Long>();
-		if(unsplitIMR != null)
-		{
-			String[] splitIMR = unsplitIMR.split(PSTBUtil.COMMA);
-			for(int i = 0 ; i < splitIMR.length ; i++)
-			{
-				try
-				{
-					Long sIMRI = Long.parseLong(splitIMR[i]);
-					propIMR.add(sIMRI);
-				}
-				catch(IllegalArgumentException e)
-				{
-					everythingisProper = false;
-					propIMR.clear();
-					logger.error("Properties: " + splitIMR[i] + " is not a valid Integer.", e);
-					break;
-				}
-			}
-		}
-		else
-		{
-			everythingisProper = false;
-		}
-		setIdealMessgaeRates(propIMR);
 		
 		/*
 		 * Protocols
@@ -254,7 +222,6 @@ public class BenchmarkConfig {
 		logger.info("Properties: pubWorkloadFilePath = " + Arrays.toString(pubWorkloadFilesPaths.toArray()));
 		logger.info("Properties: subWorkloadFilePath = " + subWorkloadFilePath);
 		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
-		logger.info("Properties: idealMessageRates = " + Arrays.toString(idealMessageRates.toArray()));
 		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
 		logger.info("Properties: topologyFilesPaths = " + Arrays.toString(topologyFilesPaths.toArray()));
 		logger.info("Properties: distributed = " + Arrays.toString(distributed.toArray()));
@@ -287,11 +254,6 @@ public class BenchmarkConfig {
 		if(runLengths.isEmpty())
 		{
 			logger.error("Properties: No Run Length(s) were given!");
-			anyFieldNull = true;
-		}
-		if(idealMessageRates.isEmpty())
-		{
-			logger.error("Properties: No Ideal Message Rate(s) were given!");
 			anyFieldNull = true;
 		}
 		if(protocols.isEmpty())
@@ -329,15 +291,6 @@ public class BenchmarkConfig {
 	public ArrayList<Long> getRunLengths()
 	{
 		return this.runLengths;
-	}
-
-	/**
-	 * Gets the idealMessageRates
-	 * @return idealMessageRates - the list of message rates the network should send each run
-	 */
-	public ArrayList<Long> getIdealMessageRates()
-	{
-		return this.idealMessageRates;
 	}
 	
 	/**
@@ -424,15 +377,6 @@ public class BenchmarkConfig {
 	private void setRunLengths(ArrayList<Long> rL)
 	{
 		runLengths = rL;
-	}
-	
-	/**
-	 * Sets the idealMessageRates
-	 * @param iMR - the new idealMessageRates
-	 */
-	private void setIdealMessgaeRates(ArrayList<Long> iMR)
-	{
-		idealMessageRates = iMR;
 	}
 	
 	/**

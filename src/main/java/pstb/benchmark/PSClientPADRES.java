@@ -31,10 +31,15 @@ public class PSClientPADRES
 	private String clientName;
 	private ArrayList<String> brokerURIs;
 	private Workload clientWorkload;
-	private Long idealMessagePeriod;
 	private Long runLength;
 	
-	private final int adSeed = 23;
+	private final int DEFAULT_DELAY = 500;
+	
+	private final int SEED_AD = 23;
+	
+	private final int SEED_SELECTION = 23;
+	private final int DOSUB = 0;
+	private final int DOPUB = 1;
 	
 	private final String logHeader = "Client: ";
 	private static final Logger clientLogger = LogManager.getRootLogger();
@@ -94,15 +99,6 @@ public class PSClientPADRES
 			successfulAdd = true;
 		}
 		return successfulAdd;
-	}
-	
-	/**
-	 * Sets the idealMessagePeriod value
-	 * @param givenIMP - the IMP value to be set
-	 */
-	public void addIMP(Long givenIMP)
-	{
-		idealMessagePeriod = givenIMP;
 	}
 	
 	/**
@@ -179,162 +175,185 @@ public class PSClientPADRES
 	 */
 	public boolean startRun() 
 	{
-		if(runLength.equals((long)0) || idealMessagePeriod.equals((long)0))
+		if( runLength.equals((long)0) )
 		{
-			clientLogger.error(logHeader + "missing runLength or idealMessagePeriod\n"
-									+ "Please run either addRL() or addIMP() first");
+			clientLogger.error(logHeader + "missing runLength\n" + "Please run either addRL() first");
 			return false;
 		}
 		
 		Long runStart = System.nanoTime();
 		
-		ArrayList<PSAction> activeSubsList = clientWorkload.getSubscriberWorkload();
+		ArrayList<PSAction> activeSubsList = new ArrayList<PSAction>();
+		ArrayList<PSAction> givenSubWorkload = clientWorkload.getSubscriberWorkload();
+		boolean allSubsOnceActive = false;
 		
-		ArrayList<PSAction> activeAdsList = clientWorkload.getAdvertiserWorkload();
+		ArrayList<PSAction> activeAdsList = new ArrayList<PSAction>();
+		ArrayList<PSAction> givenAdWorkload = clientWorkload.getAdvertiserWorkload();
 		HashMap<PSAction, Integer> activeAdsPublicationJ = new HashMap<PSAction, Integer>();
-		Random activeAdIGenerator = new Random(adSeed);
+		boolean allAdsOnceActive = false;
 		
-		if(clientRoles.contains(NodeRole.S))
-		{		
-			for(int i = 0 ; i < activeSubsList.size() ; i++)
-			{
-				PSAction subI = activeSubsList.get(i);
-				
-				boolean checkSub = executeAction(ClientAction.S, subI);
-				if(!checkSub)
-				{
-					clientLogger.error(logHeader + " Error launching subscriptions");
-					return false;
-				}
-			}
-		}
-		else if(clientRoles.contains(NodeRole.P))
-		{
-			for(int i = 0 ; i < activeAdsList.size() ; i++)
-			{
-				PSAction adI = activeAdsList.get(i);
-				
-				activeAdsPublicationJ.put(adI, 0);
-				
-				boolean checkAd = executeAction(ClientAction.A, adI);
-				if(!checkAd)
-				{
-					clientLogger.error(logHeader + " Error launching advertisements");
-					return false;
-				}
-			}
-		}
-			
+		Random activeAdIGenerator = new Random(SEED_AD);
+		Random selectionGenerator = new Random(SEED_SELECTION);
+		
 		Long currentTime = System.nanoTime();
 		
 		while( (currentTime - runStart) < runLength)
 		{
-			if(clientRoles.contains(NodeRole.S))
+			Long delayValue = new Long(DEFAULT_DELAY);
+			
+			int nextAction = selectionGenerator.nextInt(clientRoles.size());
+			if(clientRoles.size() == 1 && clientRoles.get(0) == NodeRole.P)
 			{
-				/*
-				 * Make sure our subs are active
-				 * If not, stop them
-				 */
-				Integer numActiveSubs = activeSubsList.size();
-				if(numActiveSubs > 0)
+				nextAction = DOPUB;
+			}
+			
+			if(nextAction == DOSUB)
+			{	
+				if(!allSubsOnceActive)
 				{
-					for(int i = 0 ; i < numActiveSubs ; i++)
+					int nextI = activeSubsList.size();
+					PSAction nextSub = givenSubWorkload.get(nextI);
+					
+					boolean checkSub = executeAction(ClientAction.S, nextSub);
+					if(!checkSub)
 					{
-						PSAction activeSubI = activeSubsList.get(i);
-						
-						currentTime = System.nanoTime(); // This isn't really needed, but it looks proper
-						
-						Long activeSubIStartTime = diary.
-								getDiaryEntryGivenCAA(ClientAction.S.toString(), activeSubI.getAttributes())
-								.getTimeStartedAction();
-						
-						if((currentTime - activeSubIStartTime) >= activeSubI.getTimeActive())
+						clientLogger.error(logHeader + "Error launching subscription " + nextI);
+						return false;
+					}
+					
+					activeSubsList.add(nextSub);
+					delayValue = nextSub.getActionDelay();
+					
+					if(activeSubsList.size() == givenSubWorkload.size())
+					{
+						allSubsOnceActive = true;
+					}
+				}
+				else
+				{
+					Integer numActiveSubs = activeSubsList.size();
+					if(numActiveSubs > 0)
+					{
+						for(int i = 0 ; i < numActiveSubs ; i++)
 						{
-							boolean checkSub = executeAction(ClientAction.U, activeSubI);
-							if(!checkSub)
+							PSAction activeSubI = activeSubsList.get(i);
+							
+							currentTime = System.nanoTime();
+							
+							Long activeSubIStartTime = diary.
+									getDiaryEntryGivenCAA(ClientAction.S.toString(), activeSubI.getAttributes())
+									.getTimeStartedAction();
+							
+							if((currentTime - activeSubIStartTime) >= activeSubI.getTimeActive())
 							{
-								clientLogger.error(logHeader + " Error unsubscribing " + activeSubI);
-								return false;
+								boolean checkSub = executeAction(ClientAction.U, activeSubI);
+								if(!checkSub)
+								{
+									clientLogger.error(logHeader + "Error unsubscribing " + activeSubI);
+									return false;
+								}
 							}
 						}
 					}
 				}
 			}
-			else if(clientRoles.contains(NodeRole.P))
+			else
 			{
-				PSAction activeAdI = null;
-				Integer numActiveAds = activeAdsList.size();
-				
-				/*
-				 * Get a pseudo-random advertisement
-				 * If this advertisement should be no longer active
-				 * 	- unadvertise it
-				 * 	- look for a new one
-				 * 	- ... unless they are gone
-				 */
-				while(activeAdI == null && numActiveAds > 0)
+				if(!allAdsOnceActive)
 				{
-					Integer i = activeAdIGenerator.nextInt(numActiveAds);
+					int nextI = activeAdsList.size();
+					PSAction nextAd = givenAdWorkload.get(nextI);
 					
-					activeAdI = activeAdsList.get(i);
-					
-					currentTime = System.nanoTime(); // This isn't really needed, but it looks proper
-					
-					Long activeAdIStartTime = diary.
-							getDiaryEntryGivenCAA(ClientAction.A.toString(), activeAdI.getAttributes())
-							.getTimeStartedAction(); // there is a possibility for null here
-					
-					if( (currentTime - activeAdIStartTime) >= activeAdI.getTimeActive() )
+					boolean checkSub = executeAction(ClientAction.A, nextAd);
+					if(!checkSub)
 					{
-						activeAdsPublicationJ.remove(activeAdI);
-						
-						activeAdsList.remove(activeAdI);
-						
-						boolean checkUnad = executeAction(ClientAction.V, activeAdI);
-						if(!checkUnad)
-						{
-							clientLogger.error(logHeader + " Error unadvertising " + activeAdI.getAttributes());
-							return false;
-						}
-						activeAdI = null;
-					}
-				}
-				
-				/*
-				 * If we have an Ad
-				 * 	- Get the Jth publication of this ad 
-				 * 	- and publish it
-				 */
-				if(activeAdI != null)
-				{
-					ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
-					Integer j = activeAdsPublicationJ.get(activeAdI);
-					
-					PSAction publicationJOfAdI = activeAdIsPublications.get(j);
-					
-					boolean checkPublication = executeAction(ClientAction.P, publicationJOfAdI);
-					if(!checkPublication)
-					{
-						clientLogger.error(logHeader + " Error launching Publication " + publicationJOfAdI.getAttributes());
+						clientLogger.error(logHeader + "Error launching advertisement " + nextI);
 						return false;
 					}
 					
-					// Update (/reset) the J variable
-					j++;
-					if(j >= activeAdIsPublications.size())
+					activeAdsList.add(nextAd);
+					delayValue = nextAd.getActionDelay();
+					
+					if(activeAdsList.size() == givenAdWorkload.size())
 					{
-						j = 0;
+						allAdsOnceActive = true;
 					}
-					activeAdsPublicationJ.put(activeAdI, j);
 				}
+				else
+				{
+					PSAction activeAdI = null;
+					Integer numActiveAds = activeAdsList.size();
+					
+					while(activeAdI == null && numActiveAds > 0)
+					{
+						Integer i = activeAdIGenerator.nextInt(numActiveAds);
+						
+						activeAdI = activeAdsList.get(i);
+						
+						currentTime = System.nanoTime(); // This isn't really needed, but it looks proper
+						
+						Long activeAdIStartTime = diary.
+								getDiaryEntryGivenCAA(ClientAction.A.toString(), activeAdI.getAttributes())
+								.getTimeStartedAction(); // there is a possibility for null here
+						
+						if( (currentTime - activeAdIStartTime) >= activeAdI.getTimeActive() )
+						{
+							activeAdsPublicationJ.remove(activeAdI);
+							
+							activeAdsList.remove(activeAdI);
+							
+							boolean checkUnad = executeAction(ClientAction.V, activeAdI);
+							if(!checkUnad)
+							{
+								clientLogger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
+								return false;
+							}
+							activeAdI = null;
+						}
+					}
+					
+					if(activeAdI != null)
+					{
+						ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
+						Integer j = activeAdsPublicationJ.get(activeAdI);
+						
+						if(j > activeAdIsPublications.size())
+						{
+							clientLogger.info(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications\n"
+												+ "Unadvertising");
+							boolean checkUnad = executeAction(ClientAction.V, activeAdI);
+							if(!checkUnad)
+							{
+								clientLogger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
+								return false;
+							}
+						}
+						else
+						{
+							PSAction publicationJOfAdI = activeAdIsPublications.get(j);
+							
+							boolean checkPublication = executeAction(ClientAction.P, publicationJOfAdI);
+							if(!checkPublication)
+							{
+								clientLogger.error(logHeader + " Error launching Publication " + publicationJOfAdI.getAttributes());
+								return false;
+							}
+							
+							delayValue = publicationJOfAdI.getActionDelay();
+							
+							j++;
+							activeAdsPublicationJ.put(activeAdI, j);
+						}
+					}
+				}
+				
 			}
-			
 			/*
-			 * Wait for idealMessagePeriod
+			 * Wait
 			 */
 			try {				
-				clientLogger.trace(logHeader + "pausing for IMR");
-				Thread.sleep(idealMessagePeriod);
+				clientLogger.trace(logHeader + "pausing");
+				Thread.sleep(delayValue);
 			} 
 			catch (InterruptedException e) 
 			{
@@ -484,5 +503,4 @@ public class PSClientPADRES
 		
 		return storedMessage;
 	}
-	
 }

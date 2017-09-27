@@ -17,6 +17,7 @@ import pstb.benchmark.PhysicalTopology;
 import pstb.startup.BenchmarkConfig;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
+import pstb.startup.WorkloadFileParser.WorkloadFileType;
 import pstb.util.DistributedState;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
@@ -113,13 +114,15 @@ public class PSTB {
 		logger.info("No errors loading the Properties file!");
 		
 		WorkloadFileParser parseWLF = new WorkloadFileParser();
+		parseWLF.setPubWorkloadFilesPaths(benchmarkRules.getPubWorkloadFilesPaths());
+		parseWLF.setSubWorkloadFilePath(benchmarkRules.getSubWorkloadFilePath());
 		
 		logger.info("Parsing Workload Files...");
 		
 		logger.info("Parsing Publisher Workload...");
-		boolean pubCheck = parseWLF.parsePublisherFiles(benchmarkRules.getPubWorkloadFilesPaths());
+		boolean pubCheck = parseWLF.parseWorkloadFiles(WorkloadFileType.P);
 		logger.info("Parsing Subscriber Workload...");
-		boolean subCheck = parseWLF.parseSubscriberFile(benchmarkRules.getSubWorkloadFilePath());
+		boolean subCheck = parseWLF.parseWorkloadFiles(WorkloadFileType.S);
 		
 		if(!pubCheck)
 		{
@@ -253,36 +256,24 @@ public class PSTB {
 		endProgram(0, simpleUserInput);
 	}
 	
-	private boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
-									ArrayList<Long> givenIMRs, Integer givenNER)
+	private boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNER)
 	{
 		for(int iRL = 0 ; iRL < givenRLs.size(); iRL++)
 		{
-			for(int iIMR = 0 ; iIMR < givenIMRs.size() ; iIMR++)
-			{
-				Long newIMP = convertIMRoIMP(givenIMRs.get(iIMR));
+			givenPT.addRunLengthToAllClients(givenRLs.get(iRL));
 				
-				givenPT.addIMPToAllClients(newIMP);
-				givenPT.addRunLengthToAllClients(givenRLs.get(iRL));
-				
-//				boolean checkSB = givenPT.startBrokers();
-//				if()
-//				{
-//					
-//				}
+//			boolean checkSB = givenPT.startBrokers();
+//			if()
+//			{
 //				
-//				for(int i = 0; i < givenNER; i++)
-//				{
-//					
-//				}
-			}
+//			}
+//			
+//			for(int i = 0; i < givenNER; i++)
+//			{
+//				
+//			}
 		}
 		return false;
-	}
-	
-	private Long convertIMRoIMP(Long idealMessageRate)
-	{
-		return (long)((1 / (double)idealMessageRate) * 60 * 1000);
 	}
 }
 

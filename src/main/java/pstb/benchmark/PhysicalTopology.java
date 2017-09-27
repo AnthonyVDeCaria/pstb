@@ -124,22 +124,6 @@ public class PhysicalTopology {
 		return true;
 	}
 	
-	public boolean addIMPToAllClients(Long givenIMP)
-	{
-		if(phyClients.isEmpty())
-		{
-			logger.error(logHeader + " addIMPToAllClients() needs clients to be created first.\n" +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		phyClients.forEach((clientName, actualClient)->{
-			actualClient.addRL(givenIMP);
-		});
-		
-		return true;
-	}
-	
 	public boolean connectClients()
 	{
 		if(phyClients.isEmpty())
@@ -187,7 +171,7 @@ public class PhysicalTopology {
 			boolean checkStartRun = actualClientI.startRun();
 			if(!checkStartRun)
 			{
-				logger.error(logHeader + "Error connetcing client " + clientI);
+				logger.error(logHeader + "Error connecting client " + clientI);
 				return false;
 			}
 		}
@@ -235,7 +219,7 @@ public class PhysicalTopology {
 			boolean checkCreateBroker = phyBrokers.get(brokerI).createBroker(neededURIs);
 			if(!checkCreateBroker)
 			{
-				logger.error(logHeader + " couldn't createBroker" + brokerI);
+				logger.error(logHeader + " couldn't create Broker " + brokerI);
 				return false;
 			}
 		}

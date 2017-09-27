@@ -5,21 +5,33 @@
 package pstb.util;
 
 public class PSAction {
+	private Long actionDelay;
 	private String attributes;
-	private Integer payloadSize;
+	private Long payloadSize;
 	private Long timeActive;
 	
 	/**
 	 * Empty Constructor
 	 * Both Integers are set to unrealistic numbers
-	 * i.e. the payload can't be -1 bytes,
+	 * i.e. the delay between actions can't be -1 TK(UNITS)
+	 * nor can the payload/time active be -1 bytes/minutes,
 	 * nor can the time active be 0 minutes
 	 */
 	public PSAction()
 	{
+		actionDelay = new Long(-1);
 		attributes = new String();
-		payloadSize = new Integer(-1);
+		payloadSize = new Long(-1);
 		timeActive = new Long(0);
+	}
+	
+	/**
+	 * Gets the action delay TK(UNITS)
+	 * @return the action delay
+	 */
+	public Long getActionDelay()
+	{
+		return actionDelay;
 	}
 	
 	/**
@@ -34,16 +46,25 @@ public class PSAction {
 	 * Gets the payload size (bytes)
 	 * @return the payload size
 	 */
-	public Integer getPayloadSize() {
+	public Long getPayloadSize() {
 		return payloadSize;
 	}
 	
 	/**
 	 * Gets the time active
-	 * @return the time active ()
+	 * @return the time active (minutes)
 	 */
 	public Long getTimeActive() {
 		return timeActive;
+	}
+	
+	/**
+	 * Sets the delay between actions
+	 * @param nAD - the given delay
+	 */
+	public void setActionDelay(Long nAD)
+	{
+		this.actionDelay = nAD;
 	}
 	
 	/**
@@ -58,7 +79,7 @@ public class PSAction {
 	 * Sets the payload size
 	 * @param nPS - the new payload size
 	 */
-	public void setPayloadSize(Integer nPS) {
+	public void setPayloadSize(Long nPS) {
 		this.payloadSize = nPS;
 	}
 	
