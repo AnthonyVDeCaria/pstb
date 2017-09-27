@@ -246,7 +246,7 @@ public class PSTB {
 				
 				if(!checkDisPT || !checkLocalPT)
 				{
-					logger.error("Error createing physical topology");
+					logger.error("Error creating physical topology");
 					endProgram(4, simpleUserInput);
 				}
 				

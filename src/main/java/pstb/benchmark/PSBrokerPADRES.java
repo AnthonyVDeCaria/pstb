@@ -16,6 +16,11 @@ import pstb.util.NetworkProtocol;
 public class PSBrokerPADRES {
 	private BrokerCore actualBroker; 
 	
+	private String BROKER_INT = "screen -dmS broker java -Xmx1024M -Djava.rmi.server.codebase=file:${PADRES_HOME}/build/ " 
+								+ "-cp target/NumPub-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true " 
+								+ "-Djava.security.policy=${PADRES_HOME}/etc/java.policy " 
+								+ "ca.utoronto.msrg.padres.broker.brokercore.BrokerCore ";
+	
 	private String host;
 	private Integer port;
 	private NetworkProtocol protocol;

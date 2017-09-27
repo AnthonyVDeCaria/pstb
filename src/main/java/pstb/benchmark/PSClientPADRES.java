@@ -211,23 +211,16 @@ public class PSClientPADRES
 			{	
 				if(!allSubsOnceActive)
 				{
-					int nextI = activeSubsList.size();
-					PSAction nextSub = givenSubWorkload.get(nextI);
+					UpdateActiveListsRetVal check = updateActiveLists(ClientAction.S, activeSubsList, givenSubWorkload);
 					
-					boolean checkSub = executeAction(ClientAction.S, nextSub);
-					if(!checkSub)
+					if(check.isError())
 					{
-						clientLogger.error(logHeader + "Error launching subscription " + nextI);
 						return false;
 					}
 					
-					activeSubsList.add(nextSub);
-					delayValue = nextSub.getActionDelay();
+					delayValue = check.getDelayValue();
 					
-					if(activeSubsList.size() == givenSubWorkload.size())
-					{
-						allSubsOnceActive = true;
-					}
+					allSubsOnceActive = check.areListsEqualSize();
 				}
 				else
 				{
@@ -261,23 +254,16 @@ public class PSClientPADRES
 			{
 				if(!allAdsOnceActive)
 				{
-					int nextI = activeAdsList.size();
-					PSAction nextAd = givenAdWorkload.get(nextI);
+					UpdateActiveListsRetVal check = updateActiveLists(ClientAction.A, activeAdsList, givenAdWorkload);
 					
-					boolean checkSub = executeAction(ClientAction.A, nextAd);
-					if(!checkSub)
+					if(check.isError())
 					{
-						clientLogger.error(logHeader + "Error launching advertisement " + nextI);
 						return false;
 					}
 					
-					activeAdsList.add(nextAd);
-					delayValue = nextAd.getActionDelay();
+					delayValue = check.getDelayValue();
 					
-					if(activeAdsList.size() == givenAdWorkload.size())
-					{
-						allAdsOnceActive = true;
-					}
+					allAdsOnceActive = check.areListsEqualSize();
 				}
 				else
 				{
@@ -346,8 +332,8 @@ public class PSClientPADRES
 						}
 					}
 				}
-				
 			}
+			
 			/*
 			 * Wait
 			 */
@@ -502,5 +488,86 @@ public class PSClientPADRES
 		}
 		
 		return storedMessage;
+	}
+	
+	private class UpdateActiveListsRetVal
+	{
+		private boolean error;
+		private boolean listsEqualSize;
+		private Long delayValue;
+		
+		public boolean isError() {
+			return error;
+		}
+
+		public void setError(boolean error) {
+			this.error = error;
+		}
+
+		public boolean areListsEqualSize() {
+			return listsEqualSize;
+		}
+
+		public void setListsEqualSize(boolean listsEqualSize) {
+			this.listsEqualSize = listsEqualSize;
+		}
+
+		public Long getDelayValue() {
+			return delayValue;
+		}
+
+		public void setDelayValue(Long delayValue) {
+			this.delayValue = delayValue;
+		}
+		
+		public UpdateActiveListsRetVal()
+		{
+			error = false;
+			listsEqualSize = false;
+			delayValue = new Long(-1);
+		}
+		
+	}
+	
+	private UpdateActiveListsRetVal updateActiveLists(ClientAction givenAction, 
+														ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload)
+	{
+		int nextI = activeList.size();
+		PSAction nextAction = givenWorkload.get(nextI);
+		
+		UpdateActiveListsRetVal retVal = new UpdateActiveListsRetVal();
+		
+		boolean check = true; 
+		
+		if(givenAction == ClientAction.S)
+		{
+			check = executeAction(ClientAction.S, nextAction);
+		}
+		else if(givenAction == ClientAction.A)
+		{
+			check = executeAction(ClientAction.A, nextAction);
+		}
+		else
+		{
+			clientLogger.error(logHeader + "Error - told to handle unexpected action " + nextI);
+			retVal.setError(true);
+			return retVal;
+		}
+		
+		if(!check)
+		{
+			clientLogger.error(logHeader + "Error launching " + givenAction.toString() + " " + nextI);
+			retVal.setError(true);
+			return retVal;
+		}
+		
+		activeList.add(nextAction);
+		retVal.setDelayValue(nextAction.getActionDelay());
+		
+		if(activeList.size() == givenWorkload.size())
+		{
+			retVal.setListsEqualSize(true);
+		}
+		return retVal;
 	}
 }
