@@ -19,10 +19,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class PhysicalTopology {
-	private HashMap<String, PSBrokerPADRES> phyBrokers;
-	private HashMap<String, PSClientPADRES> phyClients;
+	private HashMap<String, PSBrokerPADRES> genBrokers;
+	private HashMap<String, PSClientPADRES> genClients;
+	private ArrayList<ProcessBuilder> phyBrokers;
+	private ArrayList<ProcessBuilder> phyClients;
 	
-	private Workload workload;
+	private int MEMORY = 1024;
+	private String CLIENT_INT = "java -Xmx" + MEMORY + "M -Xverify:none "
+								+ "-cp target/NumPub-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
+								+ "ca.utoronto.msrg.numpub.examples.cfd.CFDClient ";
+	private String BROKER_INT = "screen -dmS broker java -Xmx1024M -Djava.rmi.server.codebase=file:${PADRES_HOME}/build/ " 
+									+ "-cp target/NumPub-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true " 
+									+ "-Djava.security.policy=${PADRES_HOME}/etc/java.policy " 
+									+ "ca.utoronto.msrg.padres.broker.brokercore.BrokerCore ";
+	
 	private NetworkProtocol protocol;
 	
 	private PubSubGroup brokerList; 
@@ -40,8 +50,14 @@ public class PhysicalTopology {
 	 */
 	public PhysicalTopology() 
 	{
-		phyClients = new HashMap<String, PSClientPADRES>();
-		phyBrokers = new HashMap<String, PSBrokerPADRES>();
+		genBrokers = new HashMap<String, PSBrokerPADRES>();
+		genClients = new HashMap<String, PSClientPADRES>();
+		phyBrokers = new ArrayList<ProcessBuilder>();
+		phyClients = new ArrayList<ProcessBuilder>();
+		
+		brokerList = new PubSubGroup();
+		publisherList = new PubSubGroup();
+		subscriberList = new PubSubGroup();
 	}
 	
 	/**
@@ -52,134 +68,33 @@ public class PhysicalTopology {
 	 * @param givenProtocol
 	 * @return
 	 */
-	public boolean developPhysicalTopology(boolean distributed, LogicalTopology givenTopo, Workload givenWorkload,
-												NetworkProtocol givenProtocol)
+	public boolean developPhysicalTopology(boolean distributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol)
 	{
 		brokerList = givenTopo.getGroup(NodeRole.B);
 		publisherList = givenTopo.getGroup(NodeRole.P);
 		subscriberList = givenTopo.getGroup(NodeRole.S);
 		
-		workload = givenWorkload;
 		protocol = givenProtocol;
 		
-		boolean checkPPB = propogatePhyBrokers(distributed);
-		if(!checkPPB)
+		boolean checkGB = generateBrokers(distributed);
+		if(!checkGB)
 		{
-			logger.error(logHeader + "Error creating physical Brokers");
+			logger.error(logHeader + "Error generating physical Brokers");
 			return false;
 		}
 		
-		boolean checkPPC = propogatePhyClients();
-		if(!checkPPC)
+		boolean checkGC = generateClients();
+		if(!checkGC)
 		{
-			logger.error(logHeader + "Error creating physical Clients");
+			logger.error(logHeader + "Error generating physical Clients");
 			return false;
 		}
 		
-		logger.info(logHeader + "Creating physical topology successful");
+		logger.info(logHeader + "Physical Topology developed successfully");
 		return true;
 	}
 	
-	public boolean startBrokers()
-	{
-		if(phyBrokers.isEmpty())
-		{
-			logger.error(logHeader + " startBrokers() needs brokers to be created first.\n" +
-							"Please run developPhysicalTopology first.");
-			return false;
-		}
-
-		Set<String> setPB = phyBrokers.keySet();
-		Iterator<String> iteratorPB = setPB.iterator();
-		for( ; iteratorPB.hasNext() ; )
-		{
-			String brokerI = iteratorPB.next();
-			PSBrokerPADRES actualBrokerI = phyBrokers.get(brokerI);
-			
-			boolean checkBrokerStart = actualBrokerI.startBroker();
-			if(!checkBrokerStart)
-			{
-				logger.error(logHeader + "Error starting broker " + brokerI);
-				return false;
-			}
-		}
-		
-		logger.info(logHeader + "All brokers started");
-		return true;
-	}
-	
-	public boolean addRunLengthToAllClients(Long givenRL)
-	{
-		if(phyClients.isEmpty())
-		{
-			logger.error(logHeader + " addRunLengthToAllClients() needs clients to be created first.\n" +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		phyClients.forEach((clientName, actualClient)->{
-			actualClient.addRL(givenRL);
-		});
-		
-		return true;
-	}
-	
-	public boolean connectClients()
-	{
-		if(phyClients.isEmpty())
-		{
-			logger.error(logHeader + " connectClients() needs clients to be created first.\n" +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-
-		Set<String> setPC = phyClients.keySet();
-		Iterator<String> iteratorPC = setPC.iterator();
-		for( ; iteratorPC.hasNext() ; )
-		{
-			String clientI = iteratorPC.next();
-			PSClientPADRES actualClientI = phyClients.get(clientI);
-			
-			boolean checkClientConnect = actualClientI.connect();
-			if(!checkClientConnect)
-			{
-				logger.error(logHeader + "Error connetcing client " + clientI);
-				return false;
-			}
-		}
-		
-		logger.info(logHeader + "All clients connected");
-		return true;
-	}
-	
-	public boolean startRun()
-	{
-		if(phyClients.isEmpty())
-		{
-			logger.error(logHeader + " startRun() needs clients to be created first.\n" +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		Set<String> setPC = phyClients.keySet();
-		Iterator<String> iteratorPC = setPC.iterator();
-		for( ; iteratorPC.hasNext() ; )
-		{
-			String clientI = iteratorPC.next();
-			PSClientPADRES actualClientI = phyClients.get(clientI);
-			
-			boolean checkStartRun = actualClientI.startRun();
-			if(!checkStartRun)
-			{
-				logger.error(logHeader + "Error connecting client " + clientI);
-				return false;
-			}
-		}
-		
-		return true;
-	}
-	
-	private boolean propogatePhyBrokers(boolean givenDis)
+	private boolean generateBrokers(boolean givenDis)
 	{
 		Set<String> setBL = brokerList.keySet();
 		Iterator<String> iteratorBL = setBL.iterator();
@@ -192,39 +107,39 @@ public class PhysicalTopology {
 			
 			PSBrokerPADRES actBrokerI = new PSBrokerPADRES(hostName, port, protocol, brokerI);
 			
-			phyBrokers.put(brokerI, actBrokerI);
+			genBrokers.put(brokerI, actBrokerI);
 		}
 		
-		Set<String> setPB = phyBrokers.keySet();
-		Iterator<String> iteratorPB = setPB.iterator();
-		for( ; iteratorPB.hasNext(); )
+		Set<String> setGB = genBrokers.keySet();
+		Iterator<String> iteratorGB = setGB.iterator();
+		for( ; iteratorGB.hasNext(); )
 		{
-			String brokerI = iteratorPB.next();
+			String brokerIName = iteratorGB.next();
+			PSBrokerPADRES brokerI = genBrokers.get(brokerIName);
+			
 			ArrayList<String> neededURIs = new ArrayList<String>();
 			
-			ArrayList<String> bIConnectedNodes = brokerList.getNodeConnections(brokerI);
+			ArrayList<String> bIConnectedNodes = brokerList.getNodeConnections(brokerIName);
 			
 			for(int j = 0 ; j < bIConnectedNodes.size() ; j++)
 			{
-				String connectedBrokerJ = bIConnectedNodes.get(j);
-				PSBrokerPADRES actBrokerJ = phyBrokers.get(connectedBrokerJ);
+				String brokerJName = bIConnectedNodes.get(j);
+				PSBrokerPADRES actBrokerJ = genBrokers.get(brokerJName);
 				if(actBrokerJ == null)
 				{
-					logger.error(logHeader + "couldn't find " + connectedBrokerJ + " in phyBrokers");
+					logger.error(logHeader + "couldn't find " + brokerJName + " in genBrokers that " + brokerIName 
+									+ " is connected to.");
 					return false;
 				}
 				neededURIs.add(actBrokerJ.createBrokerURI());
 			}
 			
-			boolean checkCreateBroker = phyBrokers.get(brokerI).createBroker(neededURIs);
-			if(!checkCreateBroker)
-			{
-				logger.error(logHeader + " couldn't create Broker " + brokerI);
-				return false;
-			}
+			brokerI.setNeighbourURIs((String[]) bIConnectedNodes.toArray());
+			
+			genBrokers.put(brokerIName, brokerI);
 		}
 		
-		logger.info("All brokers created");
+		logger.info(logHeader + "All brokers generated");
 		return true;
 	}
 	
@@ -247,7 +162,7 @@ public class PhysicalTopology {
 		return retVal;
 	}
 	
-	private boolean propogatePhyClients()
+	private boolean generateClients()
 	{
 		Set<String> pubSet = publisherList.keySet();
 		Iterator<String> pubIterator = pubSet.iterator();
@@ -268,9 +183,9 @@ public class PhysicalTopology {
 		{
 			String subscriberNameI = subIterator.next();
 			
-			if(phyClients.containsKey(subscriberNameI))
+			if(genClients.containsKey(subscriberNameI))
 			{
-				phyClients.get(subscriberNameI).addNewClientRole(NodeRole.S);
+				genClients.get(subscriberNameI).addNewClientRole(NodeRole.S);
 			}
 			else
 			{
@@ -282,32 +197,140 @@ public class PhysicalTopology {
 			}
 		}
 		
+		logger.info(logHeader + "All clients generated");
 		return true;
 	}
 	
 	private boolean addNewPhyClient(Iterator<String> clientIterator, PubSubGroup clientList, NodeRole givenNR)
 	{
-		String clientNameI = clientIterator.next();
+		String clientIName = clientIterator.next();
 		PSClientPADRES clientI = new PSClientPADRES();
-		clientI.addNewClientRole(givenNR);
 		
-		ArrayList<String> clientIConnections = clientList.getNodeConnections(clientNameI);
+		ArrayList<String> clientIConnections = clientList.getNodeConnections(clientIName);
 		ArrayList<String> clientIBrokerURIs = new ArrayList<String>();
-		for(int i = 0; i < clientIConnections.size() ; i++)
-		{
-			String brokerI = clientIConnections.get(i);
-			String brokerIURI = phyBrokers.get(brokerI).createBrokerURI();
-			clientIBrokerURIs.add(brokerIURI);
-		}
 		
-		boolean clientInitCheck = clientI.initialize(clientNameI, clientIBrokerURIs, workload);
-		if(!clientInitCheck)
+		int numClientIConnections = clientIConnections.size();
+		
+		if(numClientIConnections <= 0)
 		{
-			logger.error(logHeader + "Couldn't initialize client " + clientNameI);
+			logger.error(logHeader + "Client " + clientIName + " has no connections");
 			return false;
 		}
 		
-		phyClients.put(clientNameI, clientI);
+		for(int j = 0; j < numClientIConnections ; j++)
+		{
+			String brokerJName = clientIConnections.get(j);
+			
+			boolean doesBrokerJExist = genBrokers.containsKey(brokerJName);
+			
+			if(!doesBrokerJExist)
+			{
+				logger.error(logHeader + "Client " + clientIName + " references a broker " + brokerJName + " that doesn't exist");
+				return false;
+			}
+			
+			String brokerJURI = genBrokers.get(brokerJName).createBrokerURI();
+			clientIBrokerURIs.add(brokerJURI);
+		}
+		
+		clientI.addClientName(clientIName);
+		clientI.addConnectedBrokers(clientIBrokerURIs);
+		clientI.addNewClientRole(givenNR);
+		
+		genClients.put(clientIName, clientI);
+		return true;
+	}
+	
+	public boolean addRunLengthToAllClients(Long givenRL)
+	{
+		if(genClients.isEmpty())
+		{
+			logger.error(logHeader + " addRunLengthToAllClients() needs clients to be created first.\n" +
+							"Please run developPhysicalTopology().");
+			return false;
+		}
+		
+		genClients.forEach((clientName, actualClient)->{
+			actualClient.addRL(givenRL);
+		});
+		
+		return true;
+	}
+	
+	public boolean addWorkloadToAllClients(Workload givenWorkload)
+	{
+		if(genClients.isEmpty())
+		{
+			logger.error(logHeader + " addRunLengthToAllClients() needs clients to be created first.\n" +
+							"Please run developPhysicalTopology().");
+			return false;
+		}
+		
+		genClients.forEach((clientName, actualClient)->{
+			actualClient.addWorkload(givenWorkload);
+		});
+		
+		return true;
+	}
+	
+	public boolean startBrokerAndClientProcesses()
+	{
+		if(genBrokers.isEmpty())
+		{
+			logger.error(logHeader + " startBrokers() needs brokers to be created first.\n" +
+							"Please run developPhysicalTopology() first.");
+			return false;
+		}
+		
+		if(genClients.isEmpty())
+		{
+			logger.error(logHeader + " startRun() needs clients to be created first.\n" +
+							"Please run developPhysicalTopology().");
+			return false;
+		}
+		
+		Set<String> setPB = genBrokers.keySet();
+		Iterator<String> iteratorPB = setPB.iterator();
+		for( ; iteratorPB.hasNext() ; )
+		{
+			String brokerIName = iteratorPB.next();
+			PSBrokerPADRES brokerI = genBrokers.get(brokerIName);
+			
+			
+		}
+		
+		Set<String> setPC = genClients.keySet();
+		Iterator<String> iteratorPC = setPC.iterator();
+		for( ; iteratorPC.hasNext() ; )
+		{
+			String clientIName = iteratorPC.next();
+			PSClientPADRES clientI = genClients.get(clientIName);
+			
+			
+		}
+		
+		
+		logger.info(logHeader + " ");
+		return true;
+	}
+	
+	public boolean startRun()
+	{
+		if(phyBrokers.isEmpty())
+		{
+			logger.error(logHeader + " startRun() needs broker processes to be created first.\n" +
+							"Please run startBrokerAndClientProcesses() first.");
+			return false;
+		}
+		
+		if(phyClients.isEmpty())
+		{
+			logger.error(logHeader + " startRun() needs client processes to be created first.\n" +
+							"Please run startBrokerAndClientProcesses() first.");
+			return false;
+		}
+		
+		logger.info(logHeader + "All brokers started");
 		return true;
 	}
 }

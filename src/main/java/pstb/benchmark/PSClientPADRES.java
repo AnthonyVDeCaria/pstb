@@ -24,16 +24,17 @@ import pstb.util.diary.DiaryEntry;
 public class PSClientPADRES implements java.io.Serializable 
 {	
 	private String clientName;
-	private ArrayList<String> brokerURIs;
-	private Workload clientWorkload;
 	private ArrayList<NodeRole> clientRoles;
+	private ArrayList<String> brokerURIs;
+	
+	private Workload clientWorkload;
 	private Long runLength;
+	
+	private ClientDiary diary;
 	
 	private PADRESClientExtension actualClient;
 	private ArrayList<BrokerState> connectedBrokers;
 	private ClientConfig cConfig;
-	
-	private ClientDiary diary;
 	
 	private final long DEFAULT_DELAY = 500;
 	
@@ -53,9 +54,14 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public PSClientPADRES()
 	{
-		diary = new ClientDiary();
+		clientName = new String ();
 		clientRoles = new ArrayList<NodeRole>();
+		brokerURIs = new ArrayList<String>();
+		
+		clientWorkload = new Workload();
 		runLength = new Long(0);
+		
+		diary = new ClientDiary();
 	}
 	
 	/**
