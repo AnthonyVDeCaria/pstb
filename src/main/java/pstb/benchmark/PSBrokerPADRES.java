@@ -4,27 +4,24 @@
  */
 package pstb.benchmark;
 
-import java.util.ArrayList;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import ca.utoronto.msrg.padres.broker.brokercore.BrokerConfig;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCore;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCoreException;
 import pstb.util.NetworkProtocol;
 
-public class PSBrokerPADRES {
-	private BrokerCore actualBroker; 
-	
-	private String BROKER_INT = "screen -dmS broker java -Xmx1024M -Djava.rmi.server.codebase=file:${PADRES_HOME}/build/ " 
-								+ "-cp target/NumPub-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true " 
-								+ "-Djava.security.policy=${PADRES_HOME}/etc/java.policy " 
-								+ "ca.utoronto.msrg.padres.broker.brokercore.BrokerCore ";
-	
+public class PSBrokerPADRES implements java.io.Serializable {
 	private String host;
 	private Integer port;
 	private NetworkProtocol protocol;
 	private String brokerName;
+	private String[] neighbourURIs;
+	private Long runLength;
+	
+	private BrokerCore actualBroker;
+	private BrokerConfig bConfig;
 	
 	private final String logHeader = "Broker: ";
 	private static final Logger brokerLogger = LogManager.getRootLogger();
@@ -35,32 +32,57 @@ public class PSBrokerPADRES {
 		port = newPort;
 		protocol = newProtocol;
 		brokerName = givenName;
+		runLength = new Long(0);
 	}
 	
-	public boolean createBroker(ArrayList<String> neededURIs)
+	public void setNeighbourURIs(String [] givenNeighbourURIs)
+	{
+		neighbourURIs = givenNeighbourURIs;
+	}
+
+	public void setRunLength(Long runLength)
+	{
+		this.runLength = runLength;
+	}
+	
+	public String[] getNeighbourURIS()
+	{
+		return this.neighbourURIs;
+	}
+	
+	public Long getRunLength()
+	{
+		return runLength;
+	}
+	
+	public boolean createBroker()
 	{
 		brokerLogger.info(logHeader + "Starting new broker " + brokerName);
-		String brokerCoreArg = "-uri " + this.createBrokerURI() + " -n ";
-		for(int i = 0 ; i < neededURIs.size() ; i++)
-		{
-			brokerCoreArg += neededURIs.get(i);
-			if(i != neededURIs.size()-1)
-			{
-				brokerCoreArg += ", ";
-			}
-		}
 		
 		try
 		{
-			actualBroker = new BrokerCore(brokerCoreArg);
+			bConfig = new BrokerConfig();
 		}
 		catch(BrokerCoreException e)
 		{
-			brokerLogger.error(logHeader + "Error creating broker " + brokerName, e);
+			brokerLogger.error(logHeader + "Error creating new broker config for broker " + brokerName, e);
 			return false;
 		}
 		
-		brokerLogger.info(logHeader + " Created broker "+ brokerName);
+		bConfig.setBrokerURI(this.createBrokerURI());
+		bConfig.setNeighborURIs(neighbourURIs);
+		
+		try
+		{
+			actualBroker = new BrokerCore(bConfig);
+		}
+		catch (BrokerCoreException e)
+		{
+			brokerLogger.error(logHeader + "Cannot create new broker " + brokerName, e);
+			return false;
+		}
+		
+		brokerLogger.info(logHeader + " Created broker " + brokerName);
 		return true;
 	}
 	
@@ -84,4 +106,5 @@ public class PSBrokerPADRES {
 	{
 		return protocol.toString() + "://" + host + ":" + port.toString() + "/" + brokerName; 
 	}
+	
 }

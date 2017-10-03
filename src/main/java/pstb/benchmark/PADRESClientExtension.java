@@ -22,12 +22,6 @@ public class PADRESClientExtension extends Client
 		hiddenClient = givenClient;
 	}
 	
-	public PADRESClientExtension(String clientName, PSClientPADRES givenClient) throws ClientException
-	{
-		super(clientName);
-		hiddenClient = givenClient;
-	}
-	
 	@Override
 	public void processMessage(Message msg) 
 	{

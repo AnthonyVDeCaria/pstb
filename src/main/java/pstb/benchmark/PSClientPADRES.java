@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import ca.utoronto.msrg.padres.client.BrokerState;
+import ca.utoronto.msrg.padres.client.ClientConfig;
 import ca.utoronto.msrg.padres.client.ClientException;
 import ca.utoronto.msrg.padres.common.message.Message;
 import ca.utoronto.msrg.padres.common.message.Publication;
@@ -20,24 +21,27 @@ import pstb.util.Workload;
 import pstb.util.diary.ClientDiary;
 import pstb.util.diary.DiaryEntry;
 
-public class PSClientPADRES 
+public class PSClientPADRES implements java.io.Serializable 
 {	
-	private PADRESClientExtension actualClient;
-	private ArrayList<BrokerState> connectedBrokers;
-	
-	private ClientDiary diary;
-	private ArrayList<NodeRole> clientRoles;
-	
 	private String clientName;
 	private ArrayList<String> brokerURIs;
 	private Workload clientWorkload;
+	private ArrayList<NodeRole> clientRoles;
 	private Long runLength;
 	
-	private final int DEFAULT_DELAY = 500;
+	private PADRESClientExtension actualClient;
+	private ArrayList<BrokerState> connectedBrokers;
+	private ClientConfig cConfig;
+	
+	private ClientDiary diary;
+	
+	private final long DEFAULT_DELAY = 500;
+	
+	private final long MIN_RUNLENGTH = 1;
 	
 	private final int SEED_AD = 23;
-	
 	private final int SEED_SELECTION = 23;
+	
 	private final int DOSUB = 0;
 	private final int DOPUB = 1;
 	
@@ -51,36 +55,7 @@ public class PSClientPADRES
 	{
 		diary = new ClientDiary();
 		clientRoles = new ArrayList<NodeRole>();
-	}
-
-	/**
-	 * Sets some of the variables and creates a new Client
-	 * (The idea being you would initialize a general Client first before giving it it's tasks
-	 * @param givenName - the name of the client
-	 * @param givenURIs - the BrokerURIs this client will connect to
-	 * @param givenWorkload - the set of actions this client will have to do
-	 * @return false if there's a failure; true otherwise
-	 */
-	public boolean initialize(String givenName, ArrayList<String> givenURIs, Workload givenWorkload) 
-	{
-		clientLogger.info(logHeader + "Attempting to initialize client " + givenName);
-		
-		try 
-		{
-			actualClient = new PADRESClientExtension(givenName, this);
-		} 
-		catch (ClientException e)
-		{
-			clientLogger.error(logHeader + "Cannot initialize new client " + givenName, e);
-			return false;
-		}
-		
-		clientName = givenName;
-		brokerURIs = givenURIs;
-		clientWorkload = givenWorkload;
-		
-		clientLogger.info(logHeader + "Initialized client " + givenName);
-		return true;
+		runLength = new Long(0);
 	}
 	
 	/**
@@ -108,6 +83,85 @@ public class PSClientPADRES
 	public void addRL(Long givenRL)
 	{
 		runLength = givenRL;
+	}
+	
+	public void addWorkload(Workload givenW)
+	{
+		clientWorkload = givenW;
+	}
+	
+	public void addClientName(String givenName)
+	{
+		clientName = givenName;
+	}
+	
+	public void addConnectedBrokers(ArrayList<String> givenConnectedBrokersURIs)
+	{
+		brokerURIs = givenConnectedBrokersURIs;
+	}
+	
+	public ArrayList<NodeRole> getClientRoles()
+	{
+		return this.clientRoles;
+	}
+	
+	public Long getRunLength()
+	{
+		return this.runLength;
+	}
+	
+	public Workload getWorkload()
+	{
+		return this.clientWorkload;
+	}
+	
+	public String getClientName()
+	{
+		return this.clientName;
+	}
+	
+	public ArrayList<String> getBrokerURIs()
+	{
+		return this.brokerURIs;
+	}
+
+	/**
+	 * Sets some of the variables and creates a new Client
+	 * (The idea being you would initialize a general Client first before giving it it's tasks
+	 * @param givenName - the name of the client
+	 * @param givenURIs - the BrokerURIs this client will connect to
+	 * @param givenWorkload - the set of actions this client will have to do
+	 * @return false if there's a failure; true otherwise
+	 */
+	public boolean initialize() 
+	{
+		clientLogger.info(logHeader + "Attempting to initialize client " + clientName);
+		
+		try 
+		{
+			this.cConfig = new ClientConfig();
+		} 
+		catch (ClientException e) 
+		{
+			clientLogger.error(logHeader + "Error creating new Config for Client " + clientName, e);
+			return false;
+		}
+		
+		this.cConfig.clientID = clientName;
+		this.cConfig.connectBrokerList = (String[]) brokerURIs.toArray();
+		
+		try 
+		{
+			actualClient = new PADRESClientExtension(cConfig, this);
+		}
+		catch (ClientException e)
+		{
+			clientLogger.error(logHeader + "Cannot initialize new client " + clientName, e);
+			return false;
+		}
+		
+		clientLogger.info(logHeader + "Initialized client " + clientName);
+		return true;
 	}
 
 	/**
@@ -173,9 +227,9 @@ public class PSClientPADRES
 	 * Begins the run for the client
 	 * @return false if there are any errors; true otherwise
 	 */
-	public boolean startRun() 
+	public boolean startRun()
 	{
-		if( runLength.equals((long)0) )
+		if( runLength < MIN_RUNLENGTH )
 		{
 			clientLogger.error(logHeader + "missing runLength\n" + "Please run either addRL() first");
 			return false;
@@ -201,28 +255,74 @@ public class PSClientPADRES
 		{
 			Long delayValue = new Long(DEFAULT_DELAY);
 			
-			int nextAction = selectionGenerator.nextInt(clientRoles.size());
-			if(clientRoles.size() == 1 && clientRoles.get(0) == NodeRole.P)
+			/*
+			 * Determine our next action
+			 * Are we doing subscriber work or publisher work?
+			 */
+			int nextAction = -1; 
+			if(clientRoles.size() == 1)
 			{
-				nextAction = DOPUB;
-			}
-			
-			if(nextAction == DOSUB)
-			{	
-				if(!allSubsOnceActive)
+				if(clientRoles.get(0) == NodeRole.P)
 				{
-					UpdateActiveListsRetVal check = updateActiveLists(ClientAction.S, activeSubsList, givenSubWorkload);
-					
-					if(check.isError())
-					{
-						return false;
-					}
-					
-					delayValue = check.getDelayValue();
-					
-					allSubsOnceActive = check.areListsEqualSize();
+					nextAction = DOPUB;
+					allSubsOnceActive = true;
+				}
+				else if(clientRoles.get(0) == NodeRole.S)
+				{
+					nextAction = DOSUB;
+					allAdsOnceActive = true;
 				}
 				else
+				{
+					clientLogger.error(logHeader + "illegal NodeRole added to client " + clientName);
+					return false;
+				}
+			}
+			else
+			{
+				nextAction = selectionGenerator.nextInt(clientRoles.size());
+			}
+			
+			/*
+			 * First, we make sure we have all of our Ads/Subs were active at least once
+			 */
+			if(!allSubsOnceActive || !allAdsOnceActive)
+			{
+				UpdateActiveListsRetVal check = new UpdateActiveListsRetVal();
+				
+				if(nextAction == DOSUB)
+				{
+					check = updateActiveLists(ClientAction.S, activeSubsList, givenSubWorkload);
+					allSubsOnceActive = check.areListsEqualSize();
+				}
+				else if(nextAction == DOPUB)
+				{
+					check = updateActiveLists(ClientAction.A, activeAdsList, givenAdWorkload);
+					allAdsOnceActive = check.areListsEqualSize();
+				}
+				else
+				{
+					clientLogger.error(logHeader + "nextAction error in client " + clientName + "\n" + 
+										"attempted to send all subs/ads.");
+					return false;
+				}
+				
+				if(check.hasError())
+				{
+					return false;
+				}
+				
+				delayValue = check.getDelayValue();
+			}
+			else
+			{
+				/*
+				 * If they were, then we handle them being active
+				 * For subscribers, this means making sure that our subscriptions are active
+				 * For advertisers, this means sending any publications that exist for that advertisement
+				 * 					along with making sure the ads themselves are active
+				 */
+				if(nextAction == DOSUB)
 				{
 					Integer numActiveSubs = activeSubsList.size();
 					if(numActiveSubs > 0)
@@ -249,23 +349,7 @@ public class PSClientPADRES
 						}
 					}
 				}
-			}
-			else
-			{
-				if(!allAdsOnceActive)
-				{
-					UpdateActiveListsRetVal check = updateActiveLists(ClientAction.A, activeAdsList, givenAdWorkload);
-					
-					if(check.isError())
-					{
-						return false;
-					}
-					
-					delayValue = check.getDelayValue();
-					
-					allAdsOnceActive = check.areListsEqualSize();
-				}
-				else
+				else if(nextAction == DOPUB)
 				{
 					PSAction activeAdI = null;
 					Integer numActiveAds = activeAdsList.size();
@@ -276,7 +360,7 @@ public class PSClientPADRES
 						
 						activeAdI = activeAdsList.get(i);
 						
-						currentTime = System.nanoTime(); // This isn't really needed, but it looks proper
+						currentTime = System.nanoTime();
 						
 						Long activeAdIStartTime = diary.
 								getDiaryEntryGivenCAA(ClientAction.A.toString(), activeAdI.getAttributes())
@@ -332,6 +416,12 @@ public class PSClientPADRES
 						}
 					}
 				}
+				else
+				{
+					clientLogger.error(logHeader + "nextAction error in client " + clientName + "\n" +
+										"attemping to handle active subs and ads.");
+					return false;
+				}
 			}
 			
 			/*
@@ -351,6 +441,31 @@ public class PSClientPADRES
 		}
 		
 		return true;
+	}
+
+	public boolean storePublication(Message msg) 
+	{
+		boolean storedMessage = false;
+		
+		if(msg instanceof PublicationMessage)
+		{
+			Long currentTime = System.currentTimeMillis();
+			DiaryEntry receivedMsg = new DiaryEntry();
+			
+			Publication pub = ((PublicationMessage) msg).getPublication();
+			
+			Long timePubCreated = pub.getTimeStamp().getTime();
+			
+			receivedMsg.addClientAction(ClientAction.R);
+			receivedMsg.addAttributes(pub.toString());
+			receivedMsg.addTimeCreated(timePubCreated);
+			receivedMsg.addTimeReceived(currentTime);
+			receivedMsg.addTimeDifference(currentTime - timePubCreated);
+			
+			storedMessage = true;
+		}
+		
+		return storedMessage;
 	}
 	
 	private boolean executeAction(ClientAction givenActionType, PSAction givenAction)
@@ -464,31 +579,6 @@ public class PSClientPADRES
 		
 		return true;
 	}
-
-	public boolean storePublication(Message msg) 
-	{
-		boolean storedMessage = false;
-		
-		if(msg instanceof PublicationMessage)
-		{
-			Long currentTime = System.currentTimeMillis();
-			DiaryEntry receivedMsg = new DiaryEntry();
-			
-			Publication pub = ((PublicationMessage) msg).getPublication();
-			
-			Long timePubCreated = pub.getTimeStamp().getTime();
-			
-			receivedMsg.addClientAction(ClientAction.R);
-			receivedMsg.addAttributes(pub.toString());
-			receivedMsg.addTimeCreated(timePubCreated);
-			receivedMsg.addTimeReceived(currentTime);
-			receivedMsg.addTimeDifference(currentTime - timePubCreated);
-			
-			storedMessage = true;
-		}
-		
-		return storedMessage;
-	}
 	
 	private class UpdateActiveListsRetVal
 	{
@@ -496,7 +586,7 @@ public class PSClientPADRES
 		private boolean listsEqualSize;
 		private Long delayValue;
 		
-		public boolean isError() {
+		public boolean hasError() {
 			return error;
 		}
 
@@ -526,7 +616,6 @@ public class PSClientPADRES
 			listsEqualSize = false;
 			delayValue = new Long(-1);
 		}
-		
 	}
 	
 	private UpdateActiveListsRetVal updateActiveLists(ClientAction givenAction, 

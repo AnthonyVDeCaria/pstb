@@ -112,4 +112,9 @@ public class Workload {
 		
 		return pubsGivenAd;
 	}
+
+	public boolean isEmpty() 
+	{
+		return allAds.isEmpty() && allSubs.isEmpty() && allPubs.isEmpty();
+	}
 }
