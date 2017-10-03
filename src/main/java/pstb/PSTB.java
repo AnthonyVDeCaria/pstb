@@ -222,26 +222,27 @@ public class PSTB {
 		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
 		ArrayList<DistributedState> askedDistributed = benchmarkRules.getDistributed();
 		
+		logger.info("Beginning to create Physical Topology");
+		
 		for(int topologyIndex = 0 ; topologyIndex < allLTs.size(); topologyIndex++)
 		{
 			for(int protocolIndex = 0 ; protocolIndex < askedProtocols.size() ; protocolIndex++)
 			{
 				PhysicalTopology localPT = new PhysicalTopology();
 				PhysicalTopology disPT = new PhysicalTopology();
-				boolean checkDisPT = true;
 				boolean checkLocalPT = true;
+				boolean checkDisPT = true;
 				
-				if(askedDistributed.get(topologyIndex).equals(DistributedState.Yes) 
-						|| askedDistributed.get(topologyIndex).equals(DistributedState.Both) )
-				{
-					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyIndex), 
-													askedWorkload, askedProtocols.get(protocolIndex));
-				}
 				if(askedDistributed.get(topologyIndex).equals(DistributedState.No) 
 						|| askedDistributed.get(topologyIndex).equals(DistributedState.Both) )
 				{
 					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyIndex), 
-													askedWorkload, askedProtocols.get(protocolIndex));
+																	askedProtocols.get(protocolIndex));
+				}
+				if(askedDistributed.get(topologyIndex).equals(DistributedState.Yes) 
+						|| askedDistributed.get(topologyIndex).equals(DistributedState.Both) )
+				{
+					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyIndex), askedProtocols.get(protocolIndex));
 				}
 				
 				if(!checkDisPT || !checkLocalPT)
@@ -250,30 +251,60 @@ public class PSTB {
 					endProgram(4, simpleUserInput);
 				}
 				
+				logger.info("Beginning experiment");
+				if(!localPT.isEmpty())
+				{
+					runExperiment(localPT, benchmarkRules.getRunLengths(), benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+				}
+				else
+				{
+					runExperiment(disPT, benchmarkRules.getRunLengths(), benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+				}
 			}
 		}
 		
 		endProgram(0, simpleUserInput);
 	}
 	
-	private boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNER)
+	private static boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
+											Integer givenNRPE, Workload givenWorkload)
 	{
 		for(int iRL = 0 ; iRL < givenRLs.size(); iRL++)
 		{
-			givenPT.addRunLengthToAllClients(givenRLs.get(iRL));
+			boolean functionCheck = givenPT.addRunLengthToAllClients(givenRLs.get(iRL));
+			if(!functionCheck)
+			{
+				logger.error("Error setting Run Length");
+				return false;
+			}
+			
+			functionCheck = givenPT.addWorkloadToAllClients(givenWorkload);
+			if(!functionCheck)
+			{
+				logger.error("Error setting Workload");
+				return false;
+			}
+			
+			for(int iNRPE = 0 ; iNRPE < givenNRPE ; iNRPE++)
+			{
+				functionCheck = givenPT.developBrokerAndClientProcesses();
+				if(!functionCheck)
+				{
+					logger.error("Error developing processes");
+					return false;
+				}
 				
-//			boolean checkSB = givenPT.startBrokers();
-//			if()
-//			{
-//				
-//			}
-//			
-//			for(int i = 0; i < givenNER; i++)
-//			{
-//				
-//			}
+				functionCheck = givenPT.startRun();
+				if(!functionCheck)
+				{
+					logger.error("Error running experiment");
+					return false;
+				}
+			}
 		}
-		return false;
+		
+		logger.info("Experiment successful");
+		return true;
 	}
 }
 

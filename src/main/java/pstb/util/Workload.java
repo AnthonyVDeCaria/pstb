@@ -13,7 +13,8 @@ package pstb.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class Workload {
+public class Workload implements java.io.Serializable 
+{
 	private ArrayList<PSAction> allAds;
 	private ArrayList<PSAction> allSubs;
 	private HashMap<PSAction, ArrayList<PSAction>> allPubs;

@@ -4,7 +4,8 @@
  */
 package pstb.util;
 
-public class PSAction {
+public class PSAction implements java.io.Serializable
+{
 	private Long actionDelay;
 	private String attributes;
 	private Long payloadSize;

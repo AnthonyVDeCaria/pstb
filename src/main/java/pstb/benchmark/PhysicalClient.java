@@ -3,6 +3,8 @@
  */
 package pstb.benchmark;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
@@ -19,31 +21,40 @@ public class PhysicalClient {
 	
 	public static void main(String[] args)
 	{
-		ObjectInputStream in = null;
-		try
+		String givenClientName = null;
+		
+		for (int i = 0; i < args.length; i++) 
 		{
-			in = new ObjectInputStream(System.in);
+			if (args[i].equals("-n")) 
+			{
+				givenClientName = args[i + 1];
+				break;
+			}	
+		}
+		
+		PSClientPADRES givenClient = null;
+ 
+		try 
+		{
+			FileInputStream fileIn = new FileInputStream("/tmp/" + givenClientName + ".ser");
+			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
+			givenClient = (PSClientPADRES) oISIn.readObject();
+			oISIn.close();
+			fileIn.close();
+		} 
+		catch (FileNotFoundException e) 
+		{
+			phyClientLogger.error(logHeader + "couldn't find serialized client file ", e);
+			return;
 		}
 		catch (IOException e)
 		{
 			phyClientLogger.error(logHeader + "error accessing ObjectInputStream ", e);
 			return;
 		}
-		
-		PSClientPADRES givenClient = null;
-		
-		try
-		{
-			givenClient = (PSClientPADRES) in.readObject();
-		}
 		catch(ClassNotFoundException e)
 		{
 			phyClientLogger.error(logHeader + "can't find class ", e);
-			return;
-		} 
-		catch (IOException e) 
-		{
-			phyClientLogger.error(logHeader + "error accessing readObject() ", e);
 			return;
 		}
 		

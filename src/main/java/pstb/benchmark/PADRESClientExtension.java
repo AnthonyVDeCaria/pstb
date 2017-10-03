@@ -12,7 +12,7 @@ import ca.utoronto.msrg.padres.common.message.Message;
  * @author padres-dev-4187
  *
  */
-public class PADRESClientExtension extends Client 
+public class PADRESClientExtension extends Client  
 {
 	PSClientPADRES hiddenClient;
 	

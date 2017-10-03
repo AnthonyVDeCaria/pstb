@@ -2,7 +2,8 @@ package pstb.util.diary;
 
 import java.util.ArrayList;
 
-public class ClientDiary {
+public class ClientDiary implements java.io.Serializable
+{
 	ArrayList<DiaryEntry> diary;
 	
 	/**

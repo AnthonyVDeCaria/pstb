@@ -10,6 +10,10 @@ import pstb.util.NodeRole;
 import pstb.util.PubSubGroup;
 import pstb.util.Workload;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,12 +30,13 @@ public class PhysicalTopology {
 	
 	private int MEMORY = 1024;
 	private String CLIENT_INT = "java -Xmx" + MEMORY + "M -Xverify:none "
-								+ "-cp target/NumPub-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
-								+ "ca.utoronto.msrg.numpub.examples.cfd.CFDClient ";
-	private String BROKER_INT = "screen -dmS broker java -Xmx1024M -Djava.rmi.server.codebase=file:${PADRES_HOME}/build/ " 
-									+ "-cp target/NumPub-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true " 
-									+ "-Djava.security.policy=${PADRES_HOME}/etc/java.policy " 
-									+ "ca.utoronto.msrg.padres.broker.brokercore.BrokerCore ";
+								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
+								+ "pstb.benchmark.PhysicalClient ";
+	private String BROKER_INT = //"screen -dmS broker java -Xmx1024M -Djava.rmi.server.codebase=file:${PADRES_HOME}/build/ "
+									"java -Xmx1024M"
+									+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true " 
+//									+ "-Djava.security.policy=${PADRES_HOME}/etc/java.policy " 
+									+ "pstb.benchmark.PhysicalBroker ";
 	
 	private NetworkProtocol protocol;
 	
@@ -58,6 +63,11 @@ public class PhysicalTopology {
 		brokerList = new PubSubGroup();
 		publisherList = new PubSubGroup();
 		subscriberList = new PubSubGroup();
+	}
+	
+	public boolean isEmpty()
+	{
+		return genBrokers.isEmpty() && genClients.isEmpty();
 	}
 	
 	/**
@@ -134,7 +144,9 @@ public class PhysicalTopology {
 				neededURIs.add(actBrokerJ.createBrokerURI());
 			}
 			
-			brokerI.setNeighbourURIs((String[]) bIConnectedNodes.toArray());
+			String[] bICN  = (String[]) bIConnectedNodes.toArray(new String[bIConnectedNodes.size()]);
+			
+			brokerI.setNeighbourURIs(bICN);
 			
 			genBrokers.put(brokerIName, brokerI);
 		}
@@ -172,7 +184,8 @@ public class PhysicalTopology {
 		
 		for( ; pubIterator.hasNext() ; )
 		{
-			boolean addPubCheck = addNewPhyClient(pubIterator, publisherList, NodeRole.P);
+			String publisherNameI = pubIterator.next();
+			boolean addPubCheck = addNewPhyClient(publisherNameI, publisherList, NodeRole.P);
 			if(!addPubCheck)
 			{
 				return false;
@@ -189,7 +202,7 @@ public class PhysicalTopology {
 			}
 			else
 			{
-				boolean addSubCheck = addNewPhyClient(subIterator, subscriberList, NodeRole.S);
+				boolean addSubCheck = addNewPhyClient(subscriberNameI, subscriberList, NodeRole.S);
 				if(!addSubCheck)
 				{
 					return false;
@@ -201,9 +214,8 @@ public class PhysicalTopology {
 		return true;
 	}
 	
-	private boolean addNewPhyClient(Iterator<String> clientIterator, PubSubGroup clientList, NodeRole givenNR)
+	private boolean addNewPhyClient(String clientIName, PubSubGroup clientList, NodeRole givenNR)
 	{
-		String clientIName = clientIterator.next();
 		PSClientPADRES clientI = new PSClientPADRES();
 		
 		ArrayList<String> clientIConnections = clientList.getNodeConnections(clientIName);
@@ -245,7 +257,7 @@ public class PhysicalTopology {
 	{
 		if(genClients.isEmpty())
 		{
-			logger.error(logHeader + " addRunLengthToAllClients() needs clients to be created first.\n" +
+			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first.\n" +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
@@ -261,7 +273,7 @@ public class PhysicalTopology {
 	{
 		if(genClients.isEmpty())
 		{
-			logger.error(logHeader + " addRunLengthToAllClients() needs clients to be created first.\n" +
+			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first.\n" +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
@@ -273,18 +285,18 @@ public class PhysicalTopology {
 		return true;
 	}
 	
-	public boolean startBrokerAndClientProcesses()
+	public boolean developBrokerAndClientProcesses()
 	{
 		if(genBrokers.isEmpty())
 		{
-			logger.error(logHeader + " startBrokers() needs brokers to be created first.\n" +
+			logger.error(logHeader + "developBrokerAndClientProcesses() needs brokers to be created first.\n" +
 							"Please run developPhysicalTopology() first.");
 			return false;
 		}
 		
 		if(genClients.isEmpty())
 		{
-			logger.error(logHeader + " startRun() needs clients to be created first.\n" +
+			logger.error(logHeader + "developBrokerAndClientProcesses() needs clients to be created first.\n" +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
@@ -296,7 +308,29 @@ public class PhysicalTopology {
 			String brokerIName = iteratorPB.next();
 			PSBrokerPADRES brokerI = genBrokers.get(brokerIName);
 			
+			String brokerCommand = BROKER_INT + " -n " + brokerIName;
 			
+			try 
+			{
+				FileOutputStream fileOut = new FileOutputStream("/tmp/" + brokerIName + ".ser");
+				ObjectOutputStream out = new ObjectOutputStream(fileOut);
+				out.writeObject(brokerI);
+				out.close();
+				fileOut.close();
+			} 
+			catch (FileNotFoundException e) 
+			{
+				logger.error(logHeader + "couldn't generate serialized broker file ", e);
+				return false;
+			} 
+			catch (IOException e) 
+			{
+				logger.error(logHeader + "error with ObjectOutputStream ", e);
+				return false;
+			}
+			
+			ProcessBuilder actualBrokerI = new ProcessBuilder(brokerCommand.split("\\s+"));
+			phyBrokers.add(actualBrokerI);
 		}
 		
 		Set<String> setPC = genClients.keySet();
@@ -306,11 +340,32 @@ public class PhysicalTopology {
 			String clientIName = iteratorPC.next();
 			PSClientPADRES clientI = genClients.get(clientIName);
 			
+			String clientCommand = CLIENT_INT + " -n " + clientIName;
 			
+			try 
+			{
+				FileOutputStream fileOut = new FileOutputStream("/tmp/" + clientIName + ".ser");
+				ObjectOutputStream out = new ObjectOutputStream(fileOut);
+				out.writeObject(clientI);
+				out.close();
+				fileOut.close();
+			} 
+			catch (FileNotFoundException e) 
+			{
+				logger.error(logHeader + "couldn't generate serialized broker file ", e);
+				return false;
+			} 
+			catch (IOException e) 
+			{
+				logger.error(logHeader + "error with ObjectOutputStream ", e);
+				return false;
+			}
+			
+			ProcessBuilder actualclientI = new ProcessBuilder(clientCommand.split("\\s+"));
+			phyClients.add(actualclientI);
 		}
 		
-		
-		logger.info(logHeader + " ");
+		logger.info(logHeader + "Successfully generated broker and client processes.");
 		return true;
 	}
 	
@@ -318,19 +373,45 @@ public class PhysicalTopology {
 	{
 		if(phyBrokers.isEmpty())
 		{
-			logger.error(logHeader + " startRun() needs broker processes to be created first.\n" +
+			logger.error(logHeader + "startRun() needs broker processes to be created first.\n" +
 							"Please run startBrokerAndClientProcesses() first.");
 			return false;
 		}
 		
 		if(phyClients.isEmpty())
 		{
-			logger.error(logHeader + " startRun() needs client processes to be created first.\n" +
+			logger.error(logHeader + "startRun() needs client processes to be created first.\n" +
 							"Please run startBrokerAndClientProcesses() first.");
 			return false;
 		}
 		
-		logger.info(logHeader + "All brokers started");
+		for(int i = 0 ; i < phyBrokers.size(); i++)
+		{
+			try 
+			{
+				phyBrokers.get(i).start();
+			} 
+			catch (IOException e) 
+			{
+				logger.error(logHeader + "error launching broker processes ", e);
+				return false;
+			}
+		}
+		
+		for(int i = 0 ; i < phyClients.size(); i++)
+		{
+			try 
+			{
+				phyClients.get(i).start();
+			} 
+			catch (IOException e) 
+			{
+				logger.error(logHeader + "error launching client processes ", e);
+				return false;
+			}
+		}
+		
+		logger.info(logHeader + "Everything launched");
 		return true;
 	}
 }
