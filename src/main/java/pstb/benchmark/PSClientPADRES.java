@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import ca.utoronto.msrg.padres.client.BrokerState;
 import ca.utoronto.msrg.padres.client.ClientConfig;
@@ -21,7 +22,13 @@ import pstb.util.diary.ClientDiary;
 import pstb.util.diary.DiaryEntry;
 
 /**
+ * The Client Object
  * 
+ * Handles all of the client actions: 
+ * initializing it, shutting it down, 
+ * connecting and disconnecting it to a broker,
+ * starting it (i.e. handle advertisements, publications and subscriptions)
+ * and message processing.
  * 
  * @author padres-dev-4187
  */
@@ -96,51 +103,92 @@ public class PSClientPADRES implements java.io.Serializable
 		runLength = givenRL;
 	}
 	
+	/**
+	 * Sets the Client workload
+	 * @param givenW - the given Workload
+	 */
 	public void addWorkload(Workload givenW)
 	{
 		clientWorkload = givenW;
 	}
 	
+	/**
+	 * Sets the Client's name
+	 * @param givenName - the new name
+	 */
 	public void addClientName(String givenName)
 	{
 		clientName = givenName;
 	}
 	
+	/**
+	 * Adds a list of the Broker's this client is connected to
+	 * (By which I mean their URIs)
+	 * @param givenConnectedBrokersURIs
+	 */
 	public void addConnectedBrokers(ArrayList<String> givenConnectedBrokersURIs)
 	{
 		brokerURIs = givenConnectedBrokersURIs;
 	}
 	
+	/**
+	 * Adds the Logger this Client must use
+	 * @param givenLogger - the Logger
+	 */
 	public void addLogger(Logger givenLogger)
 	{
 		clientLogger = givenLogger;
 	}
-	
+	/**
+	 * Gets this Client's roles
+	 * @return a list of its roles
+	 */
 	public ArrayList<NodeRole> getClientRoles()
 	{
 		return this.clientRoles;
 	}
 	
+	/**
+	 * Get the runLength
+	 * @return the runLength
+	 */
 	public Long getRunLength()
 	{
 		return this.runLength;
 	}
 	
+	/**
+	 * Gets this Client's workload 
+	 * @return the stored Workload
+	 */
 	public Workload getWorkload()
 	{
 		return this.clientWorkload;
 	}
 	
+	/**
+	 * Get's this Client's name
+	 * @return this Client's name
+	 */
 	public String getClientName()
 	{
 		return this.clientName;
 	}
 	
+	/**
+	 * Gets the URIs of the Broker's this Client is connected to 
+	 * @return a list of the URIs
+	 */
 	public ArrayList<String> getBrokerURIs()
 	{
 		return this.brokerURIs;
 	}
 	
+	/**
+	 * Get this Client's diary
+	 * AKA the notes its made of all PSActions
+	 * @return its Diary
+	 */
 	public ClientDiary getDiary()
 	{
 		return this.diary;
@@ -373,7 +421,7 @@ public class PSClientPADRES implements java.io.Serializable
 							
 							if((currentTime - activeSubIStartTime) >= activeSubI.getTimeActive())
 							{
-								boolean checkSub = executeAction(ClientAction.U, activeSubI);
+								boolean checkSub = handleAction(ClientAction.U, activeSubI);
 								if(!checkSub)
 								{
 									clientLogger.error(logHeader + "Error unsubscribing " + activeSubI);
@@ -415,7 +463,7 @@ public class PSClientPADRES implements java.io.Serializable
 							
 							activeAdsList.remove(activeAdI);
 							
-							boolean checkUnad = executeAction(ClientAction.V, activeAdI);
+							boolean checkUnad = handleAction(ClientAction.V, activeAdI);
 							if(!checkUnad)
 							{
 								clientLogger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
@@ -432,13 +480,11 @@ public class PSClientPADRES implements java.io.Serializable
 						ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
 						Integer j = activeAdsPublicationJ.get(activeAdI);
 						
-						clientLogger.debug("J = " + j + " | Size = " + activeAdIsPublications.size());
-						
 						if(j > activeAdIsPublications.size())
 						{
 							clientLogger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications\n"
 												+ "Unadvertising");
-							boolean checkUnad = executeAction(ClientAction.V, activeAdI);
+							boolean checkUnad = handleAction(ClientAction.V, activeAdI);
 							if(!checkUnad)
 							{
 								clientLogger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
@@ -450,7 +496,7 @@ public class PSClientPADRES implements java.io.Serializable
 							PSAction publicationJOfAdI = activeAdIsPublications.get(j);
 							
 							clientLogger.debug(logHeader + "Attempting to publish " + publicationJOfAdI.getAttributes());
-							boolean checkPublication = executeAction(ClientAction.P, publicationJOfAdI);
+							boolean checkPublication = handleAction(ClientAction.P, publicationJOfAdI);
 							if(!checkPublication)
 							{
 								clientLogger.error(logHeader + " Error launching Publication " + publicationJOfAdI.getAttributes());
@@ -466,8 +512,8 @@ public class PSClientPADRES implements java.io.Serializable
 				}
 				else
 				{
-					clientLogger.error(logHeader + "nextAction error in client " + clientName + "\n" +
-										"attemping to handle active subs and ads.");
+					clientLogger.error(logHeader + "nextAction error in client " + clientName + 
+											"attemping to handle active subs and ads.");
 					return false;
 				}
 			}
@@ -491,10 +537,15 @@ public class PSClientPADRES implements java.io.Serializable
 		clientLogger.info(logHeader + "Run Complete");
 		return true;
 	}
-
-	public boolean storePublication(Message msg) 
+	
+	/**
+	 * Stores the given Message
+	 * Assuming it's a Publication
+	 * @param msg - the given Message
+	 */
+	public void storePublication(Message msg) 
 	{
-		boolean storedMessage = false;
+		ThreadContext.put("client", clientName);
 		
 		if(msg instanceof PublicationMessage)
 		{
@@ -511,14 +562,20 @@ public class PSClientPADRES implements java.io.Serializable
 			receivedMsg.addTimeReceived(currentTime);
 			receivedMsg.addTimeDifference(currentTime - timePubCreated);
 			
-			storedMessage = true;
 			clientLogger.debug(logHeader + "new publication received");
 		}
-		
-		return storedMessage;
 	}
 	
-	private boolean executeAction(ClientAction givenActionType, PSAction givenAction)
+	/**
+	 * Handles a given PSAction
+	 * Meaning create a new diary entry and record all the information needed
+	 * (TimeStartedAction, AckDelay, TimeActiveAck, ...)
+	 * assuming the action executes successfully.
+	 * @param givenActionType - the type of action we're doing
+	 * @param givenAction - the given Action
+	 * @return true if the action was recorded; false on error
+	 */
+	private boolean handleAction(ClientAction givenActionType, PSAction givenAction)
 	{
 		clientLogger.debug(logHeader + "Preparing to record action");
 		boolean actionSuccessful = false;
@@ -526,7 +583,7 @@ public class PSClientPADRES implements java.io.Serializable
 		thisEntry.addClientAction(givenActionType);
 		
 		Long startAction = System.nanoTime();
-		actionSuccessful = handleAction(givenActionType, givenAction);
+		actionSuccessful = executeAction(givenActionType, givenAction);
 		Long actionAcked = System.nanoTime();
 		
 		if(actionSuccessful)
@@ -571,13 +628,19 @@ public class PSClientPADRES implements java.io.Serializable
 			}
 			
 			diary.addDiaryEntryToDiary(thisEntry);
+			clientLogger.debug(logHeader + "Action recorded");
 		}
 		
-		clientLogger.debug(logHeader + "Action recorded");
 		return actionSuccessful;
 	}
 	
-	private boolean handleAction(ClientAction givenActionType, PSAction givenAction) 
+	/**
+	 * Execute a given PSAction
+	 * @param givenActionType - the type of action
+	 * @param givenAction - the Action itself
+	 * @return false on failure; true otherwise
+	 */
+	private boolean executeAction(ClientAction givenActionType, PSAction givenAction) 
 	{
 		String generalLog = "Attempting to ";
 		
@@ -587,31 +650,31 @@ public class PSClientPADRES implements java.io.Serializable
 			{
 				case A:
 				{
-					clientLogger.info(logHeader + generalLog + "advertize " + givenAction.getAttributes());
+					clientLogger.debug(logHeader + generalLog + "advertize " + givenAction.getAttributes());
 					actualClient.advertise(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case V:
 				{
-					clientLogger.info(logHeader + generalLog + "unadvertize " + givenAction.getAttributes());
+					clientLogger.debug(logHeader + generalLog + "unadvertize " + givenAction.getAttributes());
 					actualClient.unAdvertiseAll(); // For now
 					break;
 				}
 				case P:
 				{
-					clientLogger.info(logHeader + generalLog + "publish " + givenAction.getAttributes());
+					clientLogger.debug(logHeader + generalLog + "publish " + givenAction.getAttributes());
 					actualClient.publish(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case S:
 				{
-					clientLogger.info(logHeader + generalLog + "subscribe to " + givenAction.getAttributes());
+					clientLogger.debug(logHeader + generalLog + "subscribe to " + givenAction.getAttributes());
 					actualClient.subscribe(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case U:
 				{
-					clientLogger.info(logHeader + generalLog + "unsubscribe from " + givenAction.getAttributes());
+					clientLogger.debug(logHeader + generalLog + "unsubscribe from " + givenAction.getAttributes());
 					actualClient.unsubscribeAll(); // For now
 					break;
 				}
@@ -634,6 +697,9 @@ public class PSClientPADRES implements java.io.Serializable
 		return true;
 	}
 	
+	/**
+	 * The return values of the addToActiveList function
+	 */
 	private class AddToActiveListsRetVal
 	{
 		private boolean error;
@@ -672,6 +738,15 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 	}
 	
+	/**
+	 * Add a given action to a given active list
+	 * I.e. a sub to a sub or a ad to an ad
+	 * @param givenAction
+	 * @param activeList
+	 * @param givenWorkload
+	 * @param activeAdsPublicationJ
+	 * @return
+	 */
 	private AddToActiveListsRetVal addToActiveList(ClientAction givenAction, 
 														ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload,
 														HashMap<PSAction, Integer> activeAdsPublicationJ)
@@ -685,11 +760,11 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		if(givenAction == ClientAction.S)
 		{
-			check = executeAction(ClientAction.S, nextAction);
+			check = handleAction(ClientAction.S, nextAction);
 		}
 		else if(givenAction == ClientAction.A)
 		{
-			check = executeAction(ClientAction.A, nextAction);
+			check = handleAction(ClientAction.A, nextAction);
 		}
 		else
 		{

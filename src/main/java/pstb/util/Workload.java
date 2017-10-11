@@ -15,6 +15,8 @@ import java.util.HashMap;
 
 public class Workload implements java.io.Serializable 
 {
+	private static final long serialVersionUID = 1L;
+	
 	private ArrayList<PSAction> allAds;
 	private ArrayList<PSAction> allSubs;
 	private HashMap<PSAction, ArrayList<PSAction>> allPubs;

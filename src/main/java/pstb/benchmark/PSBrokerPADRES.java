@@ -15,10 +15,8 @@ import pstb.util.NetworkProtocol;
 
 /**
  * The Broker Object
- * Handles everything regarding the Broker:
- * 	- Creating it
- * 	- Accessing it's URI
- * 	- Starting it
+ * 
+ * Handles everything regarding the Broker: Creating it, Accessing it's URI, and Starting it.
  * 
  * @author padres-dev-4187
  */

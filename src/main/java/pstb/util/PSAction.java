@@ -6,17 +6,15 @@ package pstb.util;
 
 public class PSAction implements java.io.Serializable
 {
-	private Long actionDelay;
+	private static final long serialVersionUID = 1L;
+	
+	private Long actionDelay;	// nanoseconds
 	private String attributes;
-	private Long payloadSize;
-	private Long timeActive;
+	private Long payloadSize;	// bytes
+	private Long timeActive;	// nanoseconds
 	
 	/**
 	 * Empty Constructor
-	 * Both Integers are set to unrealistic numbers
-	 * i.e. the delay between actions can't be -1 TK(UNITS)
-	 * nor can the payload/time active be -1 bytes/minutes,
-	 * nor can the time active be 0 minutes
 	 */
 	public PSAction()
 	{
@@ -27,7 +25,7 @@ public class PSAction implements java.io.Serializable
 	}
 	
 	/**
-	 * Gets the action delay TK(UNITS)
+	 * Gets the action delay (nanoseconds)
 	 * @return the action delay
 	 */
 	public Long getActionDelay()
@@ -39,7 +37,8 @@ public class PSAction implements java.io.Serializable
 	 * Gets the attributes
 	 * @return the attributes
 	 */
-	public String getAttributes() {
+	public String getAttributes() 
+	{
 		return attributes;
 	}
 	
@@ -47,15 +46,17 @@ public class PSAction implements java.io.Serializable
 	 * Gets the payload size (bytes)
 	 * @return the payload size
 	 */
-	public Long getPayloadSize() {
+	public Long getPayloadSize() 
+	{
 		return payloadSize;
 	}
 	
 	/**
 	 * Gets the time active
-	 * @return the time active (minutes)
+	 * @return the time active (nanoseconds)
 	 */
-	public Long getTimeActive() {
+	public Long getTimeActive() 
+	{
 		return timeActive;
 	}
 	
@@ -72,7 +73,8 @@ public class PSAction implements java.io.Serializable
 	 * Sets the attributes
 	 * @param nAttri - the attributes to be set
 	 */
-	public void setAttributes(String nAttri) {
+	public void setAttributes(String nAttri) 
+	{
 		this.attributes = nAttri;
 	}
 	
@@ -80,7 +82,8 @@ public class PSAction implements java.io.Serializable
 	 * Sets the payload size
 	 * @param nPS - the new payload size
 	 */
-	public void setPayloadSize(Long nPS) {
+	public void setPayloadSize(Long nPS) 
+	{
 		this.payloadSize = nPS;
 	}
 	
@@ -88,7 +91,8 @@ public class PSAction implements java.io.Serializable
 	 * Sets the time active
 	 * @param nTA - the new time active
 	 */
-	public void setTimeActive(Long nTA) {
+	public void setTimeActive(Long nTA) 
+	{
 		this.timeActive = nTA;
 	}
 }

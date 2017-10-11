@@ -66,6 +66,9 @@ public class ClientDiary implements java.io.Serializable
 		return diary.size();
 	}
 	
+	/**
+	 * 
+	 */
 	public void printDiary()
 	{
 		for(int i = 0; i < diary.size() ; i++)

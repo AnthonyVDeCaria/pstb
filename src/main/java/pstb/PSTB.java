@@ -91,14 +91,14 @@ public class PSTB {
 		boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
 		if (!customBenchPropAns)
 		{
-			logger.info("Loading the default Properties file...");
+			logger.debug("Loading the default Properties file...");
 			benchmarkRules.setBenchmarkConfig(defaultProp);
 		}
 		else
 		{
 			try
 			{
-				logger.info("Loading the user Properties file...");
+				logger.debug("Loading the user Properties file...");
 				Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
 				benchmarkRules.setBenchmarkConfig(userProp);
 			}
@@ -123,9 +123,9 @@ public class PSTB {
 		
 		logger.info("Parsing Workload Files...");
 		
-		logger.info("Parsing Publisher Workload...");
+		logger.debug("Parsing Publisher Workload...");
 		boolean pubCheck = parseWLF.parseWorkloadFiles(WorkloadFileType.P);
-		logger.info("Parsing Subscriber Workload...");
+		logger.debug("Parsing Subscriber Workload...");
 		boolean subCheck = parseWLF.parseWorkloadFiles(WorkloadFileType.S);
 		
 		if(!pubCheck)
@@ -154,7 +154,7 @@ public class PSTB {
 			String topoI = allTopoFiles.get(i);
 			TopologyFileParser parseTopo = new TopologyFileParser(topoI);
 			
-			logger.info("Parsing Topology File " + topoI + "...");
+			logger.debug("Parsing Topology File " + topoI + "...");
 			
 			boolean parseCheck = parseTopo.parse();
 			if(!parseCheck)
@@ -164,16 +164,16 @@ public class PSTB {
 			}
 			else
 			{
-				logger.info("Parse Complete for file " + topoI + "!");
+				logger.debug("Parse Complete for file " + topoI + "!");
 				
 				LogicalTopology network = parseTopo.getLogicalTopo();
 				
-				logger.info("Starting Topology Testing with topology " + topoI + "...");
+				logger.debug("Starting Topology Testing with topology " + topoI + "...");
 				
 				boolean mCCheck = network.confirmBrokerMutualConnectivity();
 				if(!mCCheck)
 				{
-					logger.info("Topology File " + topoI + " has one way connections.");
+					logger.warn("Topology File " + topoI + " has one way connections.");
 					
 					String fixBroker = topoI + " is not mutually connected\n"
 							+ "Would you like us to fix this internally before testing topology Y/n?\n"
@@ -209,7 +209,7 @@ public class PSTB {
 				else
 				{
 					allLTs.add(network);
-					logger.info("Topology Check Complete for topology " + topoI + "!");
+					logger.debug("Topology Check Complete for topology " + topoI + "!");
 				}
 			}
 		}
@@ -258,7 +258,7 @@ public class PSTB {
 				logger.info("Beginning experiment");
 				boolean successfulExperiment = true;
 				
-				if(!localPT.isEmpty())
+				if(!localPT.doObjectsExist())
 				{
 					successfulExperiment = runExperiment(localPT, benchmarkRules.getRunLengths(), 
 															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);

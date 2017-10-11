@@ -77,9 +77,24 @@ public class PhysicalTopology {
 		subscriberList = new PubSubGroup();
 	}
 	
-	public boolean isEmpty()
+	/**
+	 * Determines if the Broker and Client objects have been created
+	 * 
+	 * @return true is they are; false if they aren't
+	 */
+	public boolean doObjectsExist()
 	{
 		return devBrokers.isEmpty() && devClients.isEmpty();
+	}
+	
+	/**
+	 * Determines if the Broker and Client ProcessBuilders have been created
+	 * 
+	 * @return true is they are; false if they aren't
+	 */
+	public boolean doProcessBuildersExist()
+	{
+		return phyBrokers.isEmpty() && phyClients.isEmpty();
 	}
 	
 	/**
@@ -122,10 +137,12 @@ public class PhysicalTopology {
 	 * "Develops" (creates) the Broker Objects
 	 * 
 	 * @param givenDis - the distributed flag
-	 * @return flase if there's an error, true otherwise
+	 * @return false if there's an error, true otherwise
 	 */
 	private boolean developBrokers(boolean givenDis)
 	{
+		logger.debug(logHeader + "Attempting to develop broker objects");
+		
 		Set<String> setBL = brokerList.keySet();
 		Iterator<String> iteratorBL = setBL.iterator();
 		
@@ -170,7 +187,7 @@ public class PhysicalTopology {
 			devBrokers.put(brokerIName, brokerI);
 		}
 		
-		logger.info(logHeader + "All brokers developed");
+		logger.debug(logHeader + "All broker objects developed");
 		return true;
 	}
 	
@@ -539,9 +556,7 @@ public class PhysicalTopology {
 	}
 	
 	/**
-	 * @author padres-dev-4187
-	 * 
-	 * The types of values checkActiveProcesses can return
+	 * The values checkActiveProcesses can return
 	 */
 	public enum ActiveProcessRetVal
 	{
@@ -624,6 +639,9 @@ public class PhysicalTopology {
 		}
 	}
 	
+	/**
+	 * Kills all existing processes
+	 */
 	public void killAllProcesses()
 	{
 		for(int i = 0 ; i < activeBrokers.size() ; i++)
