@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.benchmark.PhysicalTopology;
+import pstb.benchmark.PhysicalTopology.ActiveProcessRetVal;
 import pstb.startup.BenchmarkConfig;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
@@ -21,10 +22,13 @@ import pstb.startup.WorkloadFileParser.WorkloadFileType;
 import pstb.util.DistributedState;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
+import pstb.util.PSTBError;
 import pstb.util.UI;
 import pstb.util.Workload;
 
 public class PSTB {
+	private static final Long MIN_TO_NANOSEC = new Long((long) 6e+10);
+	
 	private static final Logger logger = LogManager.getRootLogger();
 	
 	/**
@@ -78,7 +82,7 @@ public class PSTB {
 		catch (IOException e)
 		{
 			logger.error("Properties: Couldn't find default properties file", e);
-			endProgram(1, simpleUserInput);
+			endProgram(PSTBError.ERROR_BENCHMARK, simpleUserInput);
 		}
 				
 		BenchmarkConfig benchmarkRules = new BenchmarkConfig();
@@ -101,14 +105,14 @@ public class PSTB {
 			catch (IOException e)
 			{
 				logger.error("Properties: Couldn't find user properties file", e);
-				endProgram(1, simpleUserInput);
+				endProgram(PSTBError.ERROR_BENCHMARK, simpleUserInput);
 			}
 		}
 		
 		if(benchmarkRules.checkForNullFields())
 		{
 			logger.error("Errors loading the properties file!");
-			endProgram(1, simpleUserInput);
+			endProgram(PSTBError.ERROR_BENCHMARK, simpleUserInput);
 		}
 		
 		logger.info("No errors loading the Properties file!");
@@ -127,12 +131,12 @@ public class PSTB {
 		if(!pubCheck)
 		{
 			logger.error("Publisher Workload File failed parsing!");
-			endProgram(3, simpleUserInput);
+			endProgram(PSTBError.ERROR_WORKLOAD, simpleUserInput);
 		}
 		if(!subCheck)
 		{
 			logger.error("Subscriber Workload File failed parsing!");
-			endProgram(3, simpleUserInput);
+			endProgram(PSTBError.ERROR_WORKLOAD, simpleUserInput);
 		}
 		
 		logger.info("All workload files valid!!");
@@ -178,7 +182,7 @@ public class PSTB {
 					boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
 					if (!fixBrokerAns)
 					{
-						endProgram(2, simpleUserInput);
+						endProgram(PSTBError.ERROR_TOPO_LOG, simpleUserInput);
 					}
 					else
 					{
@@ -190,7 +194,7 @@ public class PSTB {
 						{
 							logger.error("Topology: Problem forcing mutual connectivity for topology " 
 									+ topoI, e);
-							endProgram(2, simpleUserInput);
+							endProgram(PSTBError.ERROR_TOPO_LOG, simpleUserInput);
 						}
 					}
 				}
@@ -214,7 +218,7 @@ public class PSTB {
 		{
 			logger.error("Error with topology files!");
 			allLTs.clear();
-			endProgram(2, simpleUserInput);
+			endProgram(PSTBError.ERROR_TOPO_LOG, simpleUserInput);
 		}
 		
 		logger.info("All topologies valid!!");
@@ -248,17 +252,26 @@ public class PSTB {
 				if(!checkDisPT || !checkLocalPT)
 				{
 					logger.error("Error creating physical topology");
-					endProgram(4, simpleUserInput);
+					endProgram(PSTBError.ERROR_TOPO_PHY, simpleUserInput);
 				}
 				
 				logger.info("Beginning experiment");
+				boolean successfulExperiment = true;
+				
 				if(!localPT.isEmpty())
 				{
-					runExperiment(localPT, benchmarkRules.getRunLengths(), benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+					successfulExperiment = runExperiment(localPT, benchmarkRules.getRunLengths(), 
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
 				}
 				else
 				{
-					runExperiment(disPT, benchmarkRules.getRunLengths(), benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+					successfulExperiment = runExperiment(disPT, benchmarkRules.getRunLengths(), 
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+				}
+				
+				if(!successfulExperiment)
+				{
+					endProgram(PSTBError.ERROR_RUN, simpleUserInput);
 				}
 			}
 		}
@@ -271,7 +284,9 @@ public class PSTB {
 	{
 		for(int iRL = 0 ; iRL < givenRLs.size(); iRL++)
 		{
-			boolean functionCheck = givenPT.addRunLengthToAllClients(givenRLs.get(iRL));
+			Long iTHRunLength = givenRLs.get(iRL)*MIN_TO_NANOSEC;
+			
+			boolean functionCheck = givenPT.addRunLengthToClients(iTHRunLength);
 			if(!functionCheck)
 			{
 				logger.error("Error setting Run Length");
@@ -287,19 +302,49 @@ public class PSTB {
 			
 			for(int iNRPE = 0 ; iNRPE < givenNRPE ; iNRPE++)
 			{
-				functionCheck = givenPT.developBrokerAndClientProcesses();
+				functionCheck = givenPT.generateBrokerAndClientProcesses();
 				if(!functionCheck)
 				{
 					logger.error("Error developing processes");
 					return false;
 				}
 				
-				functionCheck = givenPT.startRun();
+				functionCheck = givenPT.launchProcesses();
 				if(!functionCheck)
 				{
-					logger.error("Error running experiment");
+					logger.error("Error launching run");
 					return false;
 				}
+				
+				Long startTime = System.nanoTime();
+				Long currentTime = System.nanoTime();
+				while( (currentTime - startTime) < iTHRunLength)
+				{
+					PhysicalTopology.ActiveProcessRetVal response = givenPT.checkActiveProcesses();
+					if(response.equals(ActiveProcessRetVal.Error))
+					{
+						logger.error("Run had an error");
+						givenPT.killAllProcesses();
+						return false;
+					}
+					else if(response.equals(ActiveProcessRetVal.AllOff))
+					{
+						currentTime = System.nanoTime();
+						if((currentTime - startTime) < iTHRunLength)
+						{
+							logger.error("Error - run finished early");
+							return false;
+						}
+						else
+						{
+							break;
+						}
+					}
+					
+					currentTime = System.nanoTime();
+				}
+				logger.info("Run successful");
+				givenPT.killAllProcesses();
 			}
 		}
 		

@@ -1,6 +1,3 @@
-/**
- * 
- */
 package pstb.benchmark;
 
 import java.io.FileInputStream;
@@ -10,6 +7,9 @@ import java.io.ObjectInputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
+
+import pstb.util.PSTBError;
 
 /**
  * @author padres-dev-4187
@@ -17,22 +17,30 @@ import org.apache.logging.log4j.Logger;
  */
 public class PhysicalBroker {
 	private static final String logHeader = "PhyBroker: ";
-	private static final Logger phyBrokerLogger = LogManager.getRootLogger();
+	private static final Logger phyBrokerLogger = LogManager.getLogger(PhysicalBroker.class);
 	
-	public static void main(String[] args)
+	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException
 	{
 		String givenBrokerName = null;
 		
+		boolean nameWasGiven = false;
 		for (int i = 0; i < args.length; i++) 
 		{
 			if (args[i].equals("-n")) 
 			{
 				givenBrokerName = args[i + 1];
+				nameWasGiven = true;
 				break;
-			}	
+			}
 		}
 		
-		Long startTime = System.nanoTime();
+		if(!nameWasGiven)
+		{
+			phyBrokerLogger.error(logHeader + "no name was given");
+			System.exit(PSTBError.ERROR_NO_NAME_B);
+		}
+		
+		ThreadContext.put("broker", givenBrokerName);
 		
 		PSBrokerPADRES givenBroker = null;
 		try 
@@ -46,25 +54,27 @@ public class PhysicalBroker {
 		catch (FileNotFoundException e) 
 		{
 			phyBrokerLogger.error(logHeader + "couldn't find serialized broker file ", e);
-			return;
+			System.exit(PSTBError.ERROR_FILE_B);
 		}
 		catch (IOException e)
 		{
 			phyBrokerLogger.error(logHeader + "error accessing ObjectInputStream ", e);
-			return;
+			System.exit(PSTBError.ERROR_IO_B);
 		}
 		catch(ClassNotFoundException e)
 		{
 			phyBrokerLogger.error(logHeader + "can't find class ", e);
-			return;
+			System.exit(PSTBError.ERROR_CNF_B);
 		}
+		
+		givenBroker.setBrokerLogger(phyBrokerLogger);
 		
 		boolean functionSuccessful = givenBroker.createBroker();
 		
 		if(!functionSuccessful)
 		{
 			phyBrokerLogger.error(logHeader + "error creating broker");
-			return;
+			System.exit(PSTBError.ERROR_CREATE_B);
 		}
 		
 		functionSuccessful = givenBroker.startBroker();
@@ -72,14 +82,9 @@ public class PhysicalBroker {
 		if(!functionSuccessful)
 		{
 			phyBrokerLogger.error(logHeader + "error starting broker");
-			return;
+			System.exit(PSTBError.ERROR_START_B);
 		}
 		
-		Long currentTime = System.nanoTime();
-		
-		while(currentTime - startTime < givenBroker.getRunLength())
-		{
-			currentTime = System.nanoTime();
-		}
+		phyBrokerLogger.info(logHeader + "broker " + givenBroker.getName() + " started");
 	}
 }

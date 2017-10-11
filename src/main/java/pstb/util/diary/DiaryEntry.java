@@ -180,5 +180,12 @@ public class DiaryEntry {
 	{
 		return page.containsValue(value);
 	}
+	
+	public void printPage()
+	{
+		page.forEach((header, notes)->{
+			System.out.println(header.toString() + ": " + notes);
+		});
+	}
 
 }

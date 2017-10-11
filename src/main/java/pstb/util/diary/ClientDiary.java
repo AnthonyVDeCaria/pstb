@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class ClientDiary implements java.io.Serializable
 {
+	private static final long serialVersionUID = 1L;
 	ArrayList<DiaryEntry> diary;
 	
 	/**
@@ -63,5 +64,14 @@ public class ClientDiary implements java.io.Serializable
 	 */
 	public int size() {
 		return diary.size();
+	}
+	
+	public void printDiary()
+	{
+		for(int i = 0; i < diary.size() ; i++)
+		{
+			System.out.println("Page " + i + ":\n");
+			diary.get(i).printPage();
+		}
 	}
 }

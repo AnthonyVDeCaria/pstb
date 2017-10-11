@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 public class PSTBUtil {
 	private static final Logger logger = LogManager.getRootLogger();
 	
-	public static final Long INFINITY = (long)999999999;
+	public static final Long INFINITY = 999999999999999999L;
 	
 	public static final String SPACE = " ";
 	public static final String COMMA = ",";

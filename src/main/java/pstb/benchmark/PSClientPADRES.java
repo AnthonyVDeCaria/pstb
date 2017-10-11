@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import ca.utoronto.msrg.padres.client.BrokerState;
@@ -21,8 +20,14 @@ import pstb.util.Workload;
 import pstb.util.diary.ClientDiary;
 import pstb.util.diary.DiaryEntry;
 
+/**
+ * 
+ * 
+ * @author padres-dev-4187
+ */
 public class PSClientPADRES implements java.io.Serializable 
 {	
+	private static final long serialVersionUID = 1L;
 	private String clientName;
 	private ArrayList<NodeRole> clientRoles;
 	private ArrayList<String> brokerURIs;
@@ -47,7 +52,7 @@ public class PSClientPADRES implements java.io.Serializable
 	private final int DOPUB = 1;
 	
 	private final String logHeader = "Client: ";
-	private static final Logger clientLogger = LogManager.getRootLogger();
+	private Logger clientLogger;
 	
 	/**
 	 * Empty Constructor
@@ -106,6 +111,11 @@ public class PSClientPADRES implements java.io.Serializable
 		brokerURIs = givenConnectedBrokersURIs;
 	}
 	
+	public void addLogger(Logger givenLogger)
+	{
+		clientLogger = givenLogger;
+	}
+	
 	public ArrayList<NodeRole> getClientRoles()
 	{
 		return this.clientRoles;
@@ -129,6 +139,11 @@ public class PSClientPADRES implements java.io.Serializable
 	public ArrayList<String> getBrokerURIs()
 	{
 		return this.brokerURIs;
+	}
+	
+	public ClientDiary getDiary()
+	{
+		return this.diary;
 	}
 
 	/**
@@ -154,7 +169,7 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		
 		this.cConfig.clientID = clientName;
-		this.cConfig.connectBrokerList = (String[]) brokerURIs.toArray();
+		this.cConfig.connectBrokerList = (String[]) brokerURIs.toArray(new String[brokerURIs.size()]);
 		
 		try 
 		{
@@ -203,17 +218,21 @@ public class PSClientPADRES implements java.io.Serializable
 		for(int i = 0 ; i < brokerURIs.size() ; i++)
 		{
 			String iTHURI = brokerURIs.get(i);
+			BrokerState brokerI = null;
+			
 			try
 			{
-				connectedBrokers.add(actualClient.connect(iTHURI));
+				brokerI = actualClient.connect(iTHURI);
 			}
 			catch (ClientException e)
 			{
 				clientLogger.error(logHeader + "Cannot connect client " + clientName + 
 							" to broker " + iTHURI, e);
-				disconnect();
+				this.shutdown();
 				return false;
 			}
+			
+			connectedBrokers.add(brokerI);
 		}
 		
 		clientLogger.info(logHeader + "Added client " + clientName + " to network.");
@@ -241,14 +260,16 @@ public class PSClientPADRES implements java.io.Serializable
 			return false;
 		}
 		
+		clientLogger.info(logHeader + "Starting run");
+				
 		Long runStart = System.nanoTime();
 		
 		ArrayList<PSAction> activeSubsList = new ArrayList<PSAction>();
-		ArrayList<PSAction> givenSubWorkload = clientWorkload.getSubscriberWorkload();
+		ArrayList<PSAction> givenSubWorkload = clientWorkload.getSubscriberWorkload(); // Optimization: why get it multiple times?
 		boolean allSubsOnceActive = false;
 		
 		ArrayList<PSAction> activeAdsList = new ArrayList<PSAction>();
-		ArrayList<PSAction> givenAdWorkload = clientWorkload.getAdvertiserWorkload();
+		ArrayList<PSAction> givenAdWorkload = clientWorkload.getAdvertiserWorkload(); // Optimization: why get it multiple times?
 		HashMap<PSAction, Integer> activeAdsPublicationJ = new HashMap<PSAction, Integer>();
 		boolean allAdsOnceActive = false;
 		
@@ -294,22 +315,23 @@ public class PSClientPADRES implements java.io.Serializable
 			 */
 			if(!allSubsOnceActive || !allAdsOnceActive)
 			{
-				UpdateActiveListsRetVal check = new UpdateActiveListsRetVal();
+				AddToActiveListsRetVal check = new AddToActiveListsRetVal();
 				
 				if(nextAction == DOSUB)
 				{
-					check = updateActiveLists(ClientAction.S, activeSubsList, givenSubWorkload);
+					check = addToActiveList(ClientAction.S, activeSubsList, givenSubWorkload, activeAdsPublicationJ);
 					allSubsOnceActive = check.areListsEqualSize();
 				}
 				else if(nextAction == DOPUB)
 				{
-					check = updateActiveLists(ClientAction.A, activeAdsList, givenAdWorkload);
+					check = addToActiveList(ClientAction.A, activeAdsList, givenAdWorkload, activeAdsPublicationJ);
+					
 					allAdsOnceActive = check.areListsEqualSize();
 				}
 				else
 				{
-					clientLogger.error(logHeader + "nextAction error in client " + clientName + "\n" + 
-										"attempted to send all subs/ads.");
+					clientLogger.error(logHeader + "nextAction error in client " + clientName
+										+ "when attempting to send all subs/ads.");
 					return false;
 				}
 				
@@ -339,9 +361,15 @@ public class PSClientPADRES implements java.io.Serializable
 							
 							currentTime = System.nanoTime();
 							
-							Long activeSubIStartTime = diary.
-									getDiaryEntryGivenCAA(ClientAction.S.toString(), activeSubI.getAttributes())
-									.getTimeStartedAction();
+							DiaryEntry subIEntry = diary.getDiaryEntryGivenCAA(ClientAction.S.toString(), activeSubI.getAttributes());
+							if(subIEntry == null)
+							{
+								clientLogger.error(logHeader + "Couldn't find subscription " + activeSubI.getAttributes() 
+														+ "'s diary entry!");
+								return false;
+							}
+							
+							Long activeSubIStartTime = subIEntry.getTimeStartedAction();
 							
 							if((currentTime - activeSubIStartTime) >= activeSubI.getTimeActive())
 							{
@@ -357,23 +385,32 @@ public class PSClientPADRES implements java.io.Serializable
 				}
 				else if(nextAction == DOPUB)
 				{
+					clientLogger.debug(logHeader + "Attempting to launching new publication");
 					PSAction activeAdI = null;
 					Integer numActiveAds = activeAdsList.size();
 					
 					while(activeAdI == null && numActiveAds > 0)
 					{
+						clientLogger.debug(logHeader + "Attempting to get a random ad");
 						Integer i = activeAdIGenerator.nextInt(numActiveAds);
 						
 						activeAdI = activeAdsList.get(i);
 						
 						currentTime = System.nanoTime();
 						
-						Long activeAdIStartTime = diary.
-								getDiaryEntryGivenCAA(ClientAction.A.toString(), activeAdI.getAttributes())
-								.getTimeStartedAction(); // there is a possibility for null here
+						DiaryEntry adIEntry = diary.getDiaryEntryGivenCAA(ClientAction.A.toString(), activeAdI.getAttributes());
+						if(adIEntry == null)
+						{
+							clientLogger.error(logHeader + "Couldn't find advertisement " + activeAdI.getAttributes() 
+													+ "'s diary entry!");
+							return false;
+						}
 						
+						Long activeAdIStartTime = adIEntry.getTimeStartedAction();
+												
 						if( (currentTime - activeAdIStartTime) >= activeAdI.getTimeActive() )
 						{
+							clientLogger.debug(logHeader + "removing ad " + activeAdI.getAttributes());
 							activeAdsPublicationJ.remove(activeAdI);
 							
 							activeAdsList.remove(activeAdI);
@@ -390,12 +427,16 @@ public class PSClientPADRES implements java.io.Serializable
 					
 					if(activeAdI != null)
 					{
+						clientLogger.debug(logHeader + "Random ad found");
+						clientLogger.debug(logHeader + "Attempting to launch a publication");
 						ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
 						Integer j = activeAdsPublicationJ.get(activeAdI);
 						
+						clientLogger.debug("J = " + j + " | Size = " + activeAdIsPublications.size());
+						
 						if(j > activeAdIsPublications.size())
 						{
-							clientLogger.info(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications\n"
+							clientLogger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications\n"
 												+ "Unadvertising");
 							boolean checkUnad = executeAction(ClientAction.V, activeAdI);
 							if(!checkUnad)
@@ -408,6 +449,7 @@ public class PSClientPADRES implements java.io.Serializable
 						{
 							PSAction publicationJOfAdI = activeAdIsPublications.get(j);
 							
+							clientLogger.debug(logHeader + "Attempting to publish " + publicationJOfAdI.getAttributes());
 							boolean checkPublication = executeAction(ClientAction.P, publicationJOfAdI);
 							if(!checkPublication)
 							{
@@ -446,6 +488,7 @@ public class PSClientPADRES implements java.io.Serializable
 			currentTime = System.nanoTime();
 		}
 		
+		clientLogger.info(logHeader + "Run Complete");
 		return true;
 	}
 
@@ -469,6 +512,7 @@ public class PSClientPADRES implements java.io.Serializable
 			receivedMsg.addTimeDifference(currentTime - timePubCreated);
 			
 			storedMessage = true;
+			clientLogger.debug(logHeader + "new publication received");
 		}
 		
 		return storedMessage;
@@ -476,6 +520,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	private boolean executeAction(ClientAction givenActionType, PSAction givenAction)
 	{
+		clientLogger.debug(logHeader + "Preparing to record action");
 		boolean actionSuccessful = false;
 		DiaryEntry thisEntry = new DiaryEntry();
 		thisEntry.addClientAction(givenActionType);
@@ -491,6 +536,7 @@ public class PSClientPADRES implements java.io.Serializable
 			thisEntry.addTimeStartedAction(startAction);
 			thisEntry.addTimeBrokerAck(actionAcked);
 			thisEntry.addAckDelay(timeDiff);
+			thisEntry.addAttributes(givenAction.getAttributes());
 			
 			if(givenActionType.equals(ClientAction.U) || givenActionType.equals(ClientAction.V))
 			{
@@ -527,6 +573,7 @@ public class PSClientPADRES implements java.io.Serializable
 			diary.addDiaryEntryToDiary(thisEntry);
 		}
 		
+		clientLogger.debug(logHeader + "Action recorded");
 		return actionSuccessful;
 	}
 	
@@ -540,31 +587,31 @@ public class PSClientPADRES implements java.io.Serializable
 			{
 				case A:
 				{
-					clientLogger.info(logHeader + generalLog + "advertize " + givenAction);
+					clientLogger.info(logHeader + generalLog + "advertize " + givenAction.getAttributes());
 					actualClient.advertise(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case V:
 				{
-					clientLogger.info(logHeader + generalLog + "unadvertize " + givenAction);
+					clientLogger.info(logHeader + generalLog + "unadvertize " + givenAction.getAttributes());
 					actualClient.unAdvertiseAll(); // For now
 					break;
 				}
 				case P:
 				{
-					clientLogger.info(logHeader + generalLog + "publish " + givenAction);
+					clientLogger.info(logHeader + generalLog + "publish " + givenAction.getAttributes());
 					actualClient.publish(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case S:
 				{
-					clientLogger.info(logHeader + generalLog + "subscribe to " + givenAction);
+					clientLogger.info(logHeader + generalLog + "subscribe to " + givenAction.getAttributes());
 					actualClient.subscribe(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case U:
 				{
-					clientLogger.info(logHeader + generalLog + "unsubscribe from " + givenAction);
+					clientLogger.info(logHeader + generalLog + "unsubscribe from " + givenAction.getAttributes());
 					actualClient.unsubscribeAll(); // For now
 					break;
 				}
@@ -583,10 +630,11 @@ public class PSClientPADRES implements java.io.Serializable
 			return false;
 		}
 		
+		clientLogger.info(logHeader + "Action successful");
 		return true;
 	}
 	
-	private class UpdateActiveListsRetVal
+	private class AddToActiveListsRetVal
 	{
 		private boolean error;
 		private boolean listsEqualSize;
@@ -616,21 +664,22 @@ public class PSClientPADRES implements java.io.Serializable
 			this.delayValue = delayValue;
 		}
 		
-		public UpdateActiveListsRetVal()
+		public AddToActiveListsRetVal()
 		{
-			error = false;
+			error = true;
 			listsEqualSize = false;
 			delayValue = new Long(-1);
 		}
 	}
 	
-	private UpdateActiveListsRetVal updateActiveLists(ClientAction givenAction, 
-														ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload)
+	private AddToActiveListsRetVal addToActiveList(ClientAction givenAction, 
+														ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload,
+														HashMap<PSAction, Integer> activeAdsPublicationJ)
 	{
+		AddToActiveListsRetVal retVal = new AddToActiveListsRetVal();
+		
 		int nextI = activeList.size();
 		PSAction nextAction = givenWorkload.get(nextI);
-		
-		UpdateActiveListsRetVal retVal = new UpdateActiveListsRetVal();
 		
 		boolean check = true; 
 		
@@ -645,24 +694,55 @@ public class PSClientPADRES implements java.io.Serializable
 		else
 		{
 			clientLogger.error(logHeader + "Error - told to handle unexpected action " + nextI);
-			retVal.setError(true);
 			return retVal;
 		}
 		
 		if(!check)
 		{
 			clientLogger.error(logHeader + "Error launching " + givenAction.toString() + " " + nextI);
-			retVal.setError(true);
 			return retVal;
 		}
 		
 		activeList.add(nextAction);
-		retVal.setDelayValue(nextAction.getActionDelay());
+		
+		if(givenAction == ClientAction.A)
+		{
+			check = addNewAdToActiveAdsPublicationJ(nextAction, activeAdsPublicationJ);
+			if(!check)
+			{
+				return retVal;
+			}
+		}
 		
 		if(activeList.size() == givenWorkload.size())
 		{
 			retVal.setListsEqualSize(true);
 		}
+		
+		retVal.setDelayValue(nextAction.getActionDelay());
+		retVal.setError(false);
+		
 		return retVal;
+	}
+	
+	private boolean addNewAdToActiveAdsPublicationJ(PSAction newAction, HashMap<PSAction, Integer> activeAdsPublicationJ)
+	{
+		ArrayList<PSAction> newActionsPublications = clientWorkload.getPublicationWorkloadForAd(newAction);
+		
+		if(newActionsPublications == null)
+		{
+			clientLogger.error(logHeader + "Could not find any Publications for Ad " + newAction.getAttributes());
+			return false;
+		}
+		
+		if(activeAdsPublicationJ.containsKey(newAction))
+		{
+			clientLogger.error(logHeader + "Ad " + newAction.getAttributes() + " already exists in activeAdsPublicationJ");
+			return false;
+		}
+		
+		activeAdsPublicationJ.put(newAction, 0);
+		clientLogger.debug(logHeader + "added " + newAction.getAttributes() + "'s number of publications to activeAdsPublicationJ");
+		return true;
 	}
 }
