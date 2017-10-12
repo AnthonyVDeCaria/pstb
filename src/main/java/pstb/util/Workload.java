@@ -33,32 +33,54 @@ public class Workload implements java.io.Serializable
 	
 	/**
 	 * Updates the Subscriber Workload
+	 * 
 	 * @param newSub - the new Subscription
+	 * @return true on success; false on failure
 	 */
-	public void updateSubscriptionWorkload(PSAction newSub)
+	public boolean updateSubscriptionWorkload(PSAction newSub)
 	{
+		if(newSub.getActionType() != PSActionType.S)
+		{
+			return false;
+		}
+		
 		allSubs.add(newSub);
+		return true;
 	}
 	
 	/**
 	 * Updates the Advertiser Workload
 	 * (and thus the Publisher Workload)
+	 * 
 	 * @param newAd - the new Advertisement
+	 * @return true on success; false on failure
 	 */
-	public void updateAdvertisementWorkload(PSAction newAd)
+	public boolean updateAdvertisementWorkload(PSAction newAd)
 	{
+		if(newAd.getActionType() != PSActionType.A)
+		{
+			return false;
+		}
+		
 		allAds.add(newAd);
 		allPubs.put(newAd, new ArrayList<PSAction>());
+		return true;
 	}
 	
 	/**
 	 * Updates the publication workload for a given Advertisement
+	 * 
 	 * @param givenAd - the Ad we're updating
 	 * @param newPublication - the new Publication to insert
 	 * @return true if we found the given Ad/inserted the new publication; false otherwise
 	 */
 	public boolean updatePublicationWorkload(PSAction givenAd, PSAction newPublication)
 	{
+		if(givenAd.getActionType() != PSActionType.A || newPublication.getActionType() != PSActionType.P)
+		{
+			return false;
+		}
+		
 		boolean foundProperAd = false;
 		
 		if(allPubs.containsKey(givenAd))
@@ -108,9 +130,12 @@ public class Workload implements java.io.Serializable
 	{
 		ArrayList<PSAction> pubsGivenAd = null;
 		
-		if(allPubs.containsKey(givenAd))
+		if(givenAd.getActionType() == PSActionType.A)
 		{
-			pubsGivenAd = allPubs.get(givenAd);
+			if(allPubs.containsKey(givenAd))
+			{
+				pubsGivenAd = allPubs.get(givenAd);
+			}
 		}
 		
 		return pubsGivenAd;

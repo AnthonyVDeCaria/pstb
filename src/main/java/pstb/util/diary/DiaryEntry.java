@@ -5,7 +5,7 @@ package pstb.util.diary;
 
 import java.util.HashMap;
 
-import pstb.util.ClientAction;
+import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
 
 /**
@@ -38,7 +38,7 @@ public class DiaryEntry {
 	 * Client Action setter
 	 * @param givenCA - the Client Action to add
 	 */
-	public void addClientAction(ClientAction givenCA)
+	public void addClientAction(PSActionType givenCA)
 	{
 		page.put(DiaryHeader.ClientAction, givenCA.toString());
 	}
@@ -105,10 +105,10 @@ public class DiaryEntry {
 		page.put(DiaryHeader.TimeDifference, givenTD.toString());
 	}
 	
-	public ClientAction getClientAction()
+	public PSActionType getClientAction()
 	{
 		String storedClientAction = page.get(DiaryHeader.ClientAction);
-		return ClientAction.valueOf(storedClientAction);
+		return PSActionType.valueOf(storedClientAction);
 	}
 	
 	public Long getTimeStartedAction()

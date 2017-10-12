@@ -267,7 +267,7 @@ public class PhysicalTopology {
 			}
 		}
 		
-		logger.info(logHeader + "All clients developed");
+		logger.debug(logHeader + "All clients developed");
 		return true;
 	}
 	

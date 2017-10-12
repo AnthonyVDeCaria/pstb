@@ -8,6 +8,7 @@ public class PSAction implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;
 	
+	private PSActionType actionType;
 	private Long actionDelay;	// nanoseconds
 	private String attributes;
 	private Long payloadSize;	// bytes
@@ -18,10 +19,21 @@ public class PSAction implements java.io.Serializable
 	 */
 	public PSAction()
 	{
+		actionType = null;
 		actionDelay = new Long(-1);
 		attributes = new String();
 		payloadSize = new Long(-1);
 		timeActive = new Long(0);
+	}
+	
+	/**
+	 * Gets the actionType of this action
+	 * 
+	 * @return the action type
+	 */
+	public PSActionType getActionType()
+	{
+		return actionType;
 	}
 	
 	/**
@@ -58,6 +70,15 @@ public class PSAction implements java.io.Serializable
 	public Long getTimeActive() 
 	{
 		return timeActive;
+	}
+	
+	/**
+	 * Sets the action Type of this action
+	 * @param nPSAT - the given action type
+	 */
+	public void setActionType(PSActionType nPSAT)
+	{
+		this.actionType = nPSAT;
 	}
 	
 	/**

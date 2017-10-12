@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.util.ClientAction;
+import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
 import pstb.util.Workload;
 import pstb.util.PSAction;
@@ -136,7 +136,7 @@ public class WorkloadFileParser {
 					
 					if(actionDelay != null)
 					{
-						ClientAction linesCA = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), requestedWF);
+						PSActionType linesCA = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), requestedWF);
 						if(linesCA != null)
 						{
 							if(splitLine.length == MAXSEGMENTSNUM)
@@ -218,16 +218,17 @@ public class WorkloadFileParser {
 	 * Determines if the given client action is a both client action
 	 * and a client action that makes sense for the Client
 	 * i.e. a publisher doesn't have any subscribe requests
+	 * 
 	 * @param supposedClientAction - the Client Action being tested
 	 * @param fileType - the type of file
 	 * @return null on failure; the given Client Action otherwise
 	 */
-	private ClientAction checkProperClientAction(String supposedClientAction, WorkloadFileType fileType)
+	private PSActionType checkProperClientAction(String supposedClientAction, WorkloadFileType fileType)
 	{
-		ClientAction test = null;
+		PSActionType test = null;
 		try 
 		{
-			test = ClientAction.valueOf(supposedClientAction);
+			test = PSActionType.valueOf(supposedClientAction);
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -235,7 +236,7 @@ public class WorkloadFileParser {
 			return null;
 		}
 		
-		if(test.equals(ClientAction.R) || test.equals(ClientAction.U) || test.equals(ClientAction.V))
+		if(test.equals(PSActionType.R) || test.equals(PSActionType.U) || test.equals(PSActionType.V))
 		{
 			logger.error(logHeader + supposedClientAction + " is a Client Action that should not be "
 					+ "submitted by the user.");
@@ -243,11 +244,11 @@ public class WorkloadFileParser {
 		}
 		
 		if(
-				test.equals(ClientAction.S) && fileType.equals(WorkloadFileType.P)
-				|| test.equals(ClientAction.U) && fileType.equals(WorkloadFileType.P)
-				|| test.equals(ClientAction.P) && fileType.equals(WorkloadFileType.S)
-				|| test.equals(ClientAction.A) && fileType.equals(WorkloadFileType.S)
-				|| test.equals(ClientAction.V) && fileType.equals(WorkloadFileType.S)
+				test.equals(PSActionType.S) && fileType.equals(WorkloadFileType.P)
+				|| test.equals(PSActionType.U) && fileType.equals(WorkloadFileType.P)
+				|| test.equals(PSActionType.P) && fileType.equals(WorkloadFileType.S)
+				|| test.equals(PSActionType.A) && fileType.equals(WorkloadFileType.S)
+				|| test.equals(PSActionType.V) && fileType.equals(WorkloadFileType.S)
 			)
 		{
 			logger.error(logHeader + " a " + fileType + " shouldn't have " + supposedClientAction + " actions");
@@ -257,9 +258,9 @@ public class WorkloadFileParser {
 		return test;
 	}
 	
-	private Long checkValidPayloadOrTimeActive(String sPOrTA, ClientAction givenAction)
+	private Long checkValidPayloadOrTimeActive(String sPOrTA, PSActionType givenAction)
 	{
-		if(givenAction == ClientAction.R || givenAction == ClientAction.U || givenAction == ClientAction.V)
+		if(givenAction == PSActionType.R || givenAction == PSActionType.U || givenAction == PSActionType.V)
 		{
 			logger.error(logHeader + " action " + givenAction + " shouldn't have a payload size or time active value");
 			return null;
@@ -294,11 +295,12 @@ public class WorkloadFileParser {
 		return temp;
 	}
 	
-	private boolean addActionToWorkload(Long actionDelay, ClientAction actionType, String attributes, Long payloadOrTA)
+	private boolean addActionToWorkload(Long actionDelay, PSActionType actionType, String attributes, Long payloadOrTA)
 	{
 		PSAction newAction = new PSAction();
 		newAction.setActionDelay(actionDelay);
 		newAction.setAttributes(attributes);
+		newAction.setActionType(actionType);
 		
 		switch(actionType)
 		{

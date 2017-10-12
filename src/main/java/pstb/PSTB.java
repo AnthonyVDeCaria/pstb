@@ -27,7 +27,7 @@ import pstb.util.UI;
 import pstb.util.Workload;
 
 public class PSTB {
-	private static final Long MIN_TO_NANOSEC = new Long((long) 6e+10);
+	private static final Long MIN_TO_NANOSEC = new Long(60000000000L);
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	

@@ -32,7 +32,7 @@ public class ClientDiary implements java.io.Serializable
 	 * @param attributes - the associated attributes
 	 * @return Either the given diary entry, or null
 	 */
-	public DiaryEntry getDiaryEntryGivenCAA(String clientAction, String attributes)
+	public DiaryEntry getDiaryEntryGivenActionTypeNAttri(String clientAction, String attributes)
 	{
 		DiaryEntry appropriateDiary = null;
 		for(int i = 0; i < diary.size() ; i++)

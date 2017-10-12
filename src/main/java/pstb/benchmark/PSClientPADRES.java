@@ -14,7 +14,7 @@ import ca.utoronto.msrg.padres.common.message.Message;
 import ca.utoronto.msrg.padres.common.message.Publication;
 import ca.utoronto.msrg.padres.common.message.PublicationMessage;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
-import pstb.util.ClientAction;
+import pstb.util.PSActionType;
 import pstb.util.NodeRole;
 import pstb.util.PSAction;
 import pstb.util.Workload;
@@ -59,7 +59,7 @@ public class PSClientPADRES implements java.io.Serializable
 	private final int DOPUB = 1;
 	
 	private final String logHeader = "Client: ";
-	private Logger clientLogger;
+	private Logger logger;
 	
 	/**
 	 * Empty Constructor
@@ -137,7 +137,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public void addLogger(Logger givenLogger)
 	{
-		clientLogger = givenLogger;
+		logger = givenLogger;
 	}
 	/**
 	 * Gets this Client's roles
@@ -204,7 +204,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public boolean initialize() 
 	{
-		clientLogger.info(logHeader + "Attempting to initialize client " + clientName);
+		logger.info(logHeader + "Attempting to initialize client " + clientName);
 		
 		try 
 		{
@@ -212,7 +212,7 @@ public class PSClientPADRES implements java.io.Serializable
 		} 
 		catch (ClientException e) 
 		{
-			clientLogger.error(logHeader + "Error creating new Config for Client " + clientName, e);
+			logger.error(logHeader + "Error creating new Config for Client " + clientName, e);
 			return false;
 		}
 		
@@ -225,11 +225,11 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		catch (ClientException e)
 		{
-			clientLogger.error(logHeader + "Cannot initialize new client " + clientName, e);
+			logger.error(logHeader + "Cannot initialize new client " + clientName, e);
 			return false;
 		}
 		
-		clientLogger.info(logHeader + "Initialized client " + clientName);
+		logger.info(logHeader + "Initialized client " + clientName);
 		return true;
 	}
 
@@ -239,7 +239,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public boolean shutdown() 
 	{
-		clientLogger.info(logHeader + "Attempting to shutdown client " + clientName);
+		logger.info(logHeader + "Attempting to shutdown client " + clientName);
 		
 		try 
 		{
@@ -247,11 +247,11 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		catch (ClientException e) 
 		{
-			clientLogger.error(logHeader + "Cannot shutdown client " + clientName, e);
+			logger.error(logHeader + "Cannot shutdown client " + clientName, e);
 			return false;
 		}
 		
-		clientLogger.info(logHeader + "Shutdown client " + clientName);
+		logger.info(logHeader + "Shutdown client " + clientName);
 		return true;
 	}
 
@@ -261,7 +261,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public boolean connect() 
 	{
-		clientLogger.info(logHeader + "Attempting to connect client " + clientName + " to network.");
+		logger.info(logHeader + "Attempting to connect client " + clientName + " to network.");
 		
 		for(int i = 0 ; i < brokerURIs.size() ; i++)
 		{
@@ -274,7 +274,7 @@ public class PSClientPADRES implements java.io.Serializable
 			}
 			catch (ClientException e)
 			{
-				clientLogger.error(logHeader + "Cannot connect client " + clientName + 
+				logger.error(logHeader + "Cannot connect client " + clientName + 
 							" to broker " + iTHURI, e);
 				this.shutdown();
 				return false;
@@ -283,7 +283,7 @@ public class PSClientPADRES implements java.io.Serializable
 			connectedBrokers.add(brokerI);
 		}
 		
-		clientLogger.info(logHeader + "Added client " + clientName + " to network.");
+		logger.info(logHeader + "Added client " + clientName + " to network.");
 		return true;
 	}
 
@@ -292,7 +292,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public void disconnect() 
 	{
-		clientLogger.info(logHeader + "Disconnecting client " + clientName + " from network.");
+		logger.info(logHeader + "Disconnecting client " + clientName + " from network.");
 		actualClient.disconnectAll();
 	}
 
@@ -304,11 +304,11 @@ public class PSClientPADRES implements java.io.Serializable
 	{
 		if( runLength < MIN_RUNLENGTH )
 		{
-			clientLogger.error(logHeader + "missing runLength\n" + "Please run either addRL() first");
+			logger.error(logHeader + "missing runLength\n" + "Please run either addRL() first");
 			return false;
 		}
 		
-		clientLogger.info(logHeader + "Starting run");
+		logger.info(logHeader + "Starting run");
 				
 		Long runStart = System.nanoTime();
 		
@@ -349,7 +349,7 @@ public class PSClientPADRES implements java.io.Serializable
 				}
 				else
 				{
-					clientLogger.error(logHeader + "illegal NodeRole added to client " + clientName);
+					logger.error(logHeader + "illegal NodeRole added to client " + clientName);
 					return false;
 				}
 			}
@@ -363,22 +363,23 @@ public class PSClientPADRES implements java.io.Serializable
 			 */
 			if(!allSubsOnceActive || !allAdsOnceActive)
 			{
+				logger.debug(logHeader + "Launching new sub / ad");
 				AddToActiveListsRetVal check = new AddToActiveListsRetVal();
 				
 				if(nextAction == DOSUB)
 				{
-					check = addToActiveList(ClientAction.S, activeSubsList, givenSubWorkload, activeAdsPublicationJ);
+					check = addToActiveList(PSActionType.S, activeSubsList, givenSubWorkload, activeAdsPublicationJ);
 					allSubsOnceActive = check.areListsEqualSize();
 				}
 				else if(nextAction == DOPUB)
 				{
-					check = addToActiveList(ClientAction.A, activeAdsList, givenAdWorkload, activeAdsPublicationJ);
+					check = addToActiveList(PSActionType.A, activeAdsList, givenAdWorkload, activeAdsPublicationJ);
 					
 					allAdsOnceActive = check.areListsEqualSize();
 				}
 				else
 				{
-					clientLogger.error(logHeader + "nextAction error in client " + clientName
+					logger.error(logHeader + "nextAction error in client " + clientName
 										+ "when attempting to send all subs/ads.");
 					return false;
 				}
@@ -400,119 +401,67 @@ public class PSClientPADRES implements java.io.Serializable
 				 */
 				if(nextAction == DOSUB)
 				{
-					Integer numActiveSubs = activeSubsList.size();
-					if(numActiveSubs > 0)
-					{
-						for(int i = 0 ; i < numActiveSubs ; i++)
-						{
-							PSAction activeSubI = activeSubsList.get(i);
-							
-							currentTime = System.nanoTime();
-							
-							DiaryEntry subIEntry = diary.getDiaryEntryGivenCAA(ClientAction.S.toString(), activeSubI.getAttributes());
-							if(subIEntry == null)
-							{
-								clientLogger.error(logHeader + "Couldn't find subscription " + activeSubI.getAttributes() 
-														+ "'s diary entry!");
-								return false;
-							}
-							
-							Long activeSubIStartTime = subIEntry.getTimeStartedAction();
-							
-							if((currentTime - activeSubIStartTime) >= activeSubI.getTimeActive())
-							{
-								boolean checkSub = handleAction(ClientAction.U, activeSubI);
-								if(!checkSub)
-								{
-									clientLogger.error(logHeader + "Error unsubscribing " + activeSubI);
-									return false;
-								}
-							}
-						}
-					}
+					updateActiveList(activeSubsList);
 				}
 				else if(nextAction == DOPUB)
 				{
-					clientLogger.debug(logHeader + "Attempting to launching new publication");
+					updateActiveList(activeAdsList);
+					
 					PSAction activeAdI = null;
 					Integer numActiveAds = activeAdsList.size();
 					
-					while(activeAdI == null && numActiveAds > 0)
+					if(numActiveAds > 0)
 					{
-						clientLogger.debug(logHeader + "Attempting to get a random ad");
+						logger.debug(logHeader + "Attempting to send a new publication");
 						Integer i = activeAdIGenerator.nextInt(numActiveAds);
-						
 						activeAdI = activeAdsList.get(i);
 						
-						currentTime = System.nanoTime();
+						ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
 						
-						DiaryEntry adIEntry = diary.getDiaryEntryGivenCAA(ClientAction.A.toString(), activeAdI.getAttributes());
-						if(adIEntry == null)
+						if(activeAdIsPublications == null)
 						{
-							clientLogger.error(logHeader + "Couldn't find advertisement " + activeAdI.getAttributes() 
-													+ "'s diary entry!");
+							logger.error(logHeader + "Couldn't find Publications for Ad " + activeAdI.getAttributes());
 							return false;
 						}
 						
-						Long activeAdIStartTime = adIEntry.getTimeStartedAction();
-												
-						if( (currentTime - activeAdIStartTime) >= activeAdI.getTimeActive() )
-						{
-							clientLogger.debug(logHeader + "removing ad " + activeAdI.getAttributes());
-							activeAdsPublicationJ.remove(activeAdI);
-							
-							activeAdsList.remove(activeAdI);
-							
-							boolean checkUnad = handleAction(ClientAction.V, activeAdI);
-							if(!checkUnad)
-							{
-								clientLogger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
-								return false;
-							}
-							activeAdI = null;
-						}
-					}
-					
-					if(activeAdI != null)
-					{
-						clientLogger.debug(logHeader + "Random ad found");
-						clientLogger.debug(logHeader + "Attempting to launch a publication");
-						ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
 						Integer j = activeAdsPublicationJ.get(activeAdI);
+						
+						PSAction publicationJOfAdI = activeAdIsPublications.get(j);
+						
+						logger.debug(logHeader + "Attempting to send publication " + j);
+						boolean checkPublication = launchAction(PSActionType.P, publicationJOfAdI);
+						if(!checkPublication)
+						{
+							logger.error(logHeader + " Error sending Publication " + j);
+							return false;
+						}
+						
+						logger.info(logHeader + "Sent publication " + publicationJOfAdI.getAttributes());
+						
+						delayValue = publicationJOfAdI.getActionDelay();
+						
+						j++;
 						
 						if(j > activeAdIsPublications.size())
 						{
-							clientLogger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications\n"
+							logger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications\n"
 												+ "Unadvertising");
-							boolean checkUnad = handleAction(ClientAction.V, activeAdI);
+							boolean checkUnad = launchAction(PSActionType.V, activeAdI);
 							if(!checkUnad)
 							{
-								clientLogger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
+								logger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
 								return false;
 							}
 						}
 						else
 						{
-							PSAction publicationJOfAdI = activeAdIsPublications.get(j);
-							
-							clientLogger.debug(logHeader + "Attempting to publish " + publicationJOfAdI.getAttributes());
-							boolean checkPublication = handleAction(ClientAction.P, publicationJOfAdI);
-							if(!checkPublication)
-							{
-								clientLogger.error(logHeader + " Error launching Publication " + publicationJOfAdI.getAttributes());
-								return false;
-							}
-							
-							delayValue = publicationJOfAdI.getActionDelay();
-							
-							j++;
 							activeAdsPublicationJ.put(activeAdI, j);
 						}
 					}
 				}
 				else
 				{
-					clientLogger.error(logHeader + "nextAction error in client " + clientName + 
+					logger.error(logHeader + "nextAction error in client " + clientName + 
 											"attemping to handle active subs and ads.");
 					return false;
 				}
@@ -522,19 +471,19 @@ public class PSClientPADRES implements java.io.Serializable
 			 * Wait
 			 */
 			try {				
-				clientLogger.trace(logHeader + "pausing");
+				logger.trace(logHeader + "pausing");
 				Thread.sleep(delayValue);
 			} 
 			catch (InterruptedException e) 
 			{
-				clientLogger.error(logHeader + "error sleeping in client " + clientName, e);
+				logger.error(logHeader + "error sleeping in client " + clientName, e);
 				return false;
 			}
 			
 			currentTime = System.nanoTime();
 		}
 		
-		clientLogger.info(logHeader + "Run Complete");
+		logger.info(logHeader + "Run Complete");
 		return true;
 	}
 	
@@ -556,34 +505,42 @@ public class PSClientPADRES implements java.io.Serializable
 			
 			Long timePubCreated = pub.getTimeStamp().getTime();
 			
-			receivedMsg.addClientAction(ClientAction.R);
+			receivedMsg.addClientAction(PSActionType.R);
 			receivedMsg.addAttributes(pub.toString());
 			receivedMsg.addTimeCreated(timePubCreated);
 			receivedMsg.addTimeReceived(currentTime);
 			receivedMsg.addTimeDifference(currentTime - timePubCreated);
 			
-			clientLogger.debug(logHeader + "new publication received");
+			logger.debug(logHeader + "new publication received");
 		}
 	}
 	
 	/**
-	 * Handles a given PSAction
-	 * Meaning create a new diary entry and record all the information needed
-	 * (TimeStartedAction, AckDelay, TimeActiveAck, ...)
-	 * assuming the action executes successfully.
-	 * @param givenActionType - the type of action we're doing
+	 * Create a new diary entry and record all the information associated with it
+	 * e.g. TimeStartedAction, AckDelay, TimeActiveAck, ...
+	 * assuming executeAction runs successfully.
+	 * @see executeAction
+	 * 
+	 * @param selectedAction - the type of action we're doing
 	 * @param givenAction - the given Action
 	 * @return true if the action was recorded; false on error
 	 */
-	private boolean handleAction(ClientAction givenActionType, PSAction givenAction)
+	private boolean launchAction(PSActionType selectedAction, PSAction givenAction)
 	{
-		clientLogger.debug(logHeader + "Preparing to record action");
-		boolean actionSuccessful = false;
+		logger.debug(logHeader + "Preparing to record " + selectedAction + " " + givenAction.getAttributes());
+		
+		if(selectedAction != givenAction.getActionType())
+		{
+			logger.error(logHeader + "givenAction and selectedAction are different");
+			return false;
+		}
+		
 		DiaryEntry thisEntry = new DiaryEntry();
-		thisEntry.addClientAction(givenActionType);
+		thisEntry.addClientAction(selectedAction);
+		boolean actionSuccessful = false;
 		
 		Long startAction = System.nanoTime();
-		actionSuccessful = executeAction(givenActionType, givenAction);
+		actionSuccessful = executeAction(givenAction);
 		Long actionAcked = System.nanoTime();
 		
 		if(actionSuccessful)
@@ -595,22 +552,22 @@ public class PSClientPADRES implements java.io.Serializable
 			thisEntry.addAckDelay(timeDiff);
 			thisEntry.addAttributes(givenAction.getAttributes());
 			
-			if(givenActionType.equals(ClientAction.U) || givenActionType.equals(ClientAction.V))
+			if(selectedAction.equals(PSActionType.U) || selectedAction.equals(PSActionType.V))
 			{
 				DiaryEntry ascAction = null;
 				
-				if(givenActionType.equals(ClientAction.U))
+				if(selectedAction.equals(PSActionType.U))
 				{
-					ascAction = diary.getDiaryEntryGivenCAA(ClientAction.S.toString(), givenAction.getAttributes());
+					ascAction = diary.getDiaryEntryGivenActionTypeNAttri(PSActionType.S.toString(), givenAction.getAttributes());
 				}
 				else
 				{
-					ascAction = diary.getDiaryEntryGivenCAA(ClientAction.A.toString(), givenAction.getAttributes());
+					ascAction = diary.getDiaryEntryGivenActionTypeNAttri(PSActionType.A.toString(), givenAction.getAttributes());
 				}
 				
 				if (ascAction == null)
 				{
-					clientLogger.error(logHeader + "Counldn't find asscociated action to " + givenActionType 
+					logger.error(logHeader + "Counldn't find asscociated action to " + selectedAction 
 							+ " " + givenAction);
 					return false;
 				}
@@ -628,21 +585,23 @@ public class PSClientPADRES implements java.io.Serializable
 			}
 			
 			diary.addDiaryEntryToDiary(thisEntry);
-			clientLogger.debug(logHeader + "Action recorded");
+			logger.info(logHeader + selectedAction + " " + givenAction.getAttributes() + " recorded");
 		}
 		
 		return actionSuccessful;
 	}
 	
 	/**
-	 * Execute a given PSAction
-	 * @param givenActionType - the type of action
+	 * Handles calling the particular PADRES function associated with a given action.
+	 * I.e. if the action is an advertisement, it would call the advertise function
+	 * 
 	 * @param givenAction - the Action itself
 	 * @return false on failure; true otherwise
 	 */
-	private boolean executeAction(ClientAction givenActionType, PSAction givenAction) 
+	private boolean executeAction(PSAction givenAction) 
 	{
 		String generalLog = "Attempting to ";
+		PSActionType givenActionType = givenAction.getActionType();
 		
 		try
 		{
@@ -650,31 +609,31 @@ public class PSClientPADRES implements java.io.Serializable
 			{
 				case A:
 				{
-					clientLogger.debug(logHeader + generalLog + "advertize " + givenAction.getAttributes());
+					logger.debug(logHeader + generalLog + "advertize " + givenAction.getAttributes());
 					actualClient.advertise(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case V:
 				{
-					clientLogger.debug(logHeader + generalLog + "unadvertize " + givenAction.getAttributes());
+					logger.debug(logHeader + generalLog + "unadvertize " + givenAction.getAttributes());
 					actualClient.unAdvertiseAll(); // For now
 					break;
 				}
 				case P:
 				{
-					clientLogger.debug(logHeader + generalLog + "publish " + givenAction.getAttributes());
+					logger.debug(logHeader + generalLog + "publish " + givenAction.getAttributes());
 					actualClient.publish(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case S:
 				{
-					clientLogger.debug(logHeader + generalLog + "subscribe to " + givenAction.getAttributes());
+					logger.debug(logHeader + generalLog + "subscribe to " + givenAction.getAttributes());
 					actualClient.subscribe(givenAction.getAttributes(), brokerURIs.get(0));
 					break;
 				}
 				case U:
 				{
-					clientLogger.debug(logHeader + generalLog + "unsubscribe from " + givenAction.getAttributes());
+					logger.debug(logHeader + generalLog + "unsubscribe from " + givenAction.getAttributes());
 					actualClient.unsubscribeAll(); // For now
 					break;
 				}
@@ -684,16 +643,16 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		catch(ClientException e)
 		{
-			clientLogger.error(logHeader + "Client Error", e);
+			logger.error(logHeader + "Client Error", e);
 			return false;
 		}
 		catch (ParseException e)
 		{
-			clientLogger.error(logHeader + "Error Parsing", e);
+			logger.error(logHeader + "Error Parsing", e);
 			return false;
 		}
 		
-		clientLogger.info(logHeader + "Action successful");
+		logger.debug(logHeader + "Action successful");
 		return true;
 	}
 	
@@ -741,14 +700,14 @@ public class PSClientPADRES implements java.io.Serializable
 	/**
 	 * Add a given action to a given active list
 	 * I.e. a sub to a sub or a ad to an ad
-	 * @param givenAction
+	 * 
+	 * @param requestedAction - the 
 	 * @param activeList
 	 * @param givenWorkload
 	 * @param activeAdsPublicationJ
 	 * @return
 	 */
-	private AddToActiveListsRetVal addToActiveList(ClientAction givenAction, 
-														ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload,
+	private AddToActiveListsRetVal addToActiveList(PSActionType requestedAction, ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload,
 														HashMap<PSAction, Integer> activeAdsPublicationJ)
 	{
 		AddToActiveListsRetVal retVal = new AddToActiveListsRetVal();
@@ -756,35 +715,41 @@ public class PSClientPADRES implements java.io.Serializable
 		int nextI = activeList.size();
 		PSAction nextAction = givenWorkload.get(nextI);
 		
-		boolean check = true; 
-		
-		if(givenAction == ClientAction.S)
+		if(givenWorkload.isEmpty())
 		{
-			check = handleAction(ClientAction.S, nextAction);
-		}
-		else if(givenAction == ClientAction.A)
-		{
-			check = handleAction(ClientAction.A, nextAction);
-		}
-		else
-		{
-			clientLogger.error(logHeader + "Error - told to handle unexpected action " + nextI);
+			logger.error(logHeader + "Workload has no actions");
 			return retVal;
 		}
+		if(requestedAction != givenWorkload.get(0).getActionType())
+		{
+			logger.error(logHeader + "Type mismatch - workload");
+			return retVal;
+		}
+		if(nextI > 0)
+		{
+			if(requestedAction != activeList.get(nextI-1).getActionType())
+			{
+				logger.error(logHeader + "Type mismatch - activeList");
+				return retVal;
+			}
+		}
+
+		boolean check = launchAction(requestedAction, nextAction);
 		
 		if(!check)
 		{
-			clientLogger.error(logHeader + "Error launching " + givenAction.toString() + " " + nextI);
+			logger.error(logHeader + "Error launching " + requestedAction.toString() + " " + nextI);
 			return retVal;
 		}
 		
 		activeList.add(nextAction);
 		
-		if(givenAction == ClientAction.A)
+		if(requestedAction == PSActionType.A)
 		{
 			check = addNewAdToActiveAdsPublicationJ(nextAction, activeAdsPublicationJ);
 			if(!check)
 			{
+				activeList.remove(nextAction);
 				return retVal;
 			}
 		}
@@ -802,22 +767,75 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	private boolean addNewAdToActiveAdsPublicationJ(PSAction newAction, HashMap<PSAction, Integer> activeAdsPublicationJ)
 	{
+		if(newAction.getActionType() != PSActionType.A)
+		{
+			logger.error(logHeader + "newAction is not an Ad");
+			return false;
+		}
+		
 		ArrayList<PSAction> newActionsPublications = clientWorkload.getPublicationWorkloadForAd(newAction);
 		
 		if(newActionsPublications == null)
 		{
-			clientLogger.error(logHeader + "Could not find any Publications for Ad " + newAction.getAttributes());
+			logger.error(logHeader + "Could not find any Publications for Ad " + newAction.getAttributes());
 			return false;
 		}
 		
 		if(activeAdsPublicationJ.containsKey(newAction))
 		{
-			clientLogger.error(logHeader + "Ad " + newAction.getAttributes() + " already exists in activeAdsPublicationJ");
+			logger.error(logHeader + "Ad " + newAction.getAttributes() + " already exists in activeAdsPublicationJ");
 			return false;
 		}
 		
 		activeAdsPublicationJ.put(newAction, 0);
-		clientLogger.debug(logHeader + "added " + newAction.getAttributes() + "'s number of publications to activeAdsPublicationJ");
+		logger.debug(logHeader + "added Ad " + newAction.getAttributes() + " to activeAdsPublicationJ");
+		return true;
+	}
+	
+	private boolean updateActiveList(ArrayList<PSAction> givenActiveList)
+	{
+		int numActiveActions = givenActiveList.size();
+		for(int i = 0 ; i < numActiveActions ; i++)
+		{
+			PSAction activeActionI = givenActiveList.get(i);
+			
+			Long currentTime = System.nanoTime();
+			
+			DiaryEntry activeActionIEntry = diary.getDiaryEntryGivenActionTypeNAttri(activeActionI.getActionType().toString(), 
+																					activeActionI.getAttributes());
+			if(activeActionIEntry == null)
+			{
+				logger.error(logHeader + "Couldn't find " + activeActionI.getActionType() + " " + activeActionI.getAttributes() 
+										+ "'s diary entry!");
+				return false;
+			}
+			
+			Long activeActionIStartTime = activeActionIEntry.getTimeStartedAction();
+			
+			if((currentTime - activeActionIStartTime) >= activeActionI.getTimeActive())
+			{
+				boolean check = true;
+				if(activeActionI.getActionType() == PSActionType.S)
+				{
+					check = launchAction(PSActionType.U, activeActionI);
+				}
+				else if(activeActionI.getActionType() == PSActionType.A)
+				{
+					check = launchAction(PSActionType.V, activeActionI);
+				}
+				else
+				{
+					logger.error(logHeader + "improper active list given");
+					return false;
+				}
+				
+				if(!check)
+				{
+					logger.error(logHeader + "Error ending " + activeActionI.getActionType() + " " + activeActionI.getAttributes());
+					return false;
+				}
+			}
+		}
 		return true;
 	}
 }
