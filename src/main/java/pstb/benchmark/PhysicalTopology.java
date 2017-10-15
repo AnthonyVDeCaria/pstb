@@ -33,12 +33,13 @@ public class PhysicalTopology {
 	private ArrayList<Process> activeBrokers;
 	private ArrayList<Process> activeClients;
 	
-	private int MEMORY = 512;
-	private String CLIENT_INT = "java -Xmx" + MEMORY + "M -Xverify:none "
+	private int CLIENT_MEMORY = 256;
+	private int BROKER_MEMORY = 1024;
+	private String CLIENT_INT = "java -Xmx" + CLIENT_MEMORY + "M -Xverify:none "
 								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
 								+ "pstb.benchmark.PhysicalClient ";
 	private String BROKER_INT = //"screen -dmS broker java -Xmx1024M -Djava.rmi.server.codebase=file:${PADRES_HOME}/build/ "
-									"java -Xmx" + MEMORY + "M "
+									"java -Xmx" + BROKER_MEMORY + "M "
 									+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true "
 //									+ "-Djava.security.policy=${PADRES_HOME}/etc/java.policy " 
 									+ "pstb.benchmark.PhysicalBroker ";
@@ -58,7 +59,7 @@ public class PhysicalTopology {
 	private static final int INIT_TERMINATION_VALUE = 99999999;
 	
 	private static final Long NANO_SEC_NEEDED_TO_START_BROKER = new Long(2000000000L);
-	private static final Long NANO_SEC_NEEDED_TO_START_CLIENT = new Long(8000000000L); 
+	private static final Long NANO_SEC_NEEDED_TO_START_CLIENT = new Long(2000000000L); 
 	
 	/**
 	 * Empty Constructor

@@ -1,12 +1,9 @@
 /**
  * 
  */
-package pstb.util.diary;
+package pstb.util;
 
 import java.util.HashMap;
-
-import pstb.util.PSActionType;
-import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -19,9 +16,9 @@ public class DiaryEntry {
 	 * The allowed headers for this Diary Entry
 	 */
 	private enum DiaryHeader {
-		ClientAction, 
+		PSActionType, 
 		TimeStartedAction, TimeBrokerAck, AckDelay, 
-		Attributes, PayloadSize, 
+		MessageID, Attributes, PayloadSize, 
 		TimeActiveStarted, TimeActiveAck,
 		TimeCreated, TimeReceived, TimeDifference
 	}
@@ -35,12 +32,12 @@ public class DiaryEntry {
 	}
 	
 	/**
-	 * Client Action setter
-	 * @param givenCA - the Client Action to add
+	 * PSActionType setter
+	 * @param givenPSAT - the PSActionType to add
 	 */
-	public void addClientAction(PSActionType givenCA)
+	public void addPSActionType(PSActionType givenPSAT)
 	{
-		page.put(DiaryHeader.ClientAction, givenCA.toString());
+		page.put(DiaryHeader.PSActionType, givenPSAT.toString());
 	}
 	
 	/**
@@ -68,6 +65,11 @@ public class DiaryEntry {
 	public void addAckDelay(Long givenAD)
 	{
 		page.put(DiaryHeader.AckDelay, givenAD.toString());
+	}
+	
+	public void addMessageID(String givenMID)
+	{
+		page.put(DiaryHeader.MessageID, givenMID);
 	}
 	
 	public void addAttributes(String givenA)
@@ -105,10 +107,10 @@ public class DiaryEntry {
 		page.put(DiaryHeader.TimeDifference, givenTD.toString());
 	}
 	
-	public PSActionType getClientAction()
+	public PSActionType getPSActionType()
 	{
-		String storedClientAction = page.get(DiaryHeader.ClientAction);
-		return PSActionType.valueOf(storedClientAction);
+		String storedPSActionType = page.get(DiaryHeader.PSActionType);
+		return PSActionType.valueOf(storedPSActionType);
 	}
 	
 	public Long getTimeStartedAction()
@@ -127,6 +129,11 @@ public class DiaryEntry {
 	{
 		String storedTimeAckDelay = page.get(DiaryHeader.AckDelay);
 		return PSTBUtil.checkIfLong(storedTimeAckDelay, false);
+	}
+	
+	public String getMessageID()
+	{
+		return page.get(DiaryHeader.MessageID);
 	}
 	
 	public String getAttributes()

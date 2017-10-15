@@ -1,4 +1,4 @@
-package pstb.util.diary;
+package pstb.util;
 
 import java.util.ArrayList;
 
@@ -27,18 +27,17 @@ public class ClientDiary implements java.io.Serializable
 	}
 	
 	/**
-	 * Gets a diary entry given it's associated client action and attributes
-	 * @param clientAction - the associated client action 
-	 * @param attributes - the associated attributes
+	 * Gets a diary entry given it's associated Message ID
+	 * @param mID - the associated messageID
 	 * @return Either the given diary entry, or null
 	 */
-	public DiaryEntry getDiaryEntryGivenActionTypeNAttri(String clientAction, String attributes)
+	public DiaryEntry getDiaryEntryGivenMessageID(String mID)
 	{
 		DiaryEntry appropriateDiary = null;
 		for(int i = 0; i < diary.size() ; i++)
 		{
 			DiaryEntry iTHEntry = diary.get(i);
-			if(iTHEntry.containsValue(clientAction) && iTHEntry.containsValue(attributes))
+			if(iTHEntry.containsValue(mID))
 			{
 				appropriateDiary = iTHEntry;
 				break;
@@ -46,6 +45,29 @@ public class ClientDiary implements java.io.Serializable
 		}
 		return appropriateDiary;
 	}
+	
+	/**
+	 * Gets a diary entry given it's associated Action Type and Attributes
+	 * 
+	 * @param action - the associated PSActionType
+	 * @param attri - the associated attributes
+	 * @return Either the given diary entry, or null
+	 */
+	public DiaryEntry getDiaryEntryGivenActionTypeNAttributes(PSActionType action, String attri)
+	{
+		DiaryEntry appropriateDiary = null;
+		for(int i = 0; i < diary.size() ; i++)
+		{
+			DiaryEntry iTHEntry = diary.get(i);
+			if(iTHEntry.containsValue(action.toString()) && iTHEntry.containsValue(attri))
+			{
+				appropriateDiary = iTHEntry;
+				break;
+			}
+		}
+		return appropriateDiary;
+	}
+	
 	
 	/**
 	 * Gets the Diary Entry at index i

@@ -318,16 +318,17 @@ public class PSTB {
 				
 				Long startTime = System.nanoTime();
 				Long currentTime = System.nanoTime();
+				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
 				while( (currentTime - startTime) < iTHRunLength)
 				{
-					PhysicalTopology.ActiveProcessRetVal response = givenPT.checkActiveProcesses();
-					if(response.equals(ActiveProcessRetVal.Error))
+					valueCAP = givenPT.checkActiveProcesses();
+					if(valueCAP.equals(ActiveProcessRetVal.Error) || valueCAP.equals(ActiveProcessRetVal.AllOff))
 					{
 						logger.error("Run had an error");
 						givenPT.killAllProcesses();
 						return false;
 					}
-					else if(response.equals(ActiveProcessRetVal.AllOff))
+					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
 					{
 						currentTime = System.nanoTime();
 						if((currentTime - startTime) < iTHRunLength)
@@ -343,7 +344,13 @@ public class PSTB {
 					
 					currentTime = System.nanoTime();
 				}
+				
 				logger.info("Run successful");
+				valueCAP = givenPT.checkActiveProcesses();
+				while(valueCAP != ActiveProcessRetVal.FloatingBrokers && valueCAP != ActiveProcessRetVal.AllOff)
+				{
+					valueCAP = givenPT.checkActiveProcesses();
+				}
 				givenPT.killAllProcesses();
 			}
 		}
