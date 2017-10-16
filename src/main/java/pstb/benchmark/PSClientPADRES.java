@@ -22,6 +22,8 @@ import pstb.util.PSAction;
 import pstb.util.Workload;
 
 /**
+ * @author padres-dev-4187
+ * 
  * The Client Object
  * 
  * Handles all of the client actions: 
@@ -29,8 +31,6 @@ import pstb.util.Workload;
  * connecting and disconnecting it to a broker,
  * starting it (i.e. handle advertisements, publications and subscriptions)
  * and message processing.
- * 
- * @author padres-dev-4187
  */
 public class PSClientPADRES implements java.io.Serializable 
 {	
@@ -397,50 +397,16 @@ public class PSClientPADRES implements java.io.Serializable
 						
 						if(numActiveAds > 0)
 						{
-							logger.debug(logHeader + "Attempting to send a new publication");
-							Integer i = activeAdIGenerator.nextInt(numActiveAds);
-							PSAction activeAdI = activeAdsList.get(i);
+							SendPublicationRetVal sendPubCheck = sendPublication(numActiveAds, activeAdsList, activeAdIGenerator,
+																					activeAdsPublicationJ);
 							
-							ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
-							
-							if(activeAdIsPublications == null)
+							if(sendPubCheck.hasError())
 							{
-								logger.error(logHeader + "Couldn't find Publications for Ad " + activeAdI.getAttributes());
 								return false;
-							}
-							
-							Integer j = activeAdsPublicationJ.get(activeAdI);
-							
-							PSAction publicationJOfAdI = activeAdIsPublications.get(j);
-							
-							logger.debug(logHeader + "Attempting to send publication " + j);
-							boolean checkPublication = launchAction(PSActionType.P, publicationJOfAdI);
-							if(!checkPublication)
-							{
-								logger.error(logHeader + " Error sending Publication " + j);
-								return false;
-							}
-							
-							logger.info(logHeader + "Sent publication " + publicationJOfAdI.getAttributes());
-							
-							delayValue = publicationJOfAdI.getActionDelay();
-							
-							j++;
-							
-							if(j > activeAdIsPublications.size())
-							{
-								logger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications -> "
-													+ "Unadvertising");
-								boolean checkUnad = launchAction(PSActionType.V, activeAdI);
-								if(!checkUnad)
-								{
-									logger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
-									return false;
-								}
 							}
 							else
 							{
-								activeAdsPublicationJ.put(activeAdI, j);
+								delayValue = sendPubCheck.getDelay();
 							}
 						}
 					}
@@ -861,5 +827,91 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		logger.trace(logHeader + "Update complete");
 		return true;
+	}
+	
+	private class SendPublicationRetVal
+	{
+		private boolean error;
+		private Long delay;
+		
+		public boolean hasError()
+		{
+			return error;
+		}
+		
+		public void setError(boolean errorVal)
+		{
+			this.error = errorVal;
+		}
+		
+		public Long getDelay()
+		{
+			return delay;
+		}
+		
+		public void setDelay(Long delayVal)
+		{
+			this.delay = delayVal;
+		}
+		
+		public SendPublicationRetVal()
+		{
+			error = true;
+			delay = new Long(-1L);
+		}
+	}
+	
+	private SendPublicationRetVal sendPublication(Integer numActiveAds, ArrayList<PSAction> activeAdsList, 
+													Random activeAdIGenerator, HashMap<PSAction, Integer> activeAdsPublicationJ)
+	{
+		SendPublicationRetVal retVal = new SendPublicationRetVal();
+		
+		logger.debug(logHeader + "Attempting to send a new publication");
+		Integer i = activeAdIGenerator.nextInt(numActiveAds);
+		PSAction activeAdI = activeAdsList.get(i);
+		
+		ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
+		
+		if(activeAdIsPublications == null)
+		{
+			logger.error(logHeader + "Couldn't find Publications for Ad " + activeAdI.getAttributes());
+			return retVal;
+		}
+		
+		Integer j = activeAdsPublicationJ.get(activeAdI);
+		
+		PSAction publicationJOfAdI = activeAdIsPublications.get(j);
+		
+		logger.debug(logHeader + "Attempting to send publication " + j);
+		boolean checkPublication = launchAction(PSActionType.P, publicationJOfAdI);
+		if(!checkPublication)
+		{
+			logger.error(logHeader + " Error sending Publication " + j);
+			return retVal;
+		}
+		
+		logger.info(logHeader + "Sent publication " + publicationJOfAdI.getAttributes());
+		
+		j++;
+		
+		if(j > activeAdIsPublications.size())
+		{
+			logger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications -> "
+								+ "Unadvertising");
+			boolean checkUnad = launchAction(PSActionType.V, activeAdI);
+			if(!checkUnad)
+			{
+				logger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
+				return retVal;
+			}
+		}
+		else
+		{
+			activeAdsPublicationJ.put(activeAdI, j);
+		}
+		
+		retVal.setDelay(publicationJOfAdI.getActionDelay());
+		retVal.setError(false);
+		return retVal;
 	}
 }

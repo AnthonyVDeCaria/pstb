@@ -1,6 +1,3 @@
-/**
- * 
- */
 package pstb.benchmark;
 
 import java.io.FileInputStream;
@@ -17,11 +14,36 @@ import pstb.util.PSTBError;
 /**
  * @author padres-dev-4187
  *
+ * The Client Process
+ *
+ * Algorithm
+ * Search the args for the name flag
+ * If it's not there
+ * 	Exit with error
+ * Else
+ * 	Try to find associated client object file
+ * 	Can't
+ * 		Exit with error
+ * 	Can
+ * 		Attempt to initialize client
+ * 		Attempt to connect client
+ * 		Attempt to start client
+ * 		Disconnect client
+ * 		Attempt to shutdown client
+ *
+ * 		Any of these attempts fail
+ * 			Exit with error
+ * 		Otherwise
+ * 			Exit with success
  */
 public class PhysicalClient {
 	private static final String logHeader = "PhyClient: ";
 	private static final Logger phyClientLogger = LogManager.getLogger(PhysicalClient.class);
 	
+	/**
+	 * The Main function
+	 * @param args - the process arguments
+	 */
 	public static void main(String[] args)
 	{
 		String givenClientName = null;
@@ -108,5 +130,4 @@ public class PhysicalClient {
 		phyClientLogger.info("Successful run with client " + givenClientName);
 		System.exit(0);
 	}
-
 }
