@@ -22,30 +22,42 @@ public class PhysicalBroker {
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException
 	{
 		String givenBrokerName = null;
+		String givenRunNumber = null;
 		
 		boolean nameWasGiven = false;
+		boolean runWasGiven = false;
 		for (int i = 0; i < args.length; i++) 
 		{
 			if (args[i].equals("-n")) 
 			{
 				givenBrokerName = args[i + 1];
 				nameWasGiven = true;
-				break;
+			}
+			if (args[i].equals("-r")) 
+			{
+				givenRunNumber = args[i + 1];
+				runWasGiven = true;
 			}
 		}
 		
 		if(!nameWasGiven)
 		{
 			phyBrokerLogger.error(logHeader + "no name was given");
-			System.exit(PSTBError.ERROR_NO_NAME_B);
+			System.exit(PSTBError.ERROR_ARGS_B);
+		}
+		if(!runWasGiven)
+		{
+			phyBrokerLogger.error(logHeader + "no Run Number was given");
+			System.exit(PSTBError.ERROR_ARGS_B);
 		}
 		
-		ThreadContext.put("broker", givenBrokerName);
+		String context = givenBrokerName + "-" + givenRunNumber;
+		ThreadContext.put("broker", context);
 		
 		PSBrokerPADRES givenBroker = null;
 		try 
 		{
-			FileInputStream fileIn = new FileInputStream("/tmp/" + givenBrokerName + ".ser");
+			FileInputStream fileIn = new FileInputStream("/tmp/" + givenBrokerName + ".bro");
 			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
 			givenBroker = (PSBrokerPADRES) oISIn.readObject();
 			oISIn.close();

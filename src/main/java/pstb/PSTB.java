@@ -29,6 +29,8 @@ import pstb.util.Workload;
 public class PSTB {
 	private static final Long MIN_TO_NANOSEC = new Long(60000000000L);
 	
+	private static final Long NANO_SEC_NEEDED_TO_CLEAN_BROKER = new Long(2000000000L);
+	
 	private static final Logger logger = LogManager.getRootLogger();
 	
 	/**
@@ -302,6 +304,8 @@ public class PSTB {
 			
 			for(int iNRPE = 0 ; iNRPE < givenNRPE ; iNRPE++)
 			{
+				givenPT.setRunNumber(givenNRPE);
+								
 				functionCheck = givenPT.generateBrokerAndClientProcesses();
 				if(!functionCheck)
 				{
@@ -352,6 +356,15 @@ public class PSTB {
 					valueCAP = givenPT.checkActiveProcesses();
 				}
 				givenPT.killAllProcesses();
+				
+				Long coolStartTime = System.nanoTime();
+				Long coolCurrentTime = System.nanoTime();
+				Long waitTime = NANO_SEC_NEEDED_TO_CLEAN_BROKER * 4;
+				
+				while( (coolCurrentTime - coolStartTime) < waitTime )
+				{
+					coolCurrentTime = System.nanoTime();
+				}
 			}
 		}
 		

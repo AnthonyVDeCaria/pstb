@@ -47,31 +47,42 @@ public class PhysicalClient {
 	public static void main(String[] args)
 	{
 		String givenClientName = null;
+		String givenRunNumber = null;
 		
 		boolean nameWasGiven = false;
+		boolean runWasGiven = false;
 		for (int i = 0; i < args.length; i++) 
 		{
 			if (args[i].equals("-n")) 
 			{
 				givenClientName = args[i + 1];
 				nameWasGiven = true;
-				break;
+			}
+			if (args[i].equals("-r")) 
+			{
+				givenRunNumber = args[i + 1];
+				runWasGiven = true;
 			}
 		}
 		
 		if(!nameWasGiven)
 		{
 			phyClientLogger.error(logHeader + "no name was given");
-			System.exit(PSTBError.ERROR_NO_NAME_C);
+			System.exit(PSTBError.ERROR_ARGS_C);
+		}
+		if(!runWasGiven)
+		{
+			phyClientLogger.error(logHeader + "no Run Number was given");
+			System.exit(PSTBError.ERROR_ARGS_C);
 		}
 		
-		ThreadContext.put("client", givenClientName);
+		String context = givenClientName + "-" + givenRunNumber;
+		ThreadContext.put("client", context);
 		
 		PSClientPADRES givenClient = null;
- 
 		try 
 		{
-			FileInputStream fileIn = new FileInputStream("/tmp/" + givenClientName + ".ser");
+			FileInputStream fileIn = new FileInputStream("/tmp/" + givenClientName + ".cli");
 			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
 			givenClient = (PSClientPADRES) oISIn.readObject();
 			oISIn.close();
@@ -124,8 +135,6 @@ public class PhysicalClient {
 			phyClientLogger.error(logHeader + "error shutting down client " + givenClientName);
 			System.exit(PSTBError.ERROR_SHUT_C);
 		}
-		
-		givenClient.getDiary().printDiary();
 		
 		phyClientLogger.info("Successful run with client " + givenClientName);
 		System.exit(0);

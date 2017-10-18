@@ -41,6 +41,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	private Workload clientWorkload;
 	private Long runLength;
+	private Integer runNumber;
 	
 	private ClientDiary diary;
 	
@@ -68,6 +69,7 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		clientWorkload = new Workload();
 		runLength = new Long(0);
+		runNumber = new Integer(-1);
 		
 		diary = new ClientDiary();
 	}
@@ -106,6 +108,16 @@ public class PSClientPADRES implements java.io.Serializable
 	public void addWorkload(Workload givenW)
 	{
 		clientWorkload = givenW;
+	}
+	
+	/**
+	 * Sets the run number
+	 * 
+	 * @param givenRN - the given run number
+	 */
+	public void addRunNumber(Integer givenRN)
+	{
+		runNumber = givenRN;
 	}
 	
 	/**
@@ -160,6 +172,15 @@ public class PSClientPADRES implements java.io.Serializable
 	public Workload getWorkload()
 	{
 		return this.clientWorkload;
+	}
+	
+	/**
+	 * Gets this Client's run number
+	 * @return the stored run number
+	 */
+	public Integer getRunNumber()
+	{
+		return this.runNumber;
 	}
 	
 	/**
@@ -451,7 +472,8 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public void storePublication(Message msg) 
 	{
-		ThreadContext.put("client", clientName);
+		String context = clientName + "-" + runNumber.toString();
+		ThreadContext.put("client", context);
 		
 		if(msg instanceof PublicationMessage)
 		{

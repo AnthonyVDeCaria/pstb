@@ -132,7 +132,7 @@ public class WorkloadFileParser {
 				String[] splitLine = line.split("	");
 				if(checkProperLength(splitLine))
 				{
-					Long actionDelay = PSTBUtil.checkIfLong(splitLine[LOC_ACTION_DELAY], false);
+					Long actionDelay = PSTBUtil.checkIfLong(splitLine[LOC_ACTION_DELAY], false, null);
 					
 					if(actionDelay != null)
 					{
@@ -266,7 +266,7 @@ public class WorkloadFileParser {
 			return null;
 		}
 		
-		return PSTBUtil.checkIfLong(sPOrTA, false);
+		return PSTBUtil.checkIfLong(sPOrTA, false, null);
 	}
 	
 	/**

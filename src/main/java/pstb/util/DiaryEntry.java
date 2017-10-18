@@ -116,19 +116,19 @@ public class DiaryEntry {
 	public Long getTimeStartedAction()
 	{
 		String storedTimeStartedAction = page.get(DiaryHeader.TimeStartedAction);
-		return PSTBUtil.checkIfLong(storedTimeStartedAction, false);
+		return PSTBUtil.checkIfLong(storedTimeStartedAction, false, null);
 	}
 	
 	public Long getTimeBrokerAck()
 	{
 		String storedTimeBrokerAck = page.get(DiaryHeader.TimeBrokerAck);
-		return PSTBUtil.checkIfLong(storedTimeBrokerAck, false);
+		return PSTBUtil.checkIfLong(storedTimeBrokerAck, false, null);
 	}
 	
 	public Long getAckDelay()
 	{
 		String storedTimeAckDelay = page.get(DiaryHeader.AckDelay);
-		return PSTBUtil.checkIfLong(storedTimeAckDelay, false);
+		return PSTBUtil.checkIfLong(storedTimeAckDelay, false, null);
 	}
 	
 	public String getMessageID()
@@ -144,37 +144,37 @@ public class DiaryEntry {
 	public Integer getPayloadSize()
 	{
 		String storedPayloadSize = page.get(DiaryHeader.PayloadSize);
-		return PSTBUtil.checkIfInteger(storedPayloadSize, false);
+		return PSTBUtil.checkIfInteger(storedPayloadSize, false, null);
 	}
 	
 	public Long getTimeActiveStarted()
 	{
 		String storedTimeActiveStarted = page.get(DiaryHeader.TimeActiveStarted);
-		return PSTBUtil.checkIfLong(storedTimeActiveStarted, false);
+		return PSTBUtil.checkIfLong(storedTimeActiveStarted, false, null);
 	}
 	
 	public Long getTimeActiveAck()
 	{
 		String storedTimeActiveAck = page.get(DiaryHeader.TimeActiveAck);
-		return PSTBUtil.checkIfLong(storedTimeActiveAck, false);
+		return PSTBUtil.checkIfLong(storedTimeActiveAck, false, null);
 	}
 	
 	public Long getTimeCreated()
 	{
 		String storedTimeCreated = page.get(DiaryHeader.TimeCreated);
-		return PSTBUtil.checkIfLong(storedTimeCreated, false);
+		return PSTBUtil.checkIfLong(storedTimeCreated, false, null);
 	}
 	
 	public Long getTimeReceived()
 	{
 		String storedTimeReceived = page.get(DiaryHeader.TimeReceived);
-		return PSTBUtil.checkIfLong(storedTimeReceived, false);
+		return PSTBUtil.checkIfLong(storedTimeReceived, false, null);
 	}
 	
 	public Long getTimeDifference()
 	{
 		String storedTimeDifference = page.get(DiaryHeader.TimeDifference);
-		return PSTBUtil.checkIfLong(storedTimeDifference, false);
+		return PSTBUtil.checkIfLong(storedTimeDifference, false, null);
 	}
 	
 	public Long getDelay(DiaryHeader delayType) 

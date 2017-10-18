@@ -5,15 +5,20 @@
  */
 package pstb.util;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.benchmark.PhysicalBroker;
+import pstb.benchmark.PhysicalClient;
+
 public class PSTBUtil {
-	private static final Logger logger = LogManager.getRootLogger();
-	
 	public static final Long INFINITY = 999999999999999999L;
 	
 	public static final String SPACE = " ";
@@ -25,7 +30,7 @@ public class PSTBUtil {
 	 * @param logError - a boolean that determines if the error should be logged or not
 	 * @return null if the string is an Integer; the value otherwise
 	 */
-	public static Integer checkIfInteger(String s, boolean logError) 
+	public static Integer checkIfInteger(String s, boolean logError, Logger logger) 
 	{
 		Integer num = null;
 		try
@@ -50,7 +55,7 @@ public class PSTBUtil {
 	 * @param logError - a boolean that determines if the error should be logged or not
 	 * @return null if the string is a Long; the value otherwise
 	 */
-	public static Long checkIfLong(String s, boolean logError) 
+	public static Long checkIfLong(String s, boolean logError, Logger logger) 
 	{
 		Long num = null;
 		try
@@ -89,6 +94,59 @@ public class PSTBUtil {
 	public static boolean isWithinInclusiveBound(int lowerBound, int upperBound, int testVariable)
 	{
 		return (testVariable >= lowerBound) && (testVariable <= lowerBound);
+	}
+	
+	/**
+	 * Serializes the given Object and stores it in a file
+	 * Allowing the processes after to access these objects and their functions
+	 * @see PhysicalBroker
+	 * @see PhysicalClient
+	 * 
+	 * @param givenObject - the Object to be stored in a file
+	 * @param givenObjectName - the name of said Object
+	 * @return false on error; true if successful
+	 */
+	public static boolean createObjectFile(Object givenObject, String givenObjectName, String fileExtension, Logger logger, String logHeader)
+	{
+		boolean check = checkFileExtension(fileExtension, logger, logHeader);
+		
+		if(!check)
+		{
+			return false;
+		}
+		
+		try 
+		{
+			FileOutputStream fileOut = new FileOutputStream("/tmp/" + givenObjectName + fileExtension);
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(givenObject);
+			out.close();
+			fileOut.close();
+		} 
+		catch (FileNotFoundException e) 
+		{
+			logger.error(logHeader + "couldn't generate serialized client file ", e);
+			return false;
+		} 
+		catch (IOException e) 
+		{
+			logger.error(logHeader + "error with ObjectOutputStream ", e);
+			return false;
+		}
+		
+		return true;
+	}
+	
+	public static boolean checkFileExtension(String fileExtension, Logger logger, String logHeader)
+	{
+		// Check File Ending
+		Pattern fileEndingTest = Pattern.compile(".\\w+");
+		if(!fileEndingTest.matcher(fileExtension).matches())
+		{
+			logger.error(logHeader + "Improper fileExtension");
+			return false;
+		}
+		return true;
 	}
 
 }

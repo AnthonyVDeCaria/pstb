@@ -3,13 +3,11 @@ package pstb.benchmark;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
 import pstb.util.NodeRole;
+import pstb.util.PSTBUtil;
 import pstb.util.PubSubGroup;
 import pstb.util.Workload;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,17 +36,17 @@ public class PhysicalTopology {
 	private String CLIENT_INT = "java -Xmx" + CLIENT_MEMORY + "M -Xverify:none "
 								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
 								+ "pstb.benchmark.PhysicalClient ";
-	private String BROKER_INT = //"screen -dmS broker java -Xmx1024M -Djava.rmi.server.codebase=file:${PADRES_HOME}/build/ "
-									"java -Xmx" + BROKER_MEMORY + "M "
-									+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true "
-//									+ "-Djava.security.policy=${PADRES_HOME}/etc/java.policy " 
-									+ "pstb.benchmark.PhysicalBroker ";
+	private String BROKER_INT = "java -Xmx" + BROKER_MEMORY + "M "
+								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true "
+								+ "pstb.benchmark.PhysicalBroker ";
 	
 	private NetworkProtocol protocol;
 	
 	private PubSubGroup brokerList; 
 	private PubSubGroup publisherList;
 	private PubSubGroup subscriberList;
+	
+	private Integer runNumber;
 	
 	private static final Integer PORTSTART = 1100;
 	private Integer portNum = PORTSTART;
@@ -76,6 +74,8 @@ public class PhysicalTopology {
 		brokerList = new PubSubGroup();
 		publisherList = new PubSubGroup();
 		subscriberList = new PubSubGroup();
+		
+		runNumber = new Integer(-1);
 	}
 	
 	/**
@@ -96,6 +96,26 @@ public class PhysicalTopology {
 	public boolean doProcessBuildersExist()
 	{
 		return phyBrokers.isEmpty() && phyClients.isEmpty();
+	}
+	
+	/**
+	 * Sets the Run Number
+	 * 
+	 * @param runNum - the given Run Number
+	 */
+	public void setRunNumber(Integer runNum)
+	{
+		runNumber = runNum;
+	}
+	
+	/**
+	 * Gets the Run Number
+	 * 
+	 * @return the Run Number
+	 */
+	public Integer getRunNumber()
+	{
+		return this.runNumber;
 	}
 	
 	/**
@@ -365,6 +385,22 @@ public class PhysicalTopology {
 		return true;
 	}
 	
+	private boolean addRunNumberToAllClients()
+	{
+		if(devClients.isEmpty())
+		{
+			logger.error(logHeader + "addRunNumberToAllClients() needs clients to be created first.\n" +
+							"Please run developPhysicalTopology().");
+			return false;
+		}
+		
+		devClients.forEach((clientName, actualClient)->{
+			actualClient.addRunNumber(runNumber);
+		});
+		
+		return true;
+	}
+	
 	/**
 	 * Generates processes using the Broker and Client objects 
 	 * created in developPhysicalTopology()
@@ -375,17 +411,25 @@ public class PhysicalTopology {
 	{
 		if(devBrokers.isEmpty())
 		{
-			logger.error(logHeader + "generateBrokerAndClientProcesses() needs brokers to be created first.\n" +
+			logger.error(logHeader + "generateBrokerAndClientProcesses() needs brokers to be created first. " +
 							"Please run developPhysicalTopology() first.");
 			return false;
 		}
 		
 		if(devClients.isEmpty())
 		{
-			logger.error(logHeader + "generateBrokerAndClientProcesses() needs clients to be created first.\n" +
+			logger.error(logHeader + "generateBrokerAndClientProcesses() needs clients to be created first. " +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
+		
+		if(runNumber.compareTo(-1) <= 0)
+		{
+			logger.error(logHeader + "generateBrokerAndClientProcesses() needs a runNumber. Please run setRunNumber().");
+			return false;
+		}
+		
+		addRunNumberToAllClients(); // I'm cheating, but this should always return true as we're already checking above for clients.
 		
 		Set<String> setGB = devBrokers.keySet();
 		Iterator<String> iteratorGB = setGB.iterator();
@@ -394,9 +438,9 @@ public class PhysicalTopology {
 			String brokerIName = iteratorGB.next();
 			PSBrokerPADRES brokerI = devBrokers.get(brokerIName);
 			
-			String brokerCommand = BROKER_INT + " -n " + brokerIName;
+			String brokerCommand = BROKER_INT + " -n " + brokerIName + " -r " + runNumber.toString();
 			
-			boolean objectFileCheck = createObjectFile(brokerI, brokerIName);
+			boolean objectFileCheck = PSTBUtil.createObjectFile(brokerI, brokerIName, ".bro", logger, logHeader);
 			
 			if(!objectFileCheck)
 			{
@@ -414,9 +458,9 @@ public class PhysicalTopology {
 			String clientIName = iteratorGC.next();
 			PSClientPADRES clientI = devClients.get(clientIName);
 			
-			String clientCommand = CLIENT_INT + " -n " + clientIName;
+			String clientCommand = CLIENT_INT + " -n " + clientIName + " -r " + runNumber.toString();
 			
-			boolean objectFileCheck = createObjectFile(clientI, clientIName);
+			boolean objectFileCheck = PSTBUtil.createObjectFile(clientI, clientIName, ".cli", logger, logHeader);
 			
 			if(!objectFileCheck)
 			{
@@ -428,40 +472,6 @@ public class PhysicalTopology {
 		}
 		
 		logger.info(logHeader + "Successfully generated broker and client processes.");
-		return true;
-	}
-	
-	/**
-	 * Serializes the given Object and stores it in a file
-	 * Allowing the processes after to access these objects and their functions
-	 * @see PhysicalBroker
-	 * @see PhysicalClient
-	 * 
-	 * @param givenObject - the Object to be stored in a file
-	 * @param givenObjectName - the name of said Object
-	 * @return false on error; true if successful
-	 */
-	private boolean createObjectFile(Object givenObject, String givenObjectName)
-	{
-		try 
-		{
-			FileOutputStream fileOut = new FileOutputStream("/tmp/" + givenObjectName + ".ser");
-			ObjectOutputStream out = new ObjectOutputStream(fileOut);
-			out.writeObject(givenObject);
-			out.close();
-			fileOut.close();
-		} 
-		catch (FileNotFoundException e) 
-		{
-			logger.error(logHeader + "couldn't generate serialized client file ", e);
-			return false;
-		} 
-		catch (IOException e) 
-		{
-			logger.error(logHeader + "error with ObjectOutputStream ", e);
-			return false;
-		}
-		
 		return true;
 	}
 	
