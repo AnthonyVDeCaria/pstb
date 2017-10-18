@@ -1,8 +1,8 @@
-/**
- * 
- */
 package pstb.util;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 /**
@@ -15,7 +15,7 @@ public class DiaryEntry {
 	/**
 	 * The allowed headers for this Diary Entry
 	 */
-	private enum DiaryHeader {
+	public enum DiaryHeader {
 		PSActionType, 
 		TimeStartedAction, TimeBrokerAck, AckDelay, 
 		MessageID, Attributes, PayloadSize, 
@@ -177,6 +177,27 @@ public class DiaryEntry {
 		return PSTBUtil.checkIfLong(storedTimeDifference, false);
 	}
 	
+	public Long getDelay(DiaryHeader delayType) 
+	{
+		if(delayType == DiaryHeader.AckDelay)
+		{
+			return getAckDelay();
+		}
+		else if(delayType == DiaryHeader.TimeDifference)
+		{
+			return getTimeDifference();
+		}
+		else
+		{
+			return null;
+		}
+	}
+	
+	public boolean containsKey(Object value) 
+	{
+		return page.containsKey(value);
+	}
+	
 	/**
 	 * Combs the Entry looking for a value
 	 * (Basically an extension of the HashMap<> containsValue()
@@ -188,11 +209,27 @@ public class DiaryEntry {
 		return page.containsValue(value);
 	}
 	
-	public void printPage()
+	public boolean printPage(Path givenFilePath)
 	{
-		page.forEach((header, notes)->{
-			System.out.println(header.toString() + ": " + notes);
-		});
+		try
+		{
+			page.forEach((header, data)->{
+				String line = header.toString() + ": " + data;
+				try
+				{
+					Files.write(givenFilePath, line.getBytes());
+				}
+				catch(IOException e)
+				{
+					throw new IllegalArgumentException("IO failed");
+				}
+			});
+		}
+		catch(IllegalArgumentException e)
+		{
+			return false;
+		}
+		
+		return true;
 	}
-
 }

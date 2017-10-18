@@ -1,5 +1,8 @@
 package pstb.util;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class ClientDiary implements java.io.Serializable
@@ -91,12 +94,27 @@ public class ClientDiary implements java.io.Serializable
 	/**
 	 * 
 	 */
-	public void printDiary()
+	public boolean printDiary(Path givenFilePath)
 	{
 		for(int i = 0; i < diary.size() ; i++)
 		{
-			System.out.println("Page " + i + ":\n");
-			diary.get(i).printPage();
+			String line = "Page " + i + ":\n";
+			
+			try
+			{
+				Files.write(givenFilePath, line.getBytes());
+				boolean check = diary.get(i).printPage(givenFilePath);
+				if(!check)
+				{
+					return false;
+				}
+			}
+			catch(IOException e)
+			{
+				return false;
+			}
 		}
+		
+		return true;
 	}
 }
