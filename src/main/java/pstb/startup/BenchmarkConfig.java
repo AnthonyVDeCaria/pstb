@@ -8,6 +8,7 @@ package pstb.startup;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -26,7 +27,7 @@ public class BenchmarkConfig {
 	
 	private ArrayList<NetworkProtocol> protocols;
 	private ArrayList<String> topologyFilesPaths;
-	private ArrayList<DistributedState> distributed;
+	private HashMap<String, DistributedState> distributed;
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	
@@ -44,7 +45,7 @@ public class BenchmarkConfig {
 		runLengths = new ArrayList<Long>();
 		protocols = new ArrayList<NetworkProtocol>();
 		topologyFilesPaths = new ArrayList<String>();
-		distributed = new ArrayList<DistributedState>();
+		distributed = new HashMap<String, DistributedState>();
 	}
 	
 	/**
@@ -174,7 +175,7 @@ public class BenchmarkConfig {
 		 * distributed
 		 */
 		String unsplitDis = givenProperty.getProperty("pstb.distributed");
-		ArrayList<DistributedState> propDis = new ArrayList<DistributedState>();
+		HashMap<String, DistributedState> propDis = new HashMap<String, DistributedState>();
 		if(unsplitDis != null)
 		{
 			String[] splitDis = unsplitDis.split(PSTBUtil.COMMA);
@@ -186,7 +187,7 @@ public class BenchmarkConfig {
 					try
 					{
 						DistributedState sDI = DistributedState.valueOf(splitDis[i]);
-						propDis.add(sDI);
+						propDis.put(topologyFilesPaths.get(i), sDI);
 					}
 					catch(IllegalArgumentException e)
 					{
@@ -224,7 +225,7 @@ public class BenchmarkConfig {
 		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
 		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
 		logger.info("Properties: topologyFilesPaths = " + Arrays.toString(topologyFilesPaths.toArray()));
-		logger.info("Properties: distributed = " + Arrays.toString(distributed.toArray()));
+		logger.info("Properties: distributed = " + distributed.toString());
 	}
 	
 	/**
@@ -315,7 +316,7 @@ public class BenchmarkConfig {
 	 * Gets the distributed
 	 * @return distributed - the list of wither each topology is distributed or not
 	 */
-	public ArrayList<DistributedState> getDistributed()
+	public HashMap<String, DistributedState> getDistributed()
 	{
 		return this.distributed;
 	}
@@ -401,7 +402,7 @@ public class BenchmarkConfig {
 	 * Sets the distributed array
 	 * @param dis - the new distributed
 	 */
-	private void setDistributed(ArrayList<DistributedState> dis)
+	private void setDistributed(HashMap<String, DistributedState> dis)
 	{
 		distributed = dis;
 	}

@@ -7,6 +7,8 @@ package pstb;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -117,7 +119,7 @@ public class PSTB {
 		}
 		
 		logger.info("No errors loading the Properties file!");
-		
+				
 		WorkloadFileParser parseWLF = new WorkloadFileParser();
 		parseWLF.setPubWorkloadFilesPaths(benchmarkRules.getPubWorkloadFilesPaths());
 		parseWLF.setSubWorkloadFilePath(benchmarkRules.getSubWorkloadFilePath());
@@ -146,7 +148,7 @@ public class PSTB {
 		
 		boolean allToposOk = true;
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
-		ArrayList<LogicalTopology> allLTs = new ArrayList<LogicalTopology>();
+		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
 		
 		logger.info("Starting to disect Topology Files...");
 		
@@ -209,7 +211,7 @@ public class PSTB {
 				}
 				else
 				{
-					allLTs.add(network);
+					allLTs.put(topoI, network);
 					logger.debug("Topology Check Complete for topology " + topoI + "!");
 				}
 			}
@@ -225,11 +227,12 @@ public class PSTB {
 		logger.info("All topologies valid!!");
 		
 		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
-		ArrayList<DistributedState> askedDistributed = benchmarkRules.getDistributed();
+		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
+		Iterator<String> iteratorLT = allLTs.keySet().iterator();
 		
 		logger.info("Beginning to create Physical Topology");
 		
-		for(int topologyI = 0 ; topologyI < allLTs.size(); topologyI++)
+		for( ; iteratorLT.hasNext() ; )
 		{
 			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
@@ -237,6 +240,8 @@ public class PSTB {
 				PhysicalTopology disPT = new PhysicalTopology();
 				boolean checkLocalPT = true;
 				boolean checkDisPT = true;
+				
+				String topologyI = iteratorLT.next();
 				
 				if(askedDistributed.get(topologyI).equals(DistributedState.No) 
 						|| askedDistributed.get(topologyI).equals(DistributedState.Both) )

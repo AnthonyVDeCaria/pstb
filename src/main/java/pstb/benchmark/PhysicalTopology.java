@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -174,8 +173,7 @@ public class PhysicalTopology {
 	{
 		logger.debug(logHeader + "Attempting to develop broker objects");
 		
-		Set<String> setBL = brokerList.keySet();
-		Iterator<String> iteratorBL = setBL.iterator();
+		Iterator<String> iteratorBL = brokerList.keySet().iterator();
 		
 		for( ; iteratorBL.hasNext() ; )
 		{
@@ -188,11 +186,10 @@ public class PhysicalTopology {
 			brokerObjects.put(brokerI, actBrokerI);
 		}
 		
-		Set<String> setGB = brokerObjects.keySet();
-		Iterator<String> iteratorGB = setGB.iterator();
-		for( ; iteratorGB.hasNext(); )
+		Iterator<String> iteratorBO = brokerObjects.keySet().iterator();
+		for( ; iteratorBO.hasNext(); )
 		{
-			String brokerIName = iteratorGB.next();
+			String brokerIName = iteratorBO.next();
 			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			
 			ArrayList<String> neededURIs = new ArrayList<String>();
@@ -264,11 +261,8 @@ public class PhysicalTopology {
 	 */
 	private boolean developClients()
 	{
-		Set<String> pubSet = publisherList.keySet();
-		Iterator<String> pubIterator = pubSet.iterator();
-		
-		Set<String> subSet = subscriberList.keySet();
-		Iterator<String> subIterator = subSet.iterator();
+		Iterator<String> pubIterator = publisherList.keySet().iterator();
+		Iterator<String> subIterator = subscriberList.keySet().iterator();
 		
 		for( ; pubIterator.hasNext() ; )
 		{
@@ -441,11 +435,10 @@ public class PhysicalTopology {
 		
 		addRunNumberToAllClients(); // I'm cheating, but this should always return true as we're already checking above for clients.
 		
-		Set<String> setGB = brokerObjects.keySet();
-		Iterator<String> iteratorGB = setGB.iterator();
-		for( ; iteratorGB.hasNext() ; )
+		Iterator<String> iteratorBO = brokerObjects.keySet().iterator();
+		for( ; iteratorBO.hasNext() ; )
 		{
-			String brokerIName = iteratorGB.next();
+			String brokerIName = iteratorBO.next();
 			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			
 			String brokerCommand = BROKER_INT + " -n " + brokerIName + " -r " + runNumber.toString();
@@ -461,11 +454,10 @@ public class PhysicalTopology {
 			brokerPBs.add(actualBrokerI);
 		}
 		
-		Set<String> setGC = clientObjects.keySet();
-		Iterator<String> iteratorGC = setGC.iterator();
-		for( ; iteratorGC.hasNext() ; )
+		Iterator<String> iteratorCO = clientObjects.keySet().iterator();
+		for( ; iteratorCO.hasNext() ; )
 		{
-			String clientIName = iteratorGC.next();
+			String clientIName = iteratorCO.next();
 			PSClientPADRES clientI = clientObjects.get(clientIName);
 			
 			String clientCommand = CLIENT_INT + " -n " + clientIName + " -r " + runNumber.toString();
