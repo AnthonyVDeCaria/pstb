@@ -57,13 +57,13 @@ public class PSTB {
 	/**
 	 * Ends the main program
 	 * @param errorClassification - the type of error that occurred - including no error
-	 * @param simpleUserInput - the UI scanner used for the yes or no answers
+	 * @param scannerSystemIn - the UI scanner used for the yes or no answers
 	 * @see TODO: error handling on exit
 	 */
-	private static void endProgram(Integer errorClassification, Scanner simpleUserInput)
+	private static void endProgram(Integer errorClassification, Scanner scannerSystemIn)
 	{
 		logger.info("Ending program.");
-		simpleUserInput.close();
+		scannerSystemIn.close();
 		System.exit(errorClassification);
 	}
 	
@@ -74,7 +74,7 @@ public class PSTB {
 	public static void main(String[] args)
 	{
 		logger.info("Starting program.");
-		Scanner simpleUserInput = new Scanner(System.in);
+		Scanner userInput = new Scanner(System.in);
 		Properties defaultProp = null;
 		
 		logger.info("Starting Properties Parsing...");
@@ -85,13 +85,13 @@ public class PSTB {
 		catch (IOException e)
 		{
 			logger.error("Properties: Couldn't find default properties file", e);
-			endProgram(PSTBError.ERROR_BENCHMARK, simpleUserInput);
+			endProgram(PSTBError.ERROR_BENCHMARK, userInput);
 		}
 				
 		BenchmarkConfig benchmarkRules = new BenchmarkConfig();
 		
 		String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
-		boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, simpleUserInput);
+		boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, userInput);
 		if (!customBenchPropAns)
 		{
 			logger.debug("Loading the default Properties file...");
@@ -108,14 +108,14 @@ public class PSTB {
 			catch (IOException e)
 			{
 				logger.error("Properties: Couldn't find user properties file", e);
-				endProgram(PSTBError.ERROR_BENCHMARK, simpleUserInput);
+				endProgram(PSTBError.ERROR_BENCHMARK, userInput);
 			}
 		}
 		
 		if(benchmarkRules.checkForNullFields())
 		{
 			logger.error("Errors loading the properties file!");
-			endProgram(PSTBError.ERROR_BENCHMARK, simpleUserInput);
+			endProgram(PSTBError.ERROR_BENCHMARK, userInput);
 		}
 		
 		logger.info("No errors loading the Properties file!");
@@ -134,12 +134,12 @@ public class PSTB {
 		if(!pubCheck)
 		{
 			logger.error("Publisher Workload File failed parsing!");
-			endProgram(PSTBError.ERROR_WORKLOAD, simpleUserInput);
+			endProgram(PSTBError.ERROR_WORKLOAD, userInput);
 		}
 		if(!subCheck)
 		{
 			logger.error("Subscriber Workload File failed parsing!");
-			endProgram(PSTBError.ERROR_WORKLOAD, simpleUserInput);
+			endProgram(PSTBError.ERROR_WORKLOAD, userInput);
 		}
 		
 		logger.info("All workload files valid!!");
@@ -182,10 +182,10 @@ public class PSTB {
 							+ "Would you like us to fix this internally before testing topology Y/n?\n"
 							+ "Answering 'n' will terminate the program.";
 					
-					boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, simpleUserInput);
+					boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, userInput);
 					if (!fixBrokerAns)
 					{
-						endProgram(PSTBError.ERROR_TOPO_LOG, simpleUserInput);
+						endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
 					}
 					else
 					{
@@ -197,7 +197,7 @@ public class PSTB {
 						{
 							logger.error("Topology: Problem forcing mutual connectivity for topology " 
 									+ topoI, e);
-							endProgram(PSTBError.ERROR_TOPO_LOG, simpleUserInput);
+							endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
 						}
 					}
 				}
@@ -221,7 +221,7 @@ public class PSTB {
 		{
 			logger.error("Error with topology files!");
 			allLTs.clear();
-			endProgram(PSTBError.ERROR_TOPO_LOG, simpleUserInput);
+			endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
 		}
 		
 		logger.info("All topologies valid!!");
@@ -255,7 +255,7 @@ public class PSTB {
 				if(!checkDisPT || !checkLocalPT)
 				{
 					logger.error("Error creating physical topology");
-					endProgram(PSTBError.ERROR_TOPO_PHY, simpleUserInput);
+					endProgram(PSTBError.ERROR_TOPO_PHY, userInput);
 				}
 				
 				logger.info("Beginning experiment");
@@ -274,12 +274,12 @@ public class PSTB {
 				
 				if(!successfulExperiment)
 				{
-					endProgram(PSTBError.ERROR_RUN, simpleUserInput);
+					endProgram(PSTBError.ERROR_RUN, userInput);
 				}
 			}
 		}
 		
-		endProgram(0, simpleUserInput);
+		endProgram(0, userInput);
 	}
 	
 	private static boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
