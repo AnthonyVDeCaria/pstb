@@ -24,10 +24,10 @@ import org.apache.logging.log4j.Logger;
  * to the Broker and Client Processes
  */
 public class PhysicalTopology {
-	private HashMap<String, PSBrokerPADRES> devBrokers;
-	private HashMap<String, PSClientPADRES> devClients;
-	private ArrayList<ProcessBuilder> phyBrokers;
-	private ArrayList<ProcessBuilder> phyClients;
+	private HashMap<String, PSBrokerPADRES> brokerObjects;
+	private HashMap<String, PSClientPADRES> clientObjects;
+	private ArrayList<ProcessBuilder> brokerPBs;
+	private ArrayList<ProcessBuilder> clientPBs;
 	private ArrayList<Process> activeBrokers;
 	private ArrayList<Process> activeClients;
 	
@@ -64,10 +64,10 @@ public class PhysicalTopology {
 	 */
 	public PhysicalTopology() 
 	{
-		devBrokers = new HashMap<String, PSBrokerPADRES>();
-		devClients = new HashMap<String, PSClientPADRES>();
-		phyBrokers = new ArrayList<ProcessBuilder>();
-		phyClients = new ArrayList<ProcessBuilder>();
+		brokerObjects = new HashMap<String, PSBrokerPADRES>();
+		clientObjects = new HashMap<String, PSClientPADRES>();
+		brokerPBs = new ArrayList<ProcessBuilder>();
+		clientPBs = new ArrayList<ProcessBuilder>();
 		activeBrokers = new ArrayList<Process>();
 		activeClients = new ArrayList<Process>();
 		
@@ -85,7 +85,7 @@ public class PhysicalTopology {
 	 */
 	public boolean doObjectsExist()
 	{
-		return devBrokers.isEmpty() && devClients.isEmpty();
+		return brokerObjects.isEmpty() && clientObjects.isEmpty();
 	}
 	
 	/**
@@ -95,7 +95,17 @@ public class PhysicalTopology {
 	 */
 	public boolean doProcessBuildersExist()
 	{
-		return phyBrokers.isEmpty() && phyClients.isEmpty();
+		return brokerPBs.isEmpty() && clientPBs.isEmpty();
+	}
+	
+	/**
+	 * Returns the current number of brokers stated in the Logical Topology
+	 * 
+	 * @return the number of Broker Objects
+	 */
+	public Integer numberOfLogicalBrokers()
+	{
+		return brokerList.size();
 	}
 	
 	/**
@@ -175,15 +185,15 @@ public class PhysicalTopology {
 			
 			PSBrokerPADRES actBrokerI = new PSBrokerPADRES(hostName, port, protocol, brokerI);
 			
-			devBrokers.put(brokerI, actBrokerI);
+			brokerObjects.put(brokerI, actBrokerI);
 		}
 		
-		Set<String> setGB = devBrokers.keySet();
+		Set<String> setGB = brokerObjects.keySet();
 		Iterator<String> iteratorGB = setGB.iterator();
 		for( ; iteratorGB.hasNext(); )
 		{
 			String brokerIName = iteratorGB.next();
-			PSBrokerPADRES brokerI = devBrokers.get(brokerIName);
+			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			
 			ArrayList<String> neededURIs = new ArrayList<String>();
 			
@@ -191,7 +201,7 @@ public class PhysicalTopology {
 			for(int j = 0 ; j < bIConnectedNodes.size() ; j++)
 			{
 				String brokerJName = bIConnectedNodes.get(j);
-				PSBrokerPADRES actBrokerJ = devBrokers.get(brokerJName);
+				PSBrokerPADRES actBrokerJ = brokerObjects.get(brokerJName);
 				if(actBrokerJ == null)
 				{
 					logger.error(logHeader + "couldn't find " + brokerJName + " in genBrokers that " + brokerIName 
@@ -205,7 +215,7 @@ public class PhysicalTopology {
 			
 			brokerI.setNeighbourURIs(nURIs);
 			
-			devBrokers.put(brokerIName, brokerI);
+			brokerObjects.put(brokerIName, brokerI);
 		}
 		
 		logger.debug(logHeader + "All broker objects developed");
@@ -274,9 +284,9 @@ public class PhysicalTopology {
 		{
 			String subscriberNameI = subIterator.next();
 			
-			if(devClients.containsKey(subscriberNameI))
+			if(clientObjects.containsKey(subscriberNameI))
 			{
-				devClients.get(subscriberNameI).addNewClientRole(NodeRole.S);
+				clientObjects.get(subscriberNameI).addNewClientRole(NodeRole.S);
 			}
 			else
 			{
@@ -319,7 +329,7 @@ public class PhysicalTopology {
 		{
 			String brokerJName = clientIConnections.get(j);
 			
-			boolean doesBrokerJExist = devBrokers.containsKey(brokerJName);
+			boolean doesBrokerJExist = brokerObjects.containsKey(brokerJName);
 			
 			if(!doesBrokerJExist)
 			{
@@ -327,7 +337,7 @@ public class PhysicalTopology {
 				return false;
 			}
 			
-			String brokerJURI = devBrokers.get(brokerJName).getBrokerURI();
+			String brokerJURI = brokerObjects.get(brokerJName).getBrokerURI();
 			clientIBrokerURIs.add(brokerJURI);
 		}
 		
@@ -335,7 +345,7 @@ public class PhysicalTopology {
 		clientI.addConnectedBrokers(clientIBrokerURIs);
 		clientI.addNewClientRole(givenNR);
 		
-		devClients.put(clientIName, clientI);
+		clientObjects.put(clientIName, clientI);
 		return true;
 	}
 	
@@ -348,14 +358,14 @@ public class PhysicalTopology {
 	 */
 	public boolean addRunLengthToClients(Long givenRL)
 	{
-		if(devClients.isEmpty())
+		if(clientObjects.isEmpty())
 		{
 			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first.\n" +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
 		
-		devClients.forEach((clientName, actualClient)->{
+		clientObjects.forEach((clientName, actualClient)->{
 			actualClient.addRL(givenRL);
 		});
 		
@@ -371,14 +381,14 @@ public class PhysicalTopology {
 	 */
 	public boolean addWorkloadToAllClients(Workload givenWorkload)
 	{
-		if(devClients.isEmpty())
+		if(clientObjects.isEmpty())
 		{
 			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first.\n" +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
 		
-		devClients.forEach((clientName, actualClient)->{
+		clientObjects.forEach((clientName, actualClient)->{
 			actualClient.addWorkload(givenWorkload);
 		});
 		
@@ -387,14 +397,14 @@ public class PhysicalTopology {
 	
 	private boolean addRunNumberToAllClients()
 	{
-		if(devClients.isEmpty())
+		if(clientObjects.isEmpty())
 		{
 			logger.error(logHeader + "addRunNumberToAllClients() needs clients to be created first.\n" +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
 		
-		devClients.forEach((clientName, actualClient)->{
+		clientObjects.forEach((clientName, actualClient)->{
 			actualClient.addRunNumber(runNumber);
 		});
 		
@@ -409,14 +419,14 @@ public class PhysicalTopology {
 	 */
 	public boolean generateBrokerAndClientProcesses()
 	{
-		if(devBrokers.isEmpty())
+		if(brokerObjects.isEmpty())
 		{
 			logger.error(logHeader + "generateBrokerAndClientProcesses() needs brokers to be created first. " +
 							"Please run developPhysicalTopology() first.");
 			return false;
 		}
 		
-		if(devClients.isEmpty())
+		if(clientObjects.isEmpty())
 		{
 			logger.error(logHeader + "generateBrokerAndClientProcesses() needs clients to be created first. " +
 							"Please run developPhysicalTopology().");
@@ -431,12 +441,12 @@ public class PhysicalTopology {
 		
 		addRunNumberToAllClients(); // I'm cheating, but this should always return true as we're already checking above for clients.
 		
-		Set<String> setGB = devBrokers.keySet();
+		Set<String> setGB = brokerObjects.keySet();
 		Iterator<String> iteratorGB = setGB.iterator();
 		for( ; iteratorGB.hasNext() ; )
 		{
 			String brokerIName = iteratorGB.next();
-			PSBrokerPADRES brokerI = devBrokers.get(brokerIName);
+			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			
 			String brokerCommand = BROKER_INT + " -n " + brokerIName + " -r " + runNumber.toString();
 			
@@ -448,15 +458,15 @@ public class PhysicalTopology {
 			}
 			
 			ProcessBuilder actualBrokerI = new ProcessBuilder(brokerCommand.split("\\s+")).inheritIO();
-			phyBrokers.add(actualBrokerI);
+			brokerPBs.add(actualBrokerI);
 		}
 		
-		Set<String> setGC = devClients.keySet();
+		Set<String> setGC = clientObjects.keySet();
 		Iterator<String> iteratorGC = setGC.iterator();
 		for( ; iteratorGC.hasNext() ; )
 		{
 			String clientIName = iteratorGC.next();
-			PSClientPADRES clientI = devClients.get(clientIName);
+			PSClientPADRES clientI = clientObjects.get(clientIName);
 			
 			String clientCommand = CLIENT_INT + " -n " + clientIName + " -r " + runNumber.toString();
 			
@@ -468,7 +478,7 @@ public class PhysicalTopology {
 			}
 			
 			ProcessBuilder actualClientI = new ProcessBuilder(clientCommand.split("\\s+"));
-			phyClients.add(actualClientI);
+			clientPBs.add(actualClientI);
 		}
 		
 		logger.info(logHeader + "Successfully generated broker and client processes.");
@@ -484,23 +494,23 @@ public class PhysicalTopology {
 	 * 
 	 * @return false if there's an error; true otherwise
 	 */
-	public boolean launchProcesses()
+	public boolean startProcesses()
 	{
-		if(phyBrokers.isEmpty())
+		if(brokerPBs.isEmpty())
 		{
 			logger.error(logHeader + "startRun() needs broker processes to be created first.\n" +
 							"Please run generateBrokerAndClientProcesses() first.");
 			return false;
 		}
 		
-		if(phyClients.isEmpty())
+		if(clientPBs.isEmpty())
 		{
 			logger.error(logHeader + "startRun() needs client processes to be created first.\n" +
 							"Please run generateBrokerAndClientProcesses() first.");
 			return false;
 		}
 		
-		boolean functionCheck = startAndStoreAllGivenProcesses(phyBrokers, activeBrokers, "brokers");
+		boolean functionCheck = startAndStoreAllGivenProcesses(brokerPBs, activeBrokers, "brokers");
 		
 		if(!functionCheck)
 		{
@@ -510,14 +520,14 @@ public class PhysicalTopology {
 		
 		Long startTime = System.nanoTime();
 		Long currentTime = System.nanoTime();
-		Long waitTime = NANO_SEC_NEEDED_TO_START_BROKER * phyBrokers.size();
+		Long waitTime = NANO_SEC_NEEDED_TO_START_BROKER * brokerPBs.size();
 		
 		while( (currentTime - startTime) < waitTime )
 		{
 			currentTime = System.nanoTime();
 		}
 		
-		functionCheck = startAndStoreAllGivenProcesses(phyClients, activeClients, "clients");
+		functionCheck = startAndStoreAllGivenProcesses(clientPBs, activeClients, "clients");
 		
 		if(!functionCheck)
 		{
@@ -527,7 +537,7 @@ public class PhysicalTopology {
 		
 		startTime = System.nanoTime();
 		currentTime = System.nanoTime();
-		waitTime = NANO_SEC_NEEDED_TO_START_CLIENT * phyClients.size();
+		waitTime = NANO_SEC_NEEDED_TO_START_CLIENT * clientPBs.size();
 		while( (currentTime - startTime) < waitTime )
 		{
 			currentTime = System.nanoTime();
@@ -597,7 +607,7 @@ public class PhysicalTopology {
 			
 			if(terminationValue != 0 && terminationValue != INIT_TERMINATION_VALUE)
 			{
-				logger.error(logHeader + "a broker terminated with error " + terminationValue);
+				logger.error(logHeader + "broker " + i + " terminated with error " + terminationValue);
 				return ActiveProcessRetVal.Error;
 			}
 			else if(terminationValue == 0)
@@ -620,7 +630,7 @@ public class PhysicalTopology {
 			
 			if(terminationValue != 0 && terminationValue != INIT_TERMINATION_VALUE)
 			{
-				logger.error(logHeader + "a client terminated with error " + terminationValue);
+				logger.error(logHeader + "client " + i + " terminated with error " + terminationValue);
 				return ActiveProcessRetVal.Error;
 			}
 			else if(terminationValue == 0)
@@ -655,13 +665,26 @@ public class PhysicalTopology {
 	 */
 	public void killAllProcesses()
 	{
-		for(int i = 0 ; i < activeBrokers.size() ; i++)
-		{
-			activeBrokers.get(i).destroy();
-		}
 		for(int i = 0; i < activeClients.size() ; i++)
 		{
 			activeClients.get(i).destroy();
 		}
+		
+		for(int i = 0 ; i < activeBrokers.size() ; i++)
+		{
+			activeBrokers.get(i).destroy();
+		}
+		
+		activeClients.clear();
+		activeBrokers.clear();
+	}
+	
+	/**
+	 * Clears the process builders
+	 */
+	public void clearProcessBuilders()
+	{
+		brokerPBs.clear();
+		clientPBs.clear();
 	}
 }

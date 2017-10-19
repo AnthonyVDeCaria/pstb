@@ -78,6 +78,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 * Adds a new NodeRole to clientRoles
 	 * Only if it's not a B(roker) Role
 	 * And it's not already there
+	 * 
 	 * @param newNodeRole - the new Role
 	 * @return false on failure; true otherwise
 	 */
@@ -94,6 +95,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Sets the runLength value
+	 * 
 	 * @param givenRL - the rL value to be set
 	 */
 	public void addRL(Long givenRL)
@@ -103,6 +105,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Sets the Client workload
+	 * 
 	 * @param givenW - the given Workload
 	 */
 	public void addWorkload(Workload givenW)
@@ -122,6 +125,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Sets the Client's name
+	 * 
 	 * @param givenName - the new name
 	 */
 	public void addClientName(String givenName)
@@ -132,6 +136,7 @@ public class PSClientPADRES implements java.io.Serializable
 	/**
 	 * Adds a list of the Broker's this client is connected to
 	 * (By which I mean their URIs)
+	 * 
 	 * @param givenConnectedBrokersURIs
 	 */
 	public void addConnectedBrokers(ArrayList<String> givenConnectedBrokersURIs)
@@ -141,6 +146,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Adds the Logger this Client must use
+	 * 
 	 * @param givenLogger - the Logger
 	 */
 	public void addLogger(Logger givenLogger)
@@ -149,6 +155,7 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	/**
 	 * Gets this Client's roles
+	 * 
 	 * @return a list of its roles
 	 */
 	public ArrayList<NodeRole> getClientRoles()
@@ -158,6 +165,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Get the runLength
+	 * 
 	 * @return the runLength
 	 */
 	public Long getRunLength()
@@ -167,6 +175,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Gets this Client's workload 
+	 * 
 	 * @return the stored Workload
 	 */
 	public Workload getWorkload()
@@ -176,6 +185,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Gets this Client's run number
+	 * 
 	 * @return the stored run number
 	 */
 	public Integer getRunNumber()
@@ -185,6 +195,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Get's this Client's name
+	 * 
 	 * @return this Client's name
 	 */
 	public String getClientName()
@@ -194,6 +205,7 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	/**
 	 * Gets the URIs of the Broker's this Client is connected to 
+	 * 
 	 * @return a list of the URIs
 	 */
 	public ArrayList<String> getBrokerURIs()
@@ -204,6 +216,7 @@ public class PSClientPADRES implements java.io.Serializable
 	/**
 	 * Get this Client's diary
 	 * AKA the notes its made of all PSActions
+	 * 
 	 * @return its Diary
 	 */
 	public ClientDiary getDiary()
@@ -214,12 +227,11 @@ public class PSClientPADRES implements java.io.Serializable
 	/**
 	 * Sets some of the variables and creates a new Client
 	 * (The idea being you would initialize a general Client first before giving it it's tasks
-	 * @param givenName - the name of the client
-	 * @param givenURIs - the BrokerURIs this client will connect to
-	 * @param givenWorkload - the set of actions this client will have to do
+	 * 
+	 * @param connectAsWell - connects this client to the network
 	 * @return false if there's a failure; true otherwise
 	 */
-	public boolean initialize() 
+	public boolean initialize(boolean connectAsWell) 
 	{
 		logger.info(logHeader + "Attempting to initialize client " + clientName);
 		
@@ -234,7 +246,10 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		
 		this.cConfig.clientID = clientName;
-		this.cConfig.connectBrokerList = (String[]) brokerURIs.toArray(new String[brokerURIs.size()]);
+		if(connectAsWell)
+		{
+			this.cConfig.connectBrokerList = (String[]) brokerURIs.toArray(new String[brokerURIs.size()]);
+		}
 		
 		try 
 		{
@@ -252,6 +267,7 @@ public class PSClientPADRES implements java.io.Serializable
 
 	/**
 	 * Attempts to shutdown the Client
+	 * 
 	 * @return false on error, true if successful
 	 */
 	public boolean shutdown() 
@@ -273,7 +289,10 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 
 	/**
-	 * Connects this client to the network 
+	 * Connects this client to the network
+	 * NOTE: NOT CURRENTLY WORKING! 
+	 * Please use initialize(true)
+	 * 
 	 * @return false on error; true if successful
 	 */
 	public boolean connect() 

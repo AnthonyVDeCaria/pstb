@@ -163,7 +163,7 @@ public class WorkloadFileParser {
 							else
 							{
 								boolean addCheck = addActionToWorkload(actionDelay, linesCA, 
-																		splitLine[LOC_ATTRIBUTES], PSTBUtil.INFINITY);
+																		splitLine[LOC_ATTRIBUTES], Long.MAX_VALUE);
 								if(!addCheck)
 								{
 									isParseSuccessful = false;

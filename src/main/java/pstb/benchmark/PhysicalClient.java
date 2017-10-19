@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import pstb.util.PSTBError;
+import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -106,7 +107,7 @@ public class PhysicalClient {
 		
 		givenClient.addLogger(phyClientLogger);
 				
-		boolean functionCheck = givenClient.initialize();
+		boolean functionCheck = givenClient.initialize(true);
 		if(!functionCheck)
 		{
 			phyClientLogger.error(logHeader + "couldn't initialize client " + givenClientName);
@@ -134,6 +135,15 @@ public class PhysicalClient {
 		{
 			phyClientLogger.error(logHeader + "error shutting down client " + givenClientName);
 			System.exit(PSTBError.ERROR_SHUT_C);
+		}
+		
+		String diaryName = givenClient.getRunNumber() + "-" + givenClientName;
+		
+		functionCheck = PSTBUtil.createObjectFile(givenClient.getDiary(), diaryName, ".dia", phyClientLogger, logHeader);
+		if(!functionCheck)
+		{
+			phyClientLogger.error(logHeader + "error generating a diary file for client " + givenClientName);
+			System.exit(PSTBError.ERROR_DIARY);
 		}
 		
 		phyClientLogger.info("Successful run with client " + givenClientName);

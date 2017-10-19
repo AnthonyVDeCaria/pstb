@@ -9,7 +9,9 @@ import java.util.HashMap;
  * @author padres-dev-4187
  *
  */
-public class DiaryEntry {
+public class DiaryEntry  implements java.io.Serializable
+{
+	private static final long serialVersionUID = 1L;
 	HashMap<DiaryHeader, String> page;
 	
 	/**

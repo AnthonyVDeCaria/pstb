@@ -28,8 +28,9 @@ import pstb.util.Workload;
 
 public class PSTB {
 	private static final Long MIN_TO_NANOSEC = new Long(60000000000L);
+	private static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
 	
-	private static final Long NANO_SEC_NEEDED_TO_CLEAN_BROKER = new Long(2000000000L);
+	private static final Long NANO_SEC_NEEDED_TO_CLEAN_BROKER = new Long(6000000000L);
 	
 	private static final Logger logger = LogManager.getRootLogger();
 	
@@ -282,13 +283,14 @@ public class PSTB {
 	}
 	
 	private static boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
-											Integer givenNRPE, Workload givenWorkload)
+											Integer givenNumberOfRunsPerExperiment, Workload givenWorkload)
 	{
-		for(int iRL = 0 ; iRL < givenRLs.size(); iRL++)
+		for(int ithRunLength = 0 ; ithRunLength < givenRLs.size(); ithRunLength++)
 		{
-			Long iTHRunLength = givenRLs.get(iRL)*MIN_TO_NANOSEC;
+			Long currentRunLength = givenRLs.get(ithRunLength)*MIN_TO_NANOSEC;
+			Long sleepLength = null;
 			
-			boolean functionCheck = givenPT.addRunLengthToClients(iTHRunLength);
+			boolean functionCheck = givenPT.addRunLengthToClients(currentRunLength);
 			if(!functionCheck)
 			{
 				logger.error("Error setting Run Length");
@@ -302,28 +304,30 @@ public class PSTB {
 				return false;
 			}
 			
-			for(int iNRPE = 0 ; iNRPE < givenNRPE ; iNRPE++)
+			for(int iTHRun = 0 ; iTHRun < givenNumberOfRunsPerExperiment ; iTHRun++)
 			{
-				givenPT.setRunNumber(givenNRPE);
+				givenPT.setRunNumber(iTHRun);
 								
 				functionCheck = givenPT.generateBrokerAndClientProcesses();
 				if(!functionCheck)
 				{
-					logger.error("Error developing processes");
+					logger.error("Error generating processes");
 					return false;
 				}
 				
-				functionCheck = givenPT.launchProcesses();
+				functionCheck = givenPT.startProcesses();
 				if(!functionCheck)
 				{
-					logger.error("Error launching run");
+					logger.error("Error starting run");
 					return false;
 				}
 				
 				Long startTime = System.nanoTime();
-				Long currentTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
-				while( (currentTime - startTime) < iTHRunLength)
+				sleepLength = (long) (currentRunLength / 10 / MILLISEC_TO_NANOSEC.doubleValue());
+				Long currentTime = System.nanoTime();
+				
+				while( (currentTime - startTime) < currentRunLength)
 				{
 					valueCAP = givenPT.checkActiveProcesses();
 					if(valueCAP.equals(ActiveProcessRetVal.Error) || valueCAP.equals(ActiveProcessRetVal.AllOff))
@@ -335,7 +339,7 @@ public class PSTB {
 					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
 					{
 						currentTime = System.nanoTime();
-						if((currentTime - startTime) < iTHRunLength)
+						if((currentTime - startTime) < currentRunLength)
 						{
 							logger.error("Error - run finished early");
 							return false;
@@ -346,25 +350,63 @@ public class PSTB {
 						}
 					}
 					
+					try 
+					{				
+						logger.trace("Pausing main");
+						Thread.sleep(sleepLength);
+					} 
+					catch (InterruptedException e) 
+					{
+						logger.error("Error sleeping in main", e);
+						givenPT.killAllProcesses();
+						return false;
+					}
+					
 					currentTime = System.nanoTime();
 				}
 				
 				logger.info("Run successful");
+				
 				valueCAP = givenPT.checkActiveProcesses();
-				while(valueCAP != ActiveProcessRetVal.FloatingBrokers && valueCAP != ActiveProcessRetVal.AllOff)
+				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) && !valueCAP.equals(ActiveProcessRetVal.AllOff))
 				{
 					valueCAP = givenPT.checkActiveProcesses();
+					if(valueCAP.equals(ActiveProcessRetVal.Error))
+					{
+						logger.error("Error finishing run");
+						givenPT.killAllProcesses();
+						return false;
+					}
+					
+					try
+					{				
+						logger.trace("Pausing main");
+						Thread.sleep(sleepLength);
+					} 
+					catch (InterruptedException e) 
+					{
+						logger.error("Error sleeping in main", e);
+						givenPT.killAllProcesses();
+						return false;
+					}
 				}
 				givenPT.killAllProcesses();
 				
-				Long coolStartTime = System.nanoTime();
-				Long coolCurrentTime = System.nanoTime();
-				Long waitTime = NANO_SEC_NEEDED_TO_CLEAN_BROKER * 4;
-				
-				while( (coolCurrentTime - coolStartTime) < waitTime )
+				Long waitTime = NANO_SEC_NEEDED_TO_CLEAN_BROKER * givenPT.numberOfLogicalBrokers();
+				sleepLength = (long) (waitTime / 10 / MILLISEC_TO_NANOSEC.doubleValue());
+				try 
+				{				
+					logger.trace("Pausing main");
+					Thread.sleep(sleepLength);
+				} 
+				catch (InterruptedException e) 
 				{
-					coolCurrentTime = System.nanoTime();
+					logger.error("Error sleeping in main", e);
+					return false;
 				}
+				
+				givenPT.clearProcessBuilders();
+				logger.info("Cooldown complete");
 			}
 		}
 		

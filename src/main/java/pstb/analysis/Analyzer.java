@@ -12,61 +12,74 @@ import java.util.HashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.benchmark.PSClientPADRES;
 import pstb.util.ClientDiary;
 import pstb.util.DiaryEntry;
 import pstb.util.DiaryEntry.DiaryHeader;
 import pstb.util.PSActionType;
-import pstb.util.PSTBError;
 
 /**
  * @author padres-dev-4187
  *
  */
 public class Analyzer {
-
 	private HashMap<String, ClientDiary> bookshelf;
 	private Logger log = LogManager.getRootLogger();
 	private String logHeader = "Analysis: ";
 	
-	public boolean populateBookshelf(ArrayList<String> clientNames)
+	public Analyzer()
 	{
-		/*
-			The Object code goes here like in PhysicalBroker/PhysicalClient
-			Only this time its looped
-			And the names are extracted and put as the key in the HashMap
-		*/
-		return false;
+		bookshelf = new HashMap<String, ClientDiary>();
 	}
 	
-	private ClientDiary readClientFile(String givenClientName)
+	public boolean populateBookshelf(ArrayList<String> clientNames)
 	{
-		ClientDiary givenClient = null;
-		try 
+		for(int i = 0 ; i < clientNames.size(); i++)
 		{
-			FileInputStream fileIn = new FileInputStream("/tmp/" + givenClientName + ".dia");
+			String clientNameI = clientNames.get(i);
+			ClientDiary diaryI = readDiaryFile(clientNameI);
+			
+			if(diaryI == null)
+			{
+				bookshelf.clear();
+				return false;
+			}
+			else
+			{
+				bookshelf.put(clientNameI, diaryI);
+			}
+		}
+		
+		return true;
+	}
+	
+	private ClientDiary readDiaryFile(String clientNameI)
+	{
+		ClientDiary diaryI = null;
+		try
+		{
+			FileInputStream fileIn = new FileInputStream("/tmp/" + clientNameI + ".dia");
 			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
-			givenClient = (ClientDiary) oISIn.readObject();
+			diaryI = (ClientDiary) oISIn.readObject();
 			oISIn.close();
 			fileIn.close();
 		} 
 		catch (FileNotFoundException e) 
 		{
-			log.error(logHeader + "couldn't find serialized client file ", e);
-			System.exit(PSTBError.ERROR_FILE_C);
+			log.error(logHeader + "couldn't find serialized diary file ", e);
+			return null;
 		}
 		catch (IOException e)
 		{
 			log.error(logHeader + "error accessing ObjectInputStream ", e);
-			System.exit(PSTBError.ERROR_IO_C);
+			return null;
 		}
 		catch(ClassNotFoundException e)
 		{
 			log.error(logHeader + "can't find class ", e);
-			System.exit(PSTBError.ERROR_CNF_C);
+			return null;
 		}
 		
-		return givenClient;
+		return diaryI;
 	}
 	
 	public boolean printAllDiaries()
@@ -94,7 +107,7 @@ public class Analyzer {
 		return true;
 	}
 	
-	public Histogram developDelayHistogramOneCOneAT(ArrayList<String> clientNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	public Histogram developDelayHistogram(ArrayList<String> clientNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( (delayType != DiaryHeader.AckDelay) 
 			|| (delayType != DiaryHeader.TimeDifference)
@@ -144,6 +157,7 @@ public class Analyzer {
 				}
 			}
 		}
+		
 		return retVal;
 	}
 }

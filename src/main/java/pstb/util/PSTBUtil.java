@@ -19,8 +19,6 @@ import pstb.benchmark.PhysicalBroker;
 import pstb.benchmark.PhysicalClient;
 
 public class PSTBUtil {
-	public static final Long INFINITY = 999999999999999999L;
-	
 	public static final String SPACE = " ";
 	public static final String COMMA = ",";
 	

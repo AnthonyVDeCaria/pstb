@@ -29,4 +29,5 @@ public class PSTBError {
 	public static final int ERROR_CONN_C = 26;
 	public static final int ERROR_START_C = 27;
 	public static final int ERROR_SHUT_C = 28;
+	public static final int ERROR_DIARY = 29;
 }
