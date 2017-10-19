@@ -19,6 +19,9 @@ import pstb.benchmark.PhysicalBroker;
 import pstb.benchmark.PhysicalClient;
 
 public class PSTBUtil {
+	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
+	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
+	
 	public static final String SPACE = " ";
 	public static final String COMMA = ",";
 	
@@ -146,5 +149,4 @@ public class PSTBUtil {
 		}
 		return true;
 	}
-
 }

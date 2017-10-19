@@ -56,8 +56,8 @@ public class PhysicalTopology {
 	
 	private static final int INIT_TERMINATION_VALUE = 99999999;
 	
-	private static final Long NANO_SEC_NEEDED_TO_START_BROKER = new Long(2000000000L);
-	private static final Long NANO_SEC_NEEDED_TO_START_CLIENT = new Long(2000000000L); 
+	private static final Long MILLI_SEC_NEEDED_TO_START_BROKER = new Long(2000L);
+	private static final Long MILLI_SEC_NEEDED_TO_START_CLIENT = new Long(2000L); 
 	
 	/**
 	 * Empty Constructor
@@ -518,13 +518,17 @@ public class PhysicalTopology {
 			return false;
 		}
 		
-		Long startTime = System.nanoTime();
-		Long currentTime = System.nanoTime();
-		Long waitTime = NANO_SEC_NEEDED_TO_START_BROKER * brokerPBs.size();
+		Long waitTime = MILLI_SEC_NEEDED_TO_START_BROKER * brokerPBs.size();
 		
-		while( (currentTime - startTime) < waitTime )
+		try 
+		{				
+			logger.trace("Pausing for brokers to start");
+			Thread.sleep(waitTime);
+		} 
+		catch (InterruptedException e) 
 		{
-			currentTime = System.nanoTime();
+			logger.error("Error pausing for brokers", e);
+			return false;
 		}
 		
 		functionCheck = startAndStoreAllGivenProcesses(clientPBs, activeClients, "clients");
@@ -535,12 +539,17 @@ public class PhysicalTopology {
 			return false;
 		}
 		
-		startTime = System.nanoTime();
-		currentTime = System.nanoTime();
-		waitTime = NANO_SEC_NEEDED_TO_START_CLIENT * clientPBs.size();
-		while( (currentTime - startTime) < waitTime )
+		waitTime = MILLI_SEC_NEEDED_TO_START_CLIENT * brokerPBs.size();
+		
+		try 
+		{				
+			logger.trace("Pausing for clients to start");
+			Thread.sleep(waitTime);
+		} 
+		catch (InterruptedException e) 
 		{
-			currentTime = System.nanoTime();
+			logger.error("Error pausing for clients", e);
+			return false;
 		}
 		
 		logger.info(logHeader + "Everything launched");

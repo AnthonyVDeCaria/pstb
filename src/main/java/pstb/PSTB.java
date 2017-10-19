@@ -23,13 +23,11 @@ import pstb.util.DistributedState;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
 import pstb.util.PSTBError;
+import pstb.util.PSTBUtil;
 import pstb.util.UI;
 import pstb.util.Workload;
 
 public class PSTB {
-	private static final Long MIN_TO_NANOSEC = new Long(60000000000L);
-	private static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
-	
 	private static final Long NANO_SEC_NEEDED_TO_CLEAN_BROKER = new Long(6000000000L);
 	
 	private static final Logger logger = LogManager.getRootLogger();
@@ -287,7 +285,7 @@ public class PSTB {
 	{
 		for(int runLengthI = 0 ; runLengthI < givenRLs.size(); runLengthI++)
 		{
-			Long currentRunLength = givenRLs.get(runLengthI)*MIN_TO_NANOSEC;
+			Long currentRunLength = givenRLs.get(runLengthI) * PSTBUtil.MIN_TO_NANOSEC;
 			Long sleepLength = null;
 			
 			boolean functionCheck = givenPT.addRunLengthToClients(currentRunLength);
@@ -324,7 +322,7 @@ public class PSTB {
 				
 				Long startTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
-				sleepLength = (long) (currentRunLength / 10 / MILLISEC_TO_NANOSEC.doubleValue());
+				sleepLength = (long) (currentRunLength / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
 				Long currentTime = System.nanoTime();
 				
 				while( (currentTime - startTime) < currentRunLength)
@@ -397,7 +395,7 @@ public class PSTB {
 				givenPT.killAllProcesses();
 				
 				Long waitTime = NANO_SEC_NEEDED_TO_CLEAN_BROKER * givenPT.numberOfLogicalBrokers();
-				sleepLength = (long) (waitTime / 10 / MILLISEC_TO_NANOSEC.doubleValue());
+				sleepLength = (long) (waitTime / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
 				try 
 				{				
 					logger.trace("Pausing main");
