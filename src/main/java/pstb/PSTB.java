@@ -231,25 +231,25 @@ public class PSTB {
 		
 		logger.info("Beginning to create Physical Topology");
 		
-		for(int topologyIndex = 0 ; topologyIndex < allLTs.size(); topologyIndex++)
+		for(int topologyI = 0 ; topologyI < allLTs.size(); topologyI++)
 		{
-			for(int protocolIndex = 0 ; protocolIndex < askedProtocols.size() ; protocolIndex++)
+			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
 				PhysicalTopology localPT = new PhysicalTopology();
 				PhysicalTopology disPT = new PhysicalTopology();
 				boolean checkLocalPT = true;
 				boolean checkDisPT = true;
 				
-				if(askedDistributed.get(topologyIndex).equals(DistributedState.No) 
-						|| askedDistributed.get(topologyIndex).equals(DistributedState.Both) )
+				if(askedDistributed.get(topologyI).equals(DistributedState.No) 
+						|| askedDistributed.get(topologyI).equals(DistributedState.Both) )
 				{
-					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyIndex), 
-																	askedProtocols.get(protocolIndex));
+					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), 
+																	askedProtocols.get(protocolI));
 				}
-				if(askedDistributed.get(topologyIndex).equals(DistributedState.Yes) 
-						|| askedDistributed.get(topologyIndex).equals(DistributedState.Both) )
+				if(askedDistributed.get(topologyI).equals(DistributedState.Yes) 
+						|| askedDistributed.get(topologyI).equals(DistributedState.Both) )
 				{
-					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyIndex), askedProtocols.get(protocolIndex));
+					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI));
 				}
 				
 				if(!checkDisPT || !checkLocalPT)
@@ -285,9 +285,9 @@ public class PSTB {
 	private static boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
 											Integer givenNumberOfRunsPerExperiment, Workload givenWorkload)
 	{
-		for(int ithRunLength = 0 ; ithRunLength < givenRLs.size(); ithRunLength++)
+		for(int runLengthI = 0 ; runLengthI < givenRLs.size(); runLengthI++)
 		{
-			Long currentRunLength = givenRLs.get(ithRunLength)*MIN_TO_NANOSEC;
+			Long currentRunLength = givenRLs.get(runLengthI)*MIN_TO_NANOSEC;
 			Long sleepLength = null;
 			
 			boolean functionCheck = givenPT.addRunLengthToClients(currentRunLength);
@@ -304,9 +304,9 @@ public class PSTB {
 				return false;
 			}
 			
-			for(int iTHRun = 0 ; iTHRun < givenNumberOfRunsPerExperiment ; iTHRun++)
+			for(int runI = 0 ; runI < givenNumberOfRunsPerExperiment ; runI++)
 			{
-				givenPT.setRunNumber(iTHRun);
+				givenPT.setRunNumber(runI);
 								
 				functionCheck = givenPT.generateBrokerAndClientProcesses();
 				if(!functionCheck)
@@ -346,6 +346,7 @@ public class PSTB {
 						}
 						else
 						{
+							// We finished already - there's no need to sleep again
 							break;
 						}
 					}
@@ -367,6 +368,9 @@ public class PSTB {
 				
 				logger.info("Run successful");
 				
+				/*
+				 * Wait for the clients to finish
+				 */
 				valueCAP = givenPT.checkActiveProcesses();
 				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) && !valueCAP.equals(ActiveProcessRetVal.AllOff))
 				{
