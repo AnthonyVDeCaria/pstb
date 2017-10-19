@@ -3,6 +3,7 @@ package pstb.benchmark;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -54,6 +55,8 @@ public class PSClientPADRES implements java.io.Serializable
 	private final long MIN_RUNLENGTH = 1;
 	
 	private final int SEED_AD = 23;
+	
+	ReentrantLock lock = new ReentrantLock();
 	
 	private final String logHeader = "Client: ";
 	private Logger logger;
@@ -509,6 +512,16 @@ public class PSClientPADRES implements java.io.Serializable
 			receivedMsg.addTimeReceived(currentTime);
 			receivedMsg.addTimeDifference(currentTime - timePubCreated);
 			
+			try
+			{
+				lock.lock();
+				diary.addDiaryEntryToDiary(receivedMsg);
+			}
+			finally
+			{
+				lock.unlock();
+			}
+			
 			logger.debug(logHeader + "new publication received " + pub.toString());
 		}
 	}
@@ -596,7 +609,16 @@ public class PSClientPADRES implements java.io.Serializable
 				}
 			}
 			
-			diary.addDiaryEntryToDiary(thisEntry);
+			try
+			{
+				lock.lock();
+				diary.addDiaryEntryToDiary(thisEntry);
+			}
+			finally
+			{
+				lock.unlock();
+			}
+			
 			logger.info(logHeader + selectedAction + " " + attributes + " recorded");
 		}
 		
