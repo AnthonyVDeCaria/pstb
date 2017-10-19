@@ -18,6 +18,7 @@ import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.PSActionType;
 import pstb.util.ClientDiary;
 import pstb.util.DiaryEntry;
+import pstb.util.NetworkProtocol;
 import pstb.util.NodeRole;
 import pstb.util.PSAction;
 import pstb.util.Workload;
@@ -45,12 +46,20 @@ public class PSClientPADRES implements java.io.Serializable
 	private Integer runNumber;
 	
 	private ClientDiary diary;
+	private String topologyFilePath;
+	private NetworkProtocol protocol;
+	private Boolean distributed;
 	
 	private PADRESClientExtension actualClient;
 	private ArrayList<BrokerState> connectedBrokers;
 	private ClientConfig cConfig;
 	
 	private final long DEFAULT_DELAY = 500;
+	
+	private final Long INIT_RUN_LENGTH = new Long(0);
+	private final Integer INIT_RUN_NUMBER = new Integer(-1);
+	private final NetworkProtocol INIT_PROTOCOL = null;
+	private final Boolean INIT_DISTRIBUTED = null;
 	
 	private final long MIN_RUNLENGTH = 1;
 	
@@ -66,15 +75,19 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public PSClientPADRES()
 	{
-		clientName = new String ();
+		clientName = new String();
 		clientRoles = new ArrayList<NodeRole>();
 		brokerURIs = new ArrayList<String>();
 		
 		clientWorkload = new Workload();
-		runLength = new Long(0);
-		runNumber = new Integer(-1);
+		runLength = INIT_RUN_LENGTH;
+		runNumber = INIT_RUN_NUMBER;
 		
 		diary = new ClientDiary();
+		topologyFilePath = new String();
+		protocol = INIT_PROTOCOL;
+		distributed = INIT_DISTRIBUTED;
+		
 	}
 	
 	/**
@@ -117,7 +130,7 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	
 	/**
-	 * Sets the run number
+	 * Adds the run number
 	 * 
 	 * @param givenRN - the given run number
 	 */
@@ -131,7 +144,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 * 
 	 * @param givenName - the new name
 	 */
-	public void addClientName(String givenName)
+	public void setClientName(String givenName)
 	{
 		clientName = givenName;
 	}
@@ -156,6 +169,37 @@ public class PSClientPADRES implements java.io.Serializable
 	{
 		logger = givenLogger;
 	}
+	
+	/**
+	 * Sets a Topology file path (that the diary will need)
+	 * 
+	 * @param givenTFP - the topologyFilePath to set
+	 */
+	public void setTopologyFilePath(String givenTFP) 
+	{
+		topologyFilePath = givenTFP;
+	}
+	
+	/**
+	 * Sets a protocol (that the diary will need)
+	 * 
+	 * @param givenNP - the NetworkProtocol to set
+	 */
+	public void setNetworkProtocol(NetworkProtocol givenNP)
+	{
+		protocol = givenNP;
+	}
+	
+	/**
+	 * Sets a distributed boolean (that the diary will need)
+	 * 
+	 * @param givenDis - the Distributed value to set
+	 */
+	public void setDistributed(Boolean givenDis)
+	{
+		distributed = givenDis;
+	}
+	
 	/**
 	 * Gets this Client's roles
 	 * 
@@ -163,7 +207,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public ArrayList<NodeRole> getClientRoles()
 	{
-		return this.clientRoles;
+		return clientRoles;
 	}
 	
 	/**
@@ -173,7 +217,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public Long getRunLength()
 	{
-		return this.runLength;
+		return runLength;
 	}
 	
 	/**
@@ -183,7 +227,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public Workload getWorkload()
 	{
-		return this.clientWorkload;
+		return clientWorkload;
 	}
 	
 	/**
@@ -193,7 +237,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public Integer getRunNumber()
 	{
-		return this.runNumber;
+		return runNumber;
 	}
 	
 	/**
@@ -203,7 +247,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public String getClientName()
 	{
-		return this.clientName;
+		return clientName;
 	}
 	
 	/**
@@ -213,7 +257,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public ArrayList<String> getBrokerURIs()
 	{
-		return this.brokerURIs;
+		return brokerURIs;
 	}
 	
 	/**
@@ -224,7 +268,37 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public ClientDiary getDiary()
 	{
-		return this.diary;
+		return diary;
+	}
+	
+	/**
+	 * Gets this Client's topologyFilePath
+	 * 
+	 * @return the topologyFilePath
+	 */
+	public String getTopologyFilePath()
+	{
+		return topologyFilePath;
+	}
+	
+	/**
+	 * Gets this Client's protocol
+	 * 
+	 * @return the protocol
+	 */
+	public NetworkProtocol getProtocol()
+	{
+		return protocol;
+	}
+	
+	/**
+	 * Gets this Client's distributed Boolean
+	 * 
+	 * @return the distributed boolean
+	 */
+	public Boolean getDistributed()
+	{
+		return distributed;
 	}
 
 	/**
@@ -976,5 +1050,44 @@ public class PSClientPADRES implements java.io.Serializable
 		retVal.setDelay(publicationJOfAdI.getActionDelay());
 		retVal.setError(false);
 		return retVal;
+	}
+	
+	public String generateDiaryName()
+	{
+		if(runLength.equals(INIT_RUN_LENGTH) 
+				|| runNumber.equals(INIT_RUN_NUMBER) 
+				|| topologyFilePath.isEmpty()
+				|| protocol.equals(INIT_PROTOCOL)
+				|| distributed.equals(INIT_DISTRIBUTED)
+				|| clientName.isEmpty()
+			)
+		{
+			logger.error(logHeader + "Not all Diary values have been set");
+			return null;
+		}
+		else
+		{
+			String distributedString = null;
+			if(distributed.booleanValue() == true)
+			{
+				distributedString = "D";
+			}
+			else if(distributed.booleanValue() == false)
+			{
+				distributedString = "L";
+			}
+			else
+			{
+				logger.error(logHeader + "error with distributed");
+				return null;
+			}
+			
+			return clientName + "-"
+//					+ topologyFilePath + "-"
+					+ distributedString + "-"
+					+ protocol.toString() + "-"
+					+ runLength.toString() + "-"
+					+ runNumber.toString();
+		}
 	}
 }

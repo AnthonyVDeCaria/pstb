@@ -137,7 +137,7 @@ public class PhysicalClient {
 			System.exit(PSTBError.ERROR_SHUT_C);
 		}
 		
-		String diaryName = givenClient.getRunNumber() + "-" + givenClientName;
+		String diaryName = givenClient.generateDiaryName();
 		
 		functionCheck = PSTBUtil.createObjectFile(givenClient.getDiary(), diaryName, ".dia", phyClientLogger, logHeader);
 		if(!functionCheck)

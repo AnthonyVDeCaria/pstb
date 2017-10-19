@@ -40,6 +40,8 @@ public class PhysicalTopology {
 								+ "pstb.benchmark.PhysicalBroker ";
 	
 	private NetworkProtocol protocol;
+	private Boolean distributed;
+	private String topologyFilePath;
 	
 	private PubSubGroup brokerList; 
 	private PubSubGroup publisherList;
@@ -53,7 +55,7 @@ public class PhysicalTopology {
 	private final String logHeader = "Physical Topology: ";
 	private static final Logger logger = LogManager.getRootLogger();
 	
-	private static final int INIT_TERMINATION_VALUE = 99999999;
+	private static final int INIT_TERMINATION_VALUE = 9999;
 	
 	private static final Long MILLI_SEC_NEEDED_TO_START_BROKER = new Long(2000L);
 	private static final Long MILLI_SEC_NEEDED_TO_START_CLIENT = new Long(2000L); 
@@ -75,6 +77,9 @@ public class PhysicalTopology {
 		subscriberList = new PubSubGroup();
 		
 		runNumber = new Integer(-1);
+		protocol = null;
+		distributed = null;
+		topologyFilePath = new String();
 	}
 	
 	/**
@@ -132,20 +137,23 @@ public class PhysicalTopology {
 	 * I.e. creates all the Broker and Client Objects
 	 * using information from the BenchmarkProperties file
 	 * 
-	 * @param distributed - the distributed flag
+	 * @param givenDistributed - the distributed flag
 	 * @param givenTopo - the LogicalTopology that we must make physical
 	 * @param givenProtocol - the messaging protocol
 	 * @return false if an error occurs, true otherwise
 	 */
-	public boolean developPhysicalTopology(boolean distributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol)
+	public boolean developPhysicalTopology(boolean givenDistributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol,
+											String givenTFP)
 	{
 		brokerList = givenTopo.getGroup(NodeRole.B);
 		publisherList = givenTopo.getGroup(NodeRole.P);
 		subscriberList = givenTopo.getGroup(NodeRole.S);
 		
 		protocol = givenProtocol;
+		distributed = givenDistributed;
+		topologyFilePath = givenTFP;
 		
-		boolean checkGB = developBrokers(distributed);
+		boolean checkGB = developBrokers(givenDistributed);
 		if(!checkGB)
 		{
 			logger.error(logHeader + "Error generating physical Brokers");
@@ -335,10 +343,13 @@ public class PhysicalTopology {
 			clientIBrokerURIs.add(brokerJURI);
 		}
 		
-		clientI.addClientName(clientIName);
+		clientI.setClientName(clientIName);
 		clientI.addConnectedBrokers(clientIBrokerURIs);
 		clientI.addNewClientRole(givenNR);
-		
+		clientI.setDistributed(distributed);
+		clientI.setNetworkProtocol(protocol);
+		clientI.setTopologyFilePath(topologyFilePath);
+						
 		clientObjects.put(clientIName, clientI);
 		return true;
 	}

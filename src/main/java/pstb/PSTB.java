@@ -246,13 +246,14 @@ public class PSTB {
 				if(askedDistributed.get(topologyI).equals(DistributedState.No) 
 						|| askedDistributed.get(topologyI).equals(DistributedState.Both) )
 				{
-					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), 
-																	askedProtocols.get(protocolI));
+					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), askedProtocols.get(protocolI),
+																		topologyI);
 				}
 				if(askedDistributed.get(topologyI).equals(DistributedState.Yes) 
 						|| askedDistributed.get(topologyI).equals(DistributedState.Both) )
 				{
-					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI));
+					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI), 
+																	topologyI);
 				}
 				
 				if(!checkDisPT || !checkLocalPT)
