@@ -464,32 +464,30 @@ public class PSClientPADRES implements java.io.Serializable
 			
 			if(numSubsSent < numSubsToSend)
 			{
-				AddToActiveListsRetVal check = new AddToActiveListsRetVal();
-				check = increaseActiveList(PSActionType.S, activeSubsList, givenSubWorkload, activeAdsPublicationJ);
-				if(check.hasError())
+				Long check = increaseActiveList(PSActionType.S, activeSubsList, givenSubWorkload, activeAdsPublicationJ);
+				if(check == null)
 				{
 					return false;
 				}
 				else
 				{
 					numSubsSent++;
-					delayValue = check.getDelayValue();
+					delayValue = check;
 				}
 			}
 			else
 			{
 				if(numAdsSent < numAdsToSend)
 				{
-					AddToActiveListsRetVal check = new AddToActiveListsRetVal();
-					check = increaseActiveList(PSActionType.A, activeAdsList, givenAdWorkload, activeAdsPublicationJ);
-					if(check.hasError())
+					Long check = increaseActiveList(PSActionType.A, activeAdsList, givenAdWorkload, activeAdsPublicationJ);
+					if(check == null)
 					{
 						return false;
 					}
 					else
 					{
 						numAdsSent++;
-						delayValue = check.getDelayValue();
+						delayValue = check;
 					}
 				}
 				else
@@ -514,16 +512,16 @@ public class PSClientPADRES implements java.io.Serializable
 						
 						if(numActiveAds > 0)
 						{
-							SendPublicationRetVal sendPubCheck = sendPublication(numActiveAds, activeAdsList, activeAdIGenerator,
-																					activeAdsPublicationJ);
+							Long sendPubCheck = sendPublication(numActiveAds, activeAdsList, activeAdIGenerator,
+																	activeAdsPublicationJ);
 							
-							if(sendPubCheck.hasError())
+							if(sendPubCheck == null)
 							{
 								return false;
 							}
 							else
 							{
-								delayValue = sendPubCheck.getDelay();
+								delayValue = sendPubCheck;
 							}
 						}
 					}
@@ -534,7 +532,7 @@ public class PSClientPADRES implements java.io.Serializable
 			 * Wait
 			 */
 			try {				
-				logger.trace(logHeader + "pausing");
+				logger.trace(logHeader + "pausing for " + delayValue.toString());
 				Thread.sleep(delayValue);
 			} 
 			catch (InterruptedException e) 
@@ -546,6 +544,7 @@ public class PSClientPADRES implements java.io.Serializable
 			currentTime = System.nanoTime();
 		}
 		
+		logger.debug(logHeader + "Unadvertizing any 'infinite' ads"); 
 		for(int i = 0 ; i < activeAdsList.size() ; i++)
 		{
 			PSAction stillActiveAdI = activeAdsList.get(i);
@@ -553,6 +552,18 @@ public class PSClientPADRES implements java.io.Serializable
 			if(!check)
 			{
 				logger.error(logHeader + "Error unadvertizing " + stillActiveAdI.getAttributes());
+				return false;
+			}
+		}
+		
+		logger.debug(logHeader + "Unsubscribing any 'infinite' subs"); 
+		for(int i = 0 ; i < activeSubsList.size() ; i++)
+		{
+			PSAction stillActiveSubI = activeSubsList.get(i);
+			boolean check = launchAction(PSActionType.U, stillActiveSubI);
+			if(!check)
+			{
+				logger.error(logHeader + "Error unsubscribing " + stillActiveSubI.getAttributes());
 				return false;
 			}
 		}
@@ -775,37 +786,6 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	
 	/**
-	 * The return values of the addToActiveList function
-	 */
-	private class AddToActiveListsRetVal
-	{
-		private boolean error;
-		private Long delayValue;
-		
-		public boolean hasError() {
-			return error;
-		}
-
-		public void setError(boolean error) {
-			this.error = error;
-		}
-
-		public Long getDelayValue() {
-			return delayValue;
-		}
-
-		public void setDelayValue(Long delayValue) {
-			this.delayValue = delayValue;
-		}
-		
-		public AddToActiveListsRetVal()
-		{
-			error = true;
-			delayValue = new Long(-1);
-		}
-	}
-	
-	/**
 	 * Add a given action to a given active list
 	 * I.e. a sub to a sub or a ad to an ad
 	 * 
@@ -815,11 +795,10 @@ public class PSClientPADRES implements java.io.Serializable
 	 * @param activeAdsPublicationJ
 	 * @return
 	 */
-	private AddToActiveListsRetVal increaseActiveList(PSActionType requestedAction, ArrayList<PSAction> activeList, 
-														ArrayList<PSAction> givenWorkload,
-														HashMap<PSAction, Integer> activeAdsPublicationJ)
+	private Long increaseActiveList(PSActionType requestedAction, ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload,
+										HashMap<PSAction, Integer> activeAdsPublicationJ)
 	{
-		AddToActiveListsRetVal retVal = new AddToActiveListsRetVal();
+		Long retVal = null;
 		
 		int nextI = activeList.size();
 		PSAction nextAction = givenWorkload.get(nextI);
@@ -862,8 +841,7 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		activeList.add(nextAction);
 		
-		retVal.setDelayValue(nextAction.getActionDelay());
-		retVal.setError(false);
+		retVal = nextAction.getActionDelay();
 		
 		return retVal;
 	}
@@ -966,42 +944,10 @@ public class PSClientPADRES implements java.io.Serializable
 		return true;
 	}
 	
-	private class SendPublicationRetVal
+	private Long sendPublication(Integer numActiveAds, ArrayList<PSAction> activeAdsList, Random activeAdIGenerator,
+										HashMap<PSAction, Integer> activeAdsPublicationJ)
 	{
-		private boolean error;
-		private Long delay;
-		
-		public boolean hasError()
-		{
-			return error;
-		}
-		
-		public void setError(boolean errorVal)
-		{
-			this.error = errorVal;
-		}
-		
-		public Long getDelay()
-		{
-			return delay;
-		}
-		
-		public void setDelay(Long delayVal)
-		{
-			this.delay = delayVal;
-		}
-		
-		public SendPublicationRetVal()
-		{
-			error = true;
-			delay = new Long(-1L);
-		}
-	}
-	
-	private SendPublicationRetVal sendPublication(Integer numActiveAds, ArrayList<PSAction> activeAdsList, 
-													Random activeAdIGenerator, HashMap<PSAction, Integer> activeAdsPublicationJ)
-	{
-		SendPublicationRetVal retVal = new SendPublicationRetVal();
+		Long retVal = null;
 		
 		logger.debug(logHeader + "Attempting to send a new publication");
 		Integer i = activeAdIGenerator.nextInt(numActiveAds);
@@ -1031,24 +977,26 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		j++;
 		
-		if(j > activeAdIsPublications.size())
+		if(j < activeAdIsPublications.size())
 		{
-			logger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications -> "
-								+ "Unadvertising");
+			activeAdsPublicationJ.put(activeAdI, j);
+		}
+		else
+		{
+			logger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications -> Unadvertising");
+			
 			boolean checkUnad = launchAction(PSActionType.V, activeAdI);
 			if(!checkUnad)
 			{
 				logger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
 				return retVal;
 			}
-		}
-		else
-		{
-			activeAdsPublicationJ.put(activeAdI, j);
+			
+			activeAdsPublicationJ.remove(activeAdI);
+			activeAdsList.remove(activeAdI);
 		}
 		
-		retVal.setDelay(publicationJOfAdI.getActionDelay());
-		retVal.setError(false);
+		retVal = publicationJOfAdI.getActionDelay();
 		return retVal;
 	}
 	

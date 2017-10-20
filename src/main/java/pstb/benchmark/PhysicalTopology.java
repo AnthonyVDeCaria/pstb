@@ -31,7 +31,7 @@ public class PhysicalTopology {
 	private ArrayList<Process> activeClients;
 	
 	private int CLIENT_MEMORY = 256;
-	private int BROKER_MEMORY = 1024;
+	private int BROKER_MEMORY = 256;
 	private String CLIENT_INT = "java -Xmx" + CLIENT_MEMORY + "M -Xverify:none "
 								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
 								+ "pstb.benchmark.PhysicalClient ";

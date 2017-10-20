@@ -1,0 +1,1 @@
+500	s	[class,eq,"oneITS"],[Date,isPresent,'some_date'],[ID,isPresent,0],[Name,isPresent,'some_name'],[Address,isPresent,'some_addr'],[Latitude,isPresent,0.0],[Longitude,isPresent,0.0],[LaneIndex,isPresent,0],[LoopOccupancy,isPresent,'some_occupancy'],[AvgSpeed,isPresent,0],[Vehicles/Interval,isPresent,0],[VdsDeviceID,isPresent,0],[RegionName,isPresent,'some_region']

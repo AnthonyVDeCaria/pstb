@@ -28,50 +28,58 @@ public class PSTBUtil {
 	/**
 	 * Sees if a given string is an Integer
 	 * @param s - the string to look at
-	 * @param logError - a boolean that determines if the error should be logged or not
+	 * @param log - a boolean that determines if we should log or not
 	 * @return null if the string is an Integer; the value otherwise
 	 */
-	public static Integer checkIfInteger(String s, boolean logError, Logger logger) 
+	public static Integer checkIfInteger(String s, boolean log, Logger logger) 
 	{
 		Integer num = null;
 		try
 		{
 			num = Integer.parseInt(s);
-			// s is a valid integer
 		}
 		catch (NumberFormatException ex)
 		{
-			// s is not an integer
-			if(logError)
+			if(log)
 			{
 				logger.error("isInt: " + s + " is not an integer", ex);
 			}
 		}
+		
+		if(num != null && log)
+		{
+			logger.debug("isInt: " + s + " is an integer");
+		}
+		
 		return num;
 	}
 	
 	/**
 	 * Sees if a given string is a Long
 	 * @param s - the string to look at
-	 * @param logError - a boolean that determines if the error should be logged or not
+	 * @param log - a boolean that determines if we should log or not
 	 * @return null if the string is a Long; the value otherwise
 	 */
-	public static Long checkIfLong(String s, boolean logError, Logger logger) 
+	public static Long checkIfLong(String s, boolean log, Logger logger) 
 	{
 		Long num = null;
 		try
 		{
 			num = Long.parseLong(s);
-			// s is a valid integer
 		}
 		catch (NumberFormatException ex)
 		{
-			// s is not an integer
-			if(logError)
+			if(log)
 			{
-				logger.error("isInt: " + s + " is not an integer", ex);
+				logger.error("isLong: " + s + " is not a long", ex);
 			}
 		}
+		
+		if(num != null && log)
+		{
+			logger.debug("isLong: " + s + " is a long");
+		}
+		
 		return num;
 	}
 	
