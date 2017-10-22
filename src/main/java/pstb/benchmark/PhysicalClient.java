@@ -79,7 +79,8 @@ public class PhysicalClient {
 		
 		String context = givenRunNumber + "-" + givenClientName;
 		ThreadContext.put("client", context);
-		
+		Thread.currentThread().setName(context);
+				
 		PSClientPADRES givenClient = null;
 		try 
 		{

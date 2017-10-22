@@ -5,7 +5,11 @@
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
         </Console>
         
-        <File name="Main" fileName="logs/main.log" immediateFlush="false" append="false">
+        <File name="Root" fileName="logs/other.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="PSTB" fileName="logs/PSTB.log" immediateFlush="false" append="false">
             <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </File>
         
@@ -28,18 +32,149 @@
 	            </Route>
 	        </Routes>
 	    </Routing>
+	    
+	    <File name="SystemError" fileName="logs/PADRES/SystemError.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+	    
+	    <File name="Exception" fileName="logs/PADRES/Exception.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="BC" fileName="logs/PADRES/BC.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="Controller" fileName="logs/PADRES/Controller.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="LCM" fileName="logs/PADRES/LCM.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+    	<File name="OM" fileName="logs/PADRES/OM.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="SIM" fileName="logs/PADRES/SIM.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="SM" fileName="logs/PADRES/SM.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="Router" fileName="logs/PADRES/Router.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="ReteMatcher" fileName="logs/PADRES/ReteMatcher.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="CS" fileName="logs/PADRES/CS.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="HB" fileName="logs/PADRES/HeartBeat.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="DBB" fileName="logs/PADRES/DBB.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="Performance" fileName="logs/PADRES/Performance.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="Message" fileName="logs/PADRES/Message.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="MessagePath" fileName="logs/PADRES/MessagePath.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="LD" fileName="logs/PADRES/LD.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
+        <File name="PADRES-C" fileName="logs/PADRES/C.log" immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+        
     </Appenders>
     
     <Loggers>
-        <Root level="debug">
-            <AppenderRef ref="Console" />
-            <AppenderRef ref="Main"/>
+        <Root level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="Root"/>
         </Root>
+        <Logger name="pstb" level="debug">
+        	<AppenderRef ref="PSTB"/>
+        </Logger>
         <Logger name="pstb.benchmark.PhysicalBroker" level="debug">
         	<AppenderRef ref="Broker"/>
         </Logger>
         <Logger name="pstb.benchmark.PhysicalClient" level="debug">
         	<AppenderRef ref="Client"/>
         </Logger>
+        <Logger name="SystemError" level="warn">
+        	<AppenderRef ref="SystemError"/>
+        </Logger>
+        <Logger name="Exception" level="warn">
+        	<AppenderRef ref="Exception"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.brokercore.BrokerCore" level="debug">
+        	<AppenderRef ref="BC"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.Controller" level="debug">
+        	<AppenderRef ref="Controller"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.LifeCycleManager" level="debug">
+        	<AppenderRef ref="LCM"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.OverlayManager" level="debug">
+        	<AppenderRef ref="OM"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.ServerInjectionManager" level="debug">
+        	<AppenderRef ref="SIM"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.monitor.SystemMonitor" level="debug">
+        	<AppenderRef ref="SM"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.router.Router" level="debug">
+        	<AppenderRef ref="Router"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.broker.router.matching.rete.ReteMatcher" level="debug">
+        	<AppenderRef ref="ReteMatcher"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.common.comm.CommSystem" level="debug">
+        	<AppenderRef ref="CS"/>
+        </Logger>
+        <Logger name="HeartBeat" level="debug">
+        	<AppenderRef ref="HB"/>
+        </Logger>
+        <Logger name="DBBinding" level="debug">
+        	<AppenderRef ref="DBB"/>
+        </Logger>
+        <Logger name="Performance" level="debug">
+        	<AppenderRef ref="Performance"/>
+        </Logger>
+        <Logger name="Message" level="debug">
+        	<AppenderRef ref="Message"/>
+        </Logger>
+        <Logger name="MessagePath" level="debug">
+        	<AppenderRef ref="MessagePath"/>
+        </Logger>
+        <Logger name="LoopDetection" level="debug">
+        	<AppenderRef ref="LD"/>
+        </Logger>
+        <Logger name="ca.utoronto.msrg.padres.client.Client" level="debug">
+        	<AppenderRef ref="PADRES-C"/>
+        </Logger>
+        
     </Loggers>
 </Configuration>

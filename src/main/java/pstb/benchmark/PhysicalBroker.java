@@ -53,6 +53,7 @@ public class PhysicalBroker {
 		
 		String context = givenRunNumber + "-" + givenBrokerName;
 		ThreadContext.put("broker", context);
+		Thread.currentThread().setName(context);
 		
 		PSBrokerPADRES givenBroker = null;
 		try 
