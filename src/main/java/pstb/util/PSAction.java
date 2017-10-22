@@ -27,6 +27,18 @@ public class PSAction implements java.io.Serializable
 	}
 	
 	/**
+	 * ActionType Constructor
+	 */
+	public PSAction(PSActionType givenAT)
+	{
+		actionType = givenAT;
+		actionDelay = new Long(-1);
+		attributes = new String();
+		payloadSize = new Long(-1);
+		timeActive = new Long(0);
+	}
+	
+	/**
 	 * Gets the actionType of this action
 	 * 
 	 * @return the action type

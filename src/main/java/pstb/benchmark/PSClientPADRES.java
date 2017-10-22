@@ -579,7 +579,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public void storePublication(Message msg) 
 	{
-		String context = clientName + "-" + runNumber.toString();
+		String context = runNumber.toString() + "-" + clientName;
 		ThreadContext.put("client", context);
 		
 		if(msg instanceof PublicationMessage)

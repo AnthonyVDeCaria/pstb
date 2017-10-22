@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSTBUtil;
@@ -29,16 +28,18 @@ public class BenchmarkConfig {
 	private ArrayList<String> topologyFilesPaths;
 	private HashMap<String, DistributedState> distributed;
 	
-	private static final Logger logger = LogManager.getRootLogger();
+	private Logger logger = null;
 	
 	/**
-	 * Empty constructor
+	 * Constructor
 	 * 
 	 * The Integers are set to 0, as these are not valid numbers
 	 * (You can't have 0 runs per experiment) 
 	 */
-	public BenchmarkConfig()
+	public BenchmarkConfig(Logger log)
 	{
+		logger = log;
+		
 		numRunsPerExperiment = new Integer(0);
 		pubWorkloadFilesPaths = new ArrayList<String>();
 		subWorkloadFilePath = new String();

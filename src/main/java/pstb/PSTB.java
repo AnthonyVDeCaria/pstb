@@ -1,7 +1,3 @@
-/**
- * @author padres-dev-4187
- *
- */
 package pstb;
 
 import java.io.FileInputStream;
@@ -29,10 +25,14 @@ import pstb.util.PSTBUtil;
 import pstb.util.UI;
 import pstb.util.Workload;
 
+/**
+ * @author padres-dev-4187
+ *
+ */
 public class PSTB {
 	private static final Long NANO_SEC_NEEDED_TO_CLEAN_BROKER = new Long(6000000000L);
 	
-	private static final Logger logger = LogManager.getRootLogger();
+	private static final Logger logger = LogManager.getLogger(PSTB.class);
 	
 	/**
 	 * Extracts the properties from a given properties file 
@@ -58,7 +58,7 @@ public class PSTB {
 	 * Ends the main program
 	 * @param errorClassification - the type of error that occurred - including no error
 	 * @param scannerSystemIn - the UI scanner used for the yes or no answers
-	 * @see TODO: error handling on exit
+	 * @see PSTBError
 	 */
 	private static void endProgram(Integer errorClassification, Scanner scannerSystemIn)
 	{
@@ -88,7 +88,7 @@ public class PSTB {
 			endProgram(PSTBError.ERROR_BENCHMARK, userInput);
 		}
 				
-		BenchmarkConfig benchmarkRules = new BenchmarkConfig();
+		BenchmarkConfig benchmarkRules = new BenchmarkConfig(logger);
 		
 		String customBenchProp = "Would you like to use a custom benchmark properties file Y/n?";
 		boolean customBenchPropAns = UI.getYNAnswerFromUser(customBenchProp, userInput);
@@ -120,7 +120,7 @@ public class PSTB {
 		
 		logger.info("No errors loading the Properties file!");
 				
-		WorkloadFileParser parseWLF = new WorkloadFileParser();
+		WorkloadFileParser parseWLF = new WorkloadFileParser(logger);
 		parseWLF.setPubWorkloadFilesPaths(benchmarkRules.getPubWorkloadFilesPaths());
 		parseWLF.setSubWorkloadFilePath(benchmarkRules.getSubWorkloadFilePath());
 		
@@ -155,7 +155,7 @@ public class PSTB {
 		for(int i = 0 ; i < allTopoFiles.size(); i++)
 		{
 			String topoI = allTopoFiles.get(i);
-			TopologyFileParser parseTopo = new TopologyFileParser(topoI);
+			TopologyFileParser parseTopo = new TopologyFileParser(topoI, logger);
 			
 			logger.debug("Parsing Topology File " + topoI + "...");
 			
@@ -236,8 +236,8 @@ public class PSTB {
 		{
 			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
-				PhysicalTopology localPT = new PhysicalTopology();
-				PhysicalTopology disPT = new PhysicalTopology();
+				PhysicalTopology localPT = new PhysicalTopology(logger);
+				PhysicalTopology disPT = new PhysicalTopology(logger);
 				boolean checkLocalPT = true;
 				boolean checkDisPT = true;
 				

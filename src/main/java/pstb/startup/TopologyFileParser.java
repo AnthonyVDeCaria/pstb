@@ -1,3 +1,17 @@
+package pstb.startup;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.logging.log4j.Logger;
+
+import pstb.util.LogicalTopology;
+import pstb.util.NodeRole;
+import pstb.util.PSTBUtil;
+
 /**
  * @author padres-dev-4187
  * 
@@ -7,21 +21,6 @@
  * and convert it into a Logical Topology 
  * 
  */
-package pstb.startup;
-
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import pstb.util.LogicalTopology;
-import pstb.util.NodeRole;
-import pstb.util.PSTBUtil;
-
 public class TopologyFileParser {	
 	private LogicalTopology logicalTopo;
 	private String topoFilePath;
@@ -32,14 +31,15 @@ public class TopologyFileParser {
 	private final int NODE_CONN_LOCATION = 2;
 	
 	private final String logHeader = "Topology Parser: ";
-	private static final Logger logger = LogManager.getRootLogger();
+	private Logger logger = null;
 	
 	/**
 	 * FilePath Constructor
 	 */
-	public TopologyFileParser(String nTPF)
+	public TopologyFileParser(String nTPF, Logger log)
     {
-		logicalTopo = new LogicalTopology();
+		logger = log;
+		logicalTopo = new LogicalTopology(log);
 		topoFilePath = nTPF;
     }
 	

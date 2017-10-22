@@ -77,7 +77,7 @@ public class PhysicalClient {
 			System.exit(PSTBError.ERROR_ARGS_C);
 		}
 		
-		String context = givenClientName + "-" + givenRunNumber;
+		String context = givenRunNumber + "-" + givenClientName;
 		ThreadContext.put("client", context);
 		
 		PSClientPADRES givenClient = null;

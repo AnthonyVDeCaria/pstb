@@ -10,7 +10,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSActionType;
@@ -33,7 +32,7 @@ public class WorkloadFileParser {
 	private final int LOC_PAYLOAD_TIME_ACTIVE = 3;
 	
 	private final String logHeader = "Workload Parser: ";
-	private static final Logger logger = LogManager.getRootLogger();
+	private  Logger logger = null;
 	
 	public enum WorkloadFileType
 	{
@@ -45,9 +44,12 @@ public class WorkloadFileParser {
 	 * @param nSWFP - the new path to the subscriber workload file
 	 * @param nPWFP - the array containing all the paths to the publisher workload files
 	 */
-	public WorkloadFileParser()
+	public WorkloadFileParser(Logger log)
 	{
+		logger = log;
 		wload = new Workload();
+		pubWorkloadFilesPaths = new ArrayList<String>();
+		subWorkloadFilePath = new String();
 	}
 	
 	/**
@@ -72,6 +74,13 @@ public class WorkloadFileParser {
 	public boolean parseWorkloadFiles(WorkloadFileType requestedWF)
 	{
 		boolean parseSuccessful = true;
+		
+		if(pubWorkloadFilesPaths.isEmpty() || subWorkloadFilePath.isEmpty())
+		{
+			logger.error(logHeader + "One of the File(s) Path(s) doesn't exist");
+			return false;
+		}
+		
 		if(requestedWF == WorkloadFileType.S)
 		{
 			BufferedReader sWFReader = null;
@@ -122,7 +131,7 @@ public class WorkloadFileParser {
 		boolean isParseSuccessful = true;
 		String line = null;
 		int linesRead = 0;
-		fileAd = new PSAction();
+		fileAd = null;
 		
 		try
 		{
@@ -306,7 +315,7 @@ public class WorkloadFileParser {
 		{
 			case A:
 			{
-				if(!fileAd.getAttributes().isEmpty())
+				if(fileAd != null)
 				{
 					logger.error(logHeader + "an advertiser already exists");
 					return false;
@@ -325,7 +334,7 @@ public class WorkloadFileParser {
 			}
 			case P:
 			{
-				if(fileAd.getAttributes().isEmpty())
+				if(fileAd == null)
 				{
 					logger.error(logHeader + "no Advertisement was given");
 					return false;

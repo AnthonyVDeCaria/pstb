@@ -1,11 +1,3 @@
-/**
- * @author padres-dev-4187
- * 
- * The Logical Topology.
- * Contains a collection of all the NodeRole PubSubGroups that make this topology.
- * I.e. the needed broker and client nodes.
- *
- */
 package pstb.util;
 
 import java.util.ArrayList;
@@ -16,30 +8,39 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.function.BiConsumer;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.startup.NonMutuallyConnectedNodes;
 import pstb.util.PubSubGroup;
 
+/**
+ * @author padres-dev-4187
+ * 
+ * The Logical Topology.
+ * Contains a collection of all the NodeRole PubSubGroups that make this topology.
+ * I.e. the needed broker and client nodes.
+ *
+ */
 public class LogicalTopology {
 	private HashMap<NodeRole, PubSubGroup> network;
 	
 	private enum VisitedState{ NOTVISITED, VISITED }
 	private ArrayList<NonMutuallyConnectedNodes> problemNodes = new ArrayList<NonMutuallyConnectedNodes>();
 	
-	private static final Logger logger = LogManager.getRootLogger();
+	private Logger logger = null;
 	
 	/**
 	 * Empty constructor
 	 */
-	public LogicalTopology()
+	public LogicalTopology(Logger log)
     {
+		logger = log;
 		network = new HashMap<NodeRole, PubSubGroup>();
     }
 	
 	/**
 	 * Adds a new group of nodes to this topology
+	 * 
 	 * @param role - the role this group will relate to
 	 * @param input - an existing group; be it empty or filled
 	 */
@@ -49,7 +50,8 @@ public class LogicalTopology {
 	}
 	
 	/**
-	 * Gets the current group a particular role 
+	 * Gets the current group a particular role
+	 * 
 	 * @param role - the role this group 
 	 * @returns the group
 	 */
@@ -114,6 +116,7 @@ public class LogicalTopology {
 	 * Looks at all of the nodes in the Broker ("B") group and their connections.
 	 * If one node lists another in its connections, but it is not reciprocated
 	 * this function makes a note of it.
+	 * 
 	 * @param brokerGroup - the "B" group
 	 * @returns true if everything is mutually connected; false if not
 	 */
@@ -173,6 +176,7 @@ public class LogicalTopology {
 	
 	/**
 	 * Returns a random node from the Broker ("B") group
+	 * 
 	 * @param brokerGroup - the "B" group
 	 * @returns the name of a broker node
 	 */
@@ -190,9 +194,10 @@ public class LogicalTopology {
 	 * If a node doesn't have any connections; the attempt fails and returns false
 	 * (Technically this should be caught by TopologyFileParser;
 	 * however, this exists as a just in case)
+	 * 
 	 * @param brokerGroup - the "B" group
 	 * @param brokerVisitedList - a map of all the nodes and if they have been visited
-	 * @returns true if the attempt runs through successfully; false if not
+	 * @return true if the attempt runs through successfully; false if not
 	 */
 	private boolean attemptToReachAllBrokerNodes(PubSubGroup brokerGroup, HashMap<String, VisitedState> brokerVisitedList)
 	{
@@ -242,9 +247,10 @@ public class LogicalTopology {
 	/**
 	 * Look at all the connections of a given group
 	 * and see if their resulting matches in the broker "B" group are there
+	 * 
 	 * @param givenGroup - the given role group
 	 * @param brokerGroup - the "B" group
-	 * @returns true if yes; false if no
+	 * @return true if yes; false if no
 	 */
 	private boolean confirmBrokerNodeExistance(PubSubGroup givenGroup, PubSubGroup brokerGroup)
 	{
@@ -276,7 +282,8 @@ public class LogicalTopology {
 	 * Sees if the Logical Topology is connected
 	 * It does so by first seeing if all the brokers are connected to each other
 	 * and then by seeing if the other roles are attached to existing brokers
-	 * @returns true if yes; false if no
+	 * 
+	 * @return true if yes; false if no
 	 */
 	public boolean confirmTopoConnectivity()
 	{

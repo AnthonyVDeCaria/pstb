@@ -115,7 +115,8 @@ public class PSTBUtil {
 	 * @param givenObjectName - the name of said Object
 	 * @return false on error; true if successful
 	 */
-	public static boolean createObjectFile(Object givenObject, String givenObjectName, String fileExtension, Logger logger, String logHeader)
+	public static boolean createObjectFile(Object givenObject, String givenObjectName, String fileExtension, 
+												Logger logger, String logHeader)
 	{
 		boolean check = checkFileExtension(fileExtension, logger, logHeader);
 		

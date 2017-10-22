@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
@@ -53,7 +52,7 @@ public class PhysicalTopology {
 	private Integer portNum = PORTSTART;
 	
 	private final String logHeader = "Physical Topology: ";
-	private static final Logger logger = LogManager.getRootLogger();
+	private Logger logger = null;
 	
 	private static final int INIT_TERMINATION_VALUE = 9999;
 	
@@ -63,7 +62,7 @@ public class PhysicalTopology {
 	/**
 	 * Empty Constructor
 	 */
-	public PhysicalTopology() 
+	public PhysicalTopology(Logger log) 
 	{
 		brokerObjects = new HashMap<String, PSBrokerPADRES>();
 		clientObjects = new HashMap<String, PSClientPADRES>();
@@ -80,6 +79,8 @@ public class PhysicalTopology {
 		protocol = null;
 		distributed = null;
 		topologyFilePath = new String();
+		
+		logger = log;
 	}
 	
 	/**

@@ -1,12 +1,11 @@
-/**
- * 
- */
 package pstb.startup;
 
 /**
  * @author padres-dev-4187
+ * 
  * This class helps the mutually connected functions
  * by creating a class that contains both strings.
+ * 
  * @see cconfirmBrokerMutualConnectivity
  * @see fixMutualConnectivty
  */

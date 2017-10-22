@@ -51,7 +51,7 @@ public class PhysicalBroker {
 			System.exit(PSTBError.ERROR_ARGS_B);
 		}
 		
-		String context = givenBrokerName + "-" + givenRunNumber;
+		String context = givenRunNumber + "-" + givenBrokerName;
 		ThreadContext.put("broker", context);
 		
 		PSBrokerPADRES givenBroker = null;
