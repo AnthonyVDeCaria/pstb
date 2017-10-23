@@ -139,7 +139,13 @@ public class PhysicalClient {
 		}
 		
 		String diaryName = givenClient.generateDiaryName();
+		if(diaryName == null)
+		{
+			phyClientLogger.error(logHeader + "error generating a diary name for client " + givenClientName);
+			System.exit(PSTBError.ERROR_DIARY);
+		}
 		
+		phyClientLogger.info(logHeader + "creating a diary object with name " + diaryName);
 		functionCheck = PSTBUtil.createObjectFile(givenClient.getDiary(), diaryName, ".dia", phyClientLogger, logHeader);
 		if(!functionCheck)
 		{

@@ -18,6 +18,7 @@ import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.PSActionType;
 import pstb.util.ClientDiary;
 import pstb.util.DiaryEntry;
+import pstb.util.DistributedFlagValue;
 import pstb.util.NetworkProtocol;
 import pstb.util.NodeRole;
 import pstb.util.PSAction;
@@ -1015,14 +1016,14 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		else
 		{
-			String distributedString = null;
+			DistributedFlagValue distributedFlag = null;
 			if(distributed.booleanValue() == true)
 			{
-				distributedString = "D";
+				distributedFlag = DistributedFlagValue.D;
 			}
 			else if(distributed.booleanValue() == false)
 			{
-				distributedString = "L";
+				distributedFlag = DistributedFlagValue.L;
 			}
 			else
 			{
@@ -1032,7 +1033,7 @@ public class PSClientPADRES implements java.io.Serializable
 			
 			return clientName + "-"
 //					+ topologyFilePath + "-"
-					+ distributedString + "-"
+					+ distributedFlag.toString() + "-"
 					+ protocol.toString() + "-"
 					+ runLength.toString() + "-"
 					+ runNumber.toString();

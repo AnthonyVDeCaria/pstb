@@ -124,6 +124,16 @@ public class PhysicalTopology {
 	}
 	
 	/**
+	 * Gets a list of all the client names
+	 * 
+	 * @return a list of client names
+	 */
+	public ArrayList<String> getAllClientNames()
+	{
+		return new ArrayList<String>(clientObjects.keySet());
+	}
+	
+	/**
 	 * Gets the Run Number
 	 * 
 	 * @return the Run Number
@@ -131,6 +141,26 @@ public class PhysicalTopology {
 	public Integer getRunNumber()
 	{
 		return this.runNumber;
+	}
+	
+	/**
+	 * Gets the Distributed Boolean
+	 * 
+	 * @return the Distributed Boolean
+	 */
+	public Boolean getDistributed()
+	{
+		return distributed;
+	}
+	
+	/**
+	 * Gets the NetworkProtocol
+	 * 
+	 * @return the NetworkProtocol
+	 */
+	public NetworkProtocol getProtocol() 
+	{
+		return protocol;
 	}
 	
 	/**

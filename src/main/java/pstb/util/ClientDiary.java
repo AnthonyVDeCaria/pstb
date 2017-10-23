@@ -3,7 +3,10 @@ package pstb.util;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+
+import org.apache.logging.log4j.Logger;
 
 public class ClientDiary implements java.io.Serializable
 {
@@ -92,25 +95,73 @@ public class ClientDiary implements java.io.Serializable
 	}
 	
 	/**
+	 * @param log 
 	 * 
 	 */
-	public boolean printDiary(Path givenFilePath)
+	public boolean printDiary(Path givenFilePath, Logger log)
 	{
-		for(int i = 0; i < diary.size() ; i++)
+		int diarySize = diary.size();
+		
+		String openingLine = "There are " + diarySize + " entries\n\n";
+		try
 		{
-			String line = "Page " + i + ":\n";
+			if(Files.exists(givenFilePath))
+			{
+				Files.write(givenFilePath, openingLine.getBytes(), StandardOpenOption.APPEND);
+			}
+			else
+			{
+				Files.write(givenFilePath, openingLine.getBytes());
+			}
+		}
+		catch(IOException e)
+		{
+			log.error("ClientDiary: Error writing diarySize", e);
+			return false;
+		}
+		
+		for(int i = 0; i < diarySize ; i++)
+		{
+			String intro = "Page " + i + ":\n";
 			
 			try
 			{
-				Files.write(givenFilePath, line.getBytes());
-				boolean check = diary.get(i).printPage(givenFilePath);
-				if(!check)
+				if(Files.exists(givenFilePath))
 				{
-					return false;
+					Files.write(givenFilePath, intro.getBytes(), StandardOpenOption.APPEND);
+				}
+				else
+				{
+					Files.write(givenFilePath, intro.getBytes());
 				}
 			}
 			catch(IOException e)
 			{
+				log.error("ClientDiary: Error writing intro " + i, e);
+				return false;
+			}
+			
+			boolean check = diary.get(i).printPage(givenFilePath, log);
+			if(!check)
+			{
+				return false;
+			}
+			
+			try
+			{
+				String newLine = "\n";
+				if(Files.exists(givenFilePath))
+				{
+					Files.write(givenFilePath, newLine.getBytes(), StandardOpenOption.APPEND);
+				}
+				else
+				{
+					Files.write(givenFilePath, newLine.getBytes());
+				}
+			}
+			catch(IOException e)
+			{
+				log.error("ClientDiary: Error writing newLine " + i, e);
 				return false;
 			}
 		}

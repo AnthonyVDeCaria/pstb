@@ -3,7 +3,12 @@ package pstb.util;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+
+import org.apache.logging.log4j.Logger;
+
+import pstb.util.PSTBUtil.TimeType;
 
 /**
  * @author padres-dev-4187
@@ -211,7 +216,7 @@ public class DiaryEntry  implements java.io.Serializable
 		return page.containsValue(value);
 	}
 	
-	public boolean printPage(Path givenFilePath)
+	public boolean printPage(Path givenFilePath, Logger log)
 	{
 		try
 		{
@@ -219,16 +224,71 @@ public class DiaryEntry  implements java.io.Serializable
 				String line = header.toString() + ": " + data;
 				try
 				{
-					Files.write(givenFilePath, line.getBytes());
+					if(Files.exists(givenFilePath))
+					{
+						Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
+					}
+					else
+					{
+						Files.write(givenFilePath, line.getBytes());
+					}
 				}
 				catch(IOException e)
 				{
-					throw new IllegalArgumentException("IO failed");
+					throw new IllegalArgumentException("IO failed at line " + line);
+				}
+				
+				if(header.equals(DiaryHeader.AckDelay) 
+					|| header.equals(DiaryHeader.TimeDifference)
+					|| header.equals(DiaryHeader.TimeActiveStarted)
+					|| header.equals(DiaryHeader.TimeActiveAck)
+					)
+				{
+					Long convertedData = PSTBUtil.checkIfLong(data, false, null);
+					if(convertedData != null)
+					{
+						String formattedTime = PSTBUtil.createTimeString(convertedData, TimeType.Nano);
+						
+						line = " -> " + formattedTime;
+						try
+						{
+							if(Files.exists(givenFilePath))
+							{
+								Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
+							}
+							else
+							{
+								Files.write(givenFilePath, line.getBytes());
+							}
+						}
+						catch(IOException e)
+						{
+							throw new IllegalArgumentException("IO failed to add time data at line " + line);
+						}
+					}
+				}
+				
+				line = "\n";
+				try
+				{
+					if(Files.exists(givenFilePath))
+					{
+						Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
+					}
+					else
+					{
+						Files.write(givenFilePath, line.getBytes());
+					}
+				}
+				catch(IOException e)
+				{
+					throw new IllegalArgumentException("IO failed to add a newline at line " + line);
 				}
 			});
 		}
 		catch(IllegalArgumentException e)
 		{
+			log.error("DiaryEntry: Error writing to file", e);
 			return false;
 		}
 		

@@ -9,8 +9,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.Logger;
@@ -21,6 +23,8 @@ import pstb.benchmark.PhysicalClient;
 public class PSTBUtil {
 	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
 	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
+	
+	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd HH:mm:ss.SSS");    
 	
 	public static final String SPACE = " ";
 	public static final String COMMA = ",";
@@ -157,5 +161,124 @@ public class PSTBUtil {
 			return false;
 		}
 		return true;
+	}
+	
+	public enum TimeType{
+		Nano, Milli
+	}
+	
+	public static String createTimeString(Long givenTimeValue, TimeType givenTT)
+	{
+		String retVal = null;
+		Long hours = new Long(0);
+		Long minutes = new Long(0);
+		Long seconds = new Long(0);
+		Long milliseconds = new Long(0);
+		Long microseconds = new Long(0);
+		
+		if(givenTT.equals(TimeType.Nano))
+		{
+			hours = TimeUnit.NANOSECONDS.toHours(givenTimeValue);
+			minutes = TimeUnit.NANOSECONDS.toMinutes(givenTimeValue);
+			seconds = TimeUnit.NANOSECONDS.toSeconds(givenTimeValue);
+			milliseconds = TimeUnit.NANOSECONDS.toMillis(givenTimeValue);
+			microseconds = TimeUnit.NANOSECONDS.toMicros(givenTimeValue);
+		}
+		else if(givenTT.equals(TimeType.Milli))
+		{
+			hours = TimeUnit.MILLISECONDS.toHours(givenTimeValue);
+			minutes = TimeUnit.MILLISECONDS.toMinutes(givenTimeValue);
+			seconds = TimeUnit.MILLISECONDS.toSeconds(givenTimeValue);
+			milliseconds = TimeUnit.MILLISECONDS.toMillis(givenTimeValue);
+			microseconds = TimeUnit.MILLISECONDS.toMicros(givenTimeValue);
+		}
+		
+		if(hours.compareTo(0L) > 0)
+		{
+			Long hMinutes = minutes - TimeUnit.HOURS.toMinutes(hours);
+			Long hSeconds = seconds - TimeUnit.HOURS.toSeconds(hours);
+			Long hMillis = milliseconds - TimeUnit.HOURS.toMillis(hours);
+			Long hMicros = microseconds - TimeUnit.HOURS.toMicros(hours);
+			
+			if(hMinutes.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d h, %02d m", hours, hMinutes);
+			}
+			else if(hSeconds.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d h, %02d s", hours, hSeconds);
+			}
+			else if(hMillis.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d h, %02d ms", hours, hMillis);
+			}
+			else if(hMicros.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d h, %02d us", hours, hMicros);
+			}
+			else
+			{
+				retVal = String.format("%02d h", hours);
+			}
+		}
+		else if(minutes.compareTo(0L) > 0)
+		{
+			Long mSeconds = seconds - TimeUnit.MINUTES.toSeconds(minutes);
+			Long mMillis = milliseconds - TimeUnit.MINUTES.toMillis(minutes);
+			Long mMicros = microseconds - TimeUnit.MINUTES.toMicros(minutes);
+			
+			if(mSeconds.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d m, %02d s", minutes, mSeconds);
+			}
+			else if(mMillis.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d m, %02d ms", minutes, mMillis);
+			}
+			else if(mMicros.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d m, %02d us", minutes, mMicros);
+			}
+			else
+			{
+				retVal = String.format("%02d m", minutes);
+			}
+		}
+		else if(seconds.compareTo(0L) > 0)
+		{
+			Long sMillis = milliseconds - TimeUnit.SECONDS.toMillis(seconds);
+			Long sMicros = microseconds - TimeUnit.SECONDS.toMicros(seconds);
+			
+			if(sMillis.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d s, %02d ms", seconds, sMillis);
+			}
+			else if(sMicros.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d s, %02d us", seconds, sMicros);
+			}
+			else
+			{
+				retVal = String.format("%02d s", seconds);
+			}
+		}
+		else if(milliseconds.compareTo(0L) > 0)
+		{
+			Long miMicros = microseconds - TimeUnit.MILLISECONDS.toMicros(milliseconds);
+			if(miMicros.compareTo(0L) > 0)
+			{
+				retVal = String.format("%02d ms, %02d us", milliseconds, miMicros);
+			}
+			else
+			{
+				retVal = String.format("%02d ms", milliseconds);
+			}
+		}
+		else
+		{
+			retVal = String.format("%02d us", microseconds);
+		}
+		
+		return retVal;
 	}
 }

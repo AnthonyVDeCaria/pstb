@@ -11,12 +11,14 @@ import java.util.Scanner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.analysis.Analyzer;
 import pstb.benchmark.PhysicalTopology;
 import pstb.benchmark.PhysicalTopology.ActiveProcessRetVal;
 import pstb.startup.BenchmarkConfig;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
 import pstb.startup.WorkloadFileParser.WorkloadFileType;
+import pstb.util.DistributedFlagValue;
 import pstb.util.DistributedState;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
@@ -30,8 +32,6 @@ import pstb.util.Workload;
  *
  */
 public class PSTB {
-	private static final Long NANO_SEC_NEEDED_TO_CLEAN_BROKER = new Long(6000000000L);
-	
 	private static final Logger logger = LogManager.getLogger(PSTB.class);
 	
 	/**
@@ -229,6 +229,7 @@ public class PSTB {
 		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
+		Analyzer brain = new Analyzer(logger);
 		
 		logger.info("Beginning to create Physical Topology");
 		
@@ -268,12 +269,12 @@ public class PSTB {
 				if(!localPT.doObjectsExist())
 				{
 					successfulExperiment = runExperiment(localPT, benchmarkRules.getRunLengths(), 
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
 				}
 				else
 				{
 					successfulExperiment = runExperiment(disPT, benchmarkRules.getRunLengths(), 
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
 				}
 				
 				if(!successfulExperiment)
@@ -283,12 +284,24 @@ public class PSTB {
 			}
 		}
 		
+		logger.info("Printing all diaries");
+		brain.printAllDiaries();
+		
+		logger.info("Benchmark complete");
 		endProgram(0, userInput);
 	}
 	
 	private static boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
-											Integer givenNumberOfRunsPerExperiment, Workload givenWorkload)
+											Integer givenNumberOfRunsPerExperiment, Workload givenWorkload, Analyzer givenAnalyzer)
 	{
+		Boolean givenPTDis = givenPT.getDistributed();
+		
+		if(givenPTDis == null)
+		{
+			logger.error("Error with givenPT - distributed value not set properly");
+			return false;
+		}
+		
 		for(int runLengthI = 0 ; runLengthI < givenRLs.size(); runLengthI++)
 		{
 			Long currentRunLength = givenRLs.get(runLengthI) * PSTBUtil.MIN_TO_NANOSEC;
@@ -400,21 +413,37 @@ public class PSTB {
 				}
 				givenPT.killAllProcesses();
 				
-				Long waitTime = NANO_SEC_NEEDED_TO_CLEAN_BROKER * givenPT.numberOfLogicalBrokers();
-				sleepLength = (long) (waitTime / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
-				try 
-				{				
-					logger.trace("Pausing main");
-					Thread.sleep(sleepLength);
-				} 
-				catch (InterruptedException e) 
+				logger.debug("Collecting diaries");
+				ArrayList<String> clientNames = givenPT.getAllClientNames();
+				NetworkProtocol proto = givenPT.getProtocol();
+				String disFlag = null;
+				if(givenPTDis.booleanValue() == true)
 				{
-					logger.error("Error sleeping in main", e);
-					return false;
+					disFlag = DistributedFlagValue.D.toString();
+				}
+				else
+				{
+					disFlag = DistributedFlagValue.L.toString();
+				}
+				
+				boolean allDiariesCollected = true;
+				for(int i = 0; i < clientNames.size() ; i++)
+				{
+					String diaryName = clientNames.get(i) + "-"
+										+ disFlag + "-"
+										+ proto.toString() + "-"
+										+ currentRunLength + "-"
+										+ runI;
+					allDiariesCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryName);
+					 
+					if(!allDiariesCollected)
+					{
+						logger.error("Error collecting diaries");
+						return false;
+					}
 				}
 				
 				givenPT.clearProcessBuilders();
-				logger.info("Cooldown complete");
 			}
 		}
 		
