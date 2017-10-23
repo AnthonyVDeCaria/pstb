@@ -135,7 +135,7 @@ public class Analyzer {
 	
 	public Histogram developDelayHistogram(ArrayList<String> clientNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
-		if( (delayType != DiaryHeader.AckDelay) 
+		if( (delayType != DiaryHeader.ActionDelay) 
 			|| (delayType != DiaryHeader.TimeDifference)
 			)
 		{

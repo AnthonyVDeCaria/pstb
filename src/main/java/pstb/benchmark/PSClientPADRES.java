@@ -597,6 +597,7 @@ public class PSClientPADRES implements java.io.Serializable
 			receivedMsg.addTimeCreated(timePubCreated);
 			receivedMsg.addTimeReceived(currentTime);
 			receivedMsg.addTimeDifference(currentTime - timePubCreated);
+			receivedMsg.addAttributes(pub.toString());
 			
 			try
 			{
@@ -647,23 +648,27 @@ public class PSClientPADRES implements java.io.Serializable
 		thisEntry.addPSActionType(selectedAction);
 		boolean actionSuccessful = false;
 		
+		Long startTime = System.currentTimeMillis();
 		Long startAction = System.nanoTime();
 		Message result = executeAction(selectedAction, givenAction);
-		Long actionAcked = System.nanoTime();
+		Long endAction = System.nanoTime();
+		Long brokerFinished = System.currentTimeMillis();
 		
 		if(result != null)
 		{
 			actionSuccessful = true;
-			Long timeDiff = actionAcked - startAction;
+			Long timeDiff = endAction - startAction;
 			
 			String attributes = givenAction.getAttributes();
 			
-			thisEntry.addTimeStartedAction(startAction);
-			thisEntry.addTimeBrokerAck(actionAcked);
-			thisEntry.addAckDelay(timeDiff);
+			thisEntry.addStartedAction(startAction);
+			thisEntry.addEndedAction(endAction);
+			thisEntry.addActionDelay(timeDiff);
+			thisEntry.addTimeActionStarted(startTime);
+			thisEntry.addTimeBrokerFinished(brokerFinished);
 			thisEntry.addMessageID(result.getMessageID());
 			thisEntry.addAttributes(attributes);
-			
+						
 			if(selectedAction.equals(PSActionType.U) || selectedAction.equals(PSActionType.V))
 			{
 				DiaryEntry ascAction = null;
@@ -684,11 +689,11 @@ public class PSClientPADRES implements java.io.Serializable
 				}
 				else
 				{
-					Long aAStarted = ascAction.getTimeStartedAction();
-					Long aAAcked = ascAction.getTimeBrokerAck();
+					Long aAStarted = ascAction.getStartedAction();
+					Long aAAcked = ascAction.getEndedAction();
 					
 					Long startedDif = startAction - aAStarted;
-					Long ackedDif = actionAcked - aAAcked;
+					Long ackedDif = endAction - aAAcked;
 					
 					thisEntry.addTimeActiveStarted(startedDif);
 					thisEntry.addTimeActiveAck(ackedDif);
@@ -896,7 +901,7 @@ public class PSClientPADRES implements java.io.Serializable
 				return false;
 			}
 			
-			Long activeActionIStartTime = activeActionIEntry.getTimeStartedAction();
+			Long activeActionIStartTime = activeActionIEntry.getStartedAction();
 			
 			logger.trace(logHeader + "Delay is = " + (currentTime - activeActionIStartTime) 
 							+ " TA is = " + activeActionI.getTimeActive());

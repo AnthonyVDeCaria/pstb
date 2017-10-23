@@ -23,10 +23,11 @@ public class DiaryEntry  implements java.io.Serializable
 	 * The allowed headers for this Diary Entry
 	 */
 	public enum DiaryHeader {
-		PSActionType, 
-		TimeStartedAction, TimeBrokerAck, AckDelay, 
+		PSActionType,
+		TimeActionStarted, TimeBrokerFinished,
+		StartedAction, EndedAction, ActionDelay,
 		MessageID, Attributes, PayloadSize, 
-		TimeActiveStarted, TimeActiveAck,
+		TimeActiveStarted, TimeActiveEnded,
 		TimeCreated, TimeReceived, TimeDifference
 	}
 	
@@ -40,6 +41,7 @@ public class DiaryEntry  implements java.io.Serializable
 	
 	/**
 	 * PSActionType setter
+	 * 
 	 * @param givenPSAT - the PSActionType to add
 	 */
 	public void addPSActionType(PSActionType givenPSAT)
@@ -47,31 +49,43 @@ public class DiaryEntry  implements java.io.Serializable
 		page.put(DiaryHeader.PSActionType, givenPSAT.toString());
 	}
 	
-	/**
-	 * Time Started Action setter
-	 * @param givenTSA - the Time Started Action to add
-	 */
-	public void addTimeStartedAction(Long givenTSA)
+	public void addTimeActionStarted(Long givenTAS)
 	{
-		page.put(DiaryHeader.TimeStartedAction, givenTSA.toString());
+		page.put(DiaryHeader.TimeActionStarted, givenTAS.toString());
+	}
+	
+	public void addTimeBrokerFinished(Long givenTBF)
+	{
+		page.put(DiaryHeader.TimeBrokerFinished, givenTBF.toString());
 	}
 	
 	/**
-	 * Time Broker Ack(nowledged) setter 
-	 * @param givenTBA - the Time Broker Acknowledged to add
+	 * Started Action setter
+	 * 
+	 * @param givenSA - the Time Started Action to add
 	 */
-	public void addTimeBrokerAck(Long givenTBA)
+	public void addStartedAction(Long givenSA)
 	{
-		page.put(DiaryHeader.TimeBrokerAck, givenTBA.toString());
+		page.put(DiaryHeader.StartedAction, givenSA.toString());
 	}
 	
 	/**
-	 * Ack(nowledge) Delay setter
-	 * @param givenAD - the Acknowledge Delay to add
+	 * Action Ended setter 
+	 * 
+	 * @param givenEA - the Action Ended to add
 	 */
-	public void addAckDelay(Long givenAD)
+	public void addEndedAction(Long givenEA)
 	{
-		page.put(DiaryHeader.AckDelay, givenAD.toString());
+		page.put(DiaryHeader.EndedAction, givenEA.toString());
+	}
+	
+	/**
+	 * Action Delay setter
+	 * @param givenAD - the Action Delay to add
+	 */
+	public void addActionDelay(Long givenAD)
+	{
+		page.put(DiaryHeader.ActionDelay, givenAD.toString());
 	}
 	
 	public void addMessageID(String givenMID)
@@ -96,7 +110,7 @@ public class DiaryEntry  implements java.io.Serializable
 	
 	public void addTimeActiveAck(Long givenTAA)
 	{
-		page.put(DiaryHeader.TimeActiveAck, givenTAA.toString());
+		page.put(DiaryHeader.TimeActiveEnded, givenTAA.toString());
 	}
 	
 	public void addTimeCreated(Long givenTC)
@@ -120,22 +134,22 @@ public class DiaryEntry  implements java.io.Serializable
 		return PSActionType.valueOf(storedPSActionType);
 	}
 	
-	public Long getTimeStartedAction()
+	public Long getStartedAction()
 	{
-		String storedTimeStartedAction = page.get(DiaryHeader.TimeStartedAction);
+		String storedTimeStartedAction = page.get(DiaryHeader.StartedAction);
 		return PSTBUtil.checkIfLong(storedTimeStartedAction, false, null);
 	}
 	
-	public Long getTimeBrokerAck()
+	public Long getEndedAction()
 	{
-		String storedTimeBrokerAck = page.get(DiaryHeader.TimeBrokerAck);
+		String storedTimeBrokerAck = page.get(DiaryHeader.EndedAction);
 		return PSTBUtil.checkIfLong(storedTimeBrokerAck, false, null);
 	}
 	
-	public Long getAckDelay()
+	public Long getActionDelay()
 	{
-		String storedTimeAckDelay = page.get(DiaryHeader.AckDelay);
-		return PSTBUtil.checkIfLong(storedTimeAckDelay, false, null);
+		String storedActionDelay = page.get(DiaryHeader.ActionDelay);
+		return PSTBUtil.checkIfLong(storedActionDelay, false, null);
 	}
 	
 	public String getMessageID()
@@ -160,10 +174,10 @@ public class DiaryEntry  implements java.io.Serializable
 		return PSTBUtil.checkIfLong(storedTimeActiveStarted, false, null);
 	}
 	
-	public Long getTimeActiveAck()
+	public Long getTimeActiveEnded()
 	{
-		String storedTimeActiveAck = page.get(DiaryHeader.TimeActiveAck);
-		return PSTBUtil.checkIfLong(storedTimeActiveAck, false, null);
+		String storedTimeActiveEnded = page.get(DiaryHeader.TimeActiveEnded);
+		return PSTBUtil.checkIfLong(storedTimeActiveEnded, false, null);
 	}
 	
 	public Long getTimeCreated()
@@ -186,9 +200,9 @@ public class DiaryEntry  implements java.io.Serializable
 	
 	public Long getDelay(DiaryHeader delayType) 
 	{
-		if(delayType == DiaryHeader.AckDelay)
+		if(delayType == DiaryHeader.ActionDelay)
 		{
-			return getAckDelay();
+			return getActionDelay();
 		}
 		else if(delayType == DiaryHeader.TimeDifference)
 		{
@@ -221,6 +235,22 @@ public class DiaryEntry  implements java.io.Serializable
 		try
 		{
 			page.forEach((header, data)->{
+				if(
+						header.equals(DiaryHeader.TimeActionStarted)
+						|| header.equals(DiaryHeader.TimeBrokerFinished)
+					)
+				{
+					Long convertedData = PSTBUtil.checkIfLong(data, false, null);
+					if(convertedData != null)
+					{
+						data = PSTBUtil.DATE_FORMAT.format(convertedData);
+					}
+					else
+					{
+						throw new IllegalArgumentException("Converted data null at line " + header.toString() + ": " + data);
+					}
+				}
+				
 				String line = header.toString() + ": " + data;
 				try
 				{
@@ -238,18 +268,33 @@ public class DiaryEntry  implements java.io.Serializable
 					throw new IllegalArgumentException("IO failed at line " + line);
 				}
 				
-				if(header.equals(DiaryHeader.AckDelay) 
+				if(header.equals(DiaryHeader.ActionDelay) 
 					|| header.equals(DiaryHeader.TimeDifference)
 					|| header.equals(DiaryHeader.TimeActiveStarted)
-					|| header.equals(DiaryHeader.TimeActiveAck)
+					|| header.equals(DiaryHeader.TimeActiveEnded)
+					|| header.equals(DiaryHeader.TimeCreated) 
+					|| header.equals(DiaryHeader.TimeReceived)
 					)
 				{
 					Long convertedData = PSTBUtil.checkIfLong(data, false, null);
 					if(convertedData != null)
 					{
-						String formattedTime = PSTBUtil.createTimeString(convertedData, TimeType.Nano);
+						String formatted = null;
 						
-						line = " -> " + formattedTime;
+						if(header.equals(DiaryHeader.ActionDelay) 
+								|| header.equals(DiaryHeader.TimeDifference)
+								|| header.equals(DiaryHeader.TimeActiveStarted)
+								|| header.equals(DiaryHeader.TimeActiveEnded)
+								)
+						{
+							formatted = PSTBUtil.createTimeString(convertedData, TimeType.Nano);
+						}
+						else
+						{
+							formatted = PSTBUtil.DATE_FORMAT.format(convertedData);
+						}
+						
+						line = " -> " + formatted;
 						try
 						{
 							if(Files.exists(givenFilePath))
@@ -265,6 +310,10 @@ public class DiaryEntry  implements java.io.Serializable
 						{
 							throw new IllegalArgumentException("IO failed to add time data at line " + line);
 						}
+					}
+					else
+					{
+						throw new IllegalArgumentException("Converted data null at line " + line);
 					}
 				}
 				
