@@ -324,9 +324,12 @@ public class WorkloadFileParser {
 				{
 					if(payloadOrTA != null)
 					{
+						if(payloadOrTA < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
+						{
+							payloadOrTA *= PSTBUtil.MILLISEC_TO_NANOSEC;
+						}
 						newAction.setTimeActive(payloadOrTA);
 					}
-					
 					wload.updateAdvertisementWorkload(newAction);
 					fileAd = newAction;
 					break;
@@ -353,6 +356,10 @@ public class WorkloadFileParser {
 			{
 				if(payloadOrTA != null)
 				{
+					if(payloadOrTA < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
+					{
+						payloadOrTA *= PSTBUtil.MILLISEC_TO_NANOSEC;
+					}
 					newAction.setTimeActive(payloadOrTA);
 				}
 				wload.updateSubscriptionWorkload(newAction);
