@@ -32,7 +32,7 @@ import pstb.util.Workload;
  *
  */
 public class PSTB {
-	private static final Logger logger = LogManager.getLogger(PSTB.class);
+	private static final Logger logger = LogManager.getRootLogger();
 	
 	/**
 	 * Extracts the properties from a given properties file 
