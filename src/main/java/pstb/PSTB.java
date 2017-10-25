@@ -101,8 +101,9 @@ public class PSTB {
 		{
 			try
 			{
+				String userPropFile = UI.getAndCheckFilePathFromUser("Please input the path to this properties file", userInput);
 				logger.debug("Loading the user Properties file...");
-				Properties userProp = loadProperties("src/test/java/userBenchmark.properties", defaultProp);
+				Properties userProp = loadProperties(userPropFile, defaultProp);
 				benchmarkRules.setBenchmarkConfig(userProp);
 			}
 			catch (IOException e)
@@ -151,14 +152,12 @@ public class PSTB {
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
 		
 		logger.info("Starting to disect Topology Files...");
-		
 		for(int i = 0 ; i < allTopoFiles.size(); i++)
 		{
 			String topoI = allTopoFiles.get(i);
 			TopologyFileParser parseTopo = new TopologyFileParser(topoI, logger);
 			
 			logger.debug("Parsing Topology File " + topoI + "...");
-			
 			boolean parseCheck = parseTopo.parse();
 			if(!parseCheck)
 			{
@@ -172,7 +171,6 @@ public class PSTB {
 				LogicalTopology network = parseTopo.getLogicalTopo();
 				
 				logger.debug("Starting Topology Testing with topology " + topoI + "...");
-				
 				boolean mCCheck = network.confirmBrokerMutualConnectivity();
 				if(!mCCheck)
 				{

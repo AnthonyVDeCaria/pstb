@@ -47,6 +47,7 @@ public class PhysicalTopology {
 	private PubSubGroup subscriberList;
 	
 	private Integer runNumber;
+	private final Integer INIT_RUN_NUMBER = -1;
 	
 	private static final Integer PORTSTART = 1100;
 	private Integer portNum = PORTSTART;
@@ -75,42 +76,12 @@ public class PhysicalTopology {
 		publisherList = new PubSubGroup();
 		subscriberList = new PubSubGroup();
 		
-		runNumber = new Integer(-1);
+		runNumber = INIT_RUN_NUMBER;
 		protocol = null;
 		distributed = null;
 		topologyFilePath = new String();
 		
 		logger = log;
-	}
-	
-	/**
-	 * Determines if the Broker and Client objects have been created
-	 * 
-	 * @return true is they are; false if they aren't
-	 */
-	public boolean doObjectsExist()
-	{
-		return !brokerObjects.isEmpty() && !clientObjects.isEmpty();
-	}
-	
-	/**
-	 * Determines if the Broker and Client ProcessBuilders have been created
-	 * 
-	 * @return true is they are; false if they aren't
-	 */
-	public boolean doProcessBuildersExist()
-	{
-		return !brokerPBs.isEmpty() && !clientPBs.isEmpty();
-	}
-	
-	/**
-	 * Returns the current number of brokers stated in the Logical Topology
-	 * 
-	 * @return the number of Broker Objects
-	 */
-	public Integer numberOfLogicalBrokers()
-	{
-		return brokerList.size();
 	}
 	
 	/**
@@ -121,16 +92,6 @@ public class PhysicalTopology {
 	public void setRunNumber(Integer runNum)
 	{
 		runNumber = runNum;
-	}
-	
-	/**
-	 * Gets a list of all the client names
-	 * 
-	 * @return a list of client names
-	 */
-	public ArrayList<String> getAllClientNames()
-	{
-		return new ArrayList<String>(clientObjects.keySet());
 	}
 	
 	/**
@@ -171,6 +132,36 @@ public class PhysicalTopology {
 	public String getTopologyFilePath() 
 	{
 		return topologyFilePath;
+	}
+	
+	/**
+	 * Determines if the Broker and Client objects have been created
+	 * 
+	 * @return true is they are; false if they aren't
+	 */
+	public boolean doObjectsExist()
+	{
+		return !brokerObjects.isEmpty() && !clientObjects.isEmpty();
+	}
+	
+	/**
+	 * Determines if the Broker and Client ProcessBuilders have been created
+	 * 
+	 * @return true is they are; false if they aren't
+	 */
+	public boolean doProcessBuildersExist()
+	{
+		return !brokerPBs.isEmpty() && !clientPBs.isEmpty();
+	}
+	
+	/**
+	 * Returns the current number of brokers stated in the Logical Topology
+	 * 
+	 * @return the number of Broker Objects
+	 */
+	public Integer numberOfLogicalBrokers()
+	{
+		return brokerList.size();
 	}
 	
 	/**
@@ -222,8 +213,8 @@ public class PhysicalTopology {
 	{
 		logger.debug(logHeader + "Attempting to develop broker objects");
 		
+		// Loop through the brokerList -> that way we can create a bunch of unconnected brokerObjects
 		Iterator<String> iteratorBL = brokerList.keySet().iterator();
-		
 		for( ; iteratorBL.hasNext() ; )
 		{
 			String brokerI = iteratorBL.next();
@@ -235,12 +226,12 @@ public class PhysicalTopology {
 			brokerObjects.put(brokerI, actBrokerI);
 		}
 		
+		// Now loop through the brokerObject, accessing the brokerList to find a given broker's connections
 		Iterator<String> iteratorBO = brokerObjects.keySet().iterator();
-		for( ; iteratorBO.hasNext(); )
+		for( ; iteratorBO.hasNext() ; )
 		{
 			String brokerIName = iteratorBO.next();
 			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
-			
 			ArrayList<String> neededURIs = new ArrayList<String>();
 			
 			ArrayList<String> bIConnectedNodes = brokerList.getNodeConnections(brokerIName);
@@ -313,6 +304,7 @@ public class PhysicalTopology {
 		Iterator<String> pubIterator = publisherList.keySet().iterator();
 		Iterator<String> subIterator = subscriberList.keySet().iterator();
 		
+		// Loop through the publisherList, creating every client that's there
 		for( ; pubIterator.hasNext() ; )
 		{
 			String publisherNameI = pubIterator.next();
@@ -323,6 +315,12 @@ public class PhysicalTopology {
 			}
 		}
 		
+		/*
+		 * Now loop through the subscriberList
+		 * 
+		 * If a given client already exists, give it a Sub node role
+		 * Otherwise, create it
+		 */
 		for( ; subIterator.hasNext() ; )
 		{
 			String subscriberNameI = subIterator.next();
@@ -368,6 +366,7 @@ public class PhysicalTopology {
 			return false;
 		}
 		
+		// Make sure each broker stated in the PubSubGroup actually exists
 		for(int j = 0; j < numClientIConnections ; j++)
 		{
 			String brokerJName = clientIConnections.get(j);
@@ -406,13 +405,13 @@ public class PhysicalTopology {
 	{
 		if(clientObjects.isEmpty())
 		{
-			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first.\n" +
+			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first. " +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
 		
 		clientObjects.forEach((clientName, actualClient)->{
-			actualClient.addRL(givenRL);
+			actualClient.setRunLength(givenRL);
 		});
 		
 		return true;
@@ -429,7 +428,7 @@ public class PhysicalTopology {
 	{
 		if(clientObjects.isEmpty())
 		{
-			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first.\n" +
+			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first. " +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
@@ -445,16 +444,26 @@ public class PhysicalTopology {
 	{
 		if(clientObjects.isEmpty())
 		{
-			logger.error(logHeader + "addRunNumberToAllClients() needs clients to be created first.\n" +
+			logger.error(logHeader + "addRunNumberToAllClients() needs clients to be created first. " +
 							"Please run developPhysicalTopology().");
 			return false;
 		}
 		
 		clientObjects.forEach((clientName, actualClient)->{
-			actualClient.addRunNumber(runNumber);
+			actualClient.setRunNumber(runNumber);
 		});
 		
 		return true;
+	}
+	
+	/**
+	 * Gets a list of all the client names
+	 * 
+	 * @return a list of client names
+	 */
+	public ArrayList<String> getAllClientNames()
+	{
+		return new ArrayList<String>(clientObjects.keySet());
 	}
 	
 	/**
@@ -479,7 +488,7 @@ public class PhysicalTopology {
 			return false;
 		}
 		
-		if(runNumber.compareTo(-1) <= 0)
+		if(runNumber.compareTo(INIT_RUN_NUMBER) <= 0)
 		{
 			logger.error(logHeader + "generateBrokerAndClientProcesses() needs a runNumber. Please run setRunNumber().");
 			return false;
@@ -521,7 +530,7 @@ public class PhysicalTopology {
 				return false;
 			}
 			
-			ProcessBuilder actualClientI = new ProcessBuilder(clientCommand.split("\\s+"));
+			ProcessBuilder actualClientI = new ProcessBuilder(clientCommand.split("\\s+")).inheritIO();
 			clientPBs.add(actualClientI);
 		}
 		

@@ -3,6 +3,7 @@
  */
 package pstb.util;
 
+import java.io.File;
 import java.util.Scanner;
 
 /**
@@ -10,6 +11,20 @@ import java.util.Scanner;
  *
  */
 public class UI {
+	
+	/**
+	 * Gets an input from the user
+	 * 
+	 * @param prompt - A prompt for the user
+	 * @param userInterface - the scanner the user is utilizing to give their response
+	 * @return their input
+	 */
+	public static String getInputFromUser(String prompt, Scanner userInterface)
+	{
+		System.out.println(prompt);
+		
+		return userInterface.next();
+	}
 	
 	/**
 	 * Gets a Y or N answer from a user for a given prompt
@@ -23,20 +38,39 @@ public class UI {
 	{
 		boolean userResponse = false;
 		
-		System.out.println(prompt);
-		
-		String userAns = userInterface.next();
+		String userAns = getInputFromUser(prompt, userInterface);
 		
 		while(!userAns.equalsIgnoreCase("Y") && !userAns.equalsIgnoreCase("N"))
 		{
-			userAns = userInterface.next();
+			userAns = getInputFromUser("Incorrect response\n" + prompt, userInterface);
 		}
 		
 		if(userAns.equalsIgnoreCase("Y"))
 		{
 			userResponse = true;
 		}
+		
 		return userResponse;
+	}
+	
+	/**
+	 * Gets a file path from the user.
+	 * This file path will be confirmed as a file on disc.
+	 * 
+	 * @param prompt - A prompt for the user
+	 * @param userInterface - the scanner the user is utilizing to give their response
+	 * @return a path to a file (as a String)
+	 */
+	public static String getAndCheckFilePathFromUser(String prompt, Scanner userInterface)
+	{
+		String userAns = getInputFromUser(prompt, userInterface);
+		
+		while(!new File(userAns).isFile())
+		{
+			userAns = getInputFromUser("Given File does not exist\n" + prompt, userInterface);
+		}
+		
+		return userAns;
 	}
 
 }

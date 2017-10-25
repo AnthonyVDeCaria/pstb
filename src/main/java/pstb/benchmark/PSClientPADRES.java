@@ -67,6 +67,8 @@ public class PSClientPADRES implements java.io.Serializable
 	
 	private final int SEED_AD = 23;
 	
+	private final int INIT_J = 0;
+	
 	ReentrantLock lock = new ReentrantLock();
 	
 	private final String logHeader = "Client: ";
@@ -89,7 +91,16 @@ public class PSClientPADRES implements java.io.Serializable
 		topologyFilePath = new String();
 		protocol = INIT_PROTOCOL;
 		distributed = INIT_DISTRIBUTED;
-		
+	}
+	
+	/**
+	 * Sets the Client's name
+	 * 
+	 * @param givenName - the new name
+	 */
+	public void setClientName(String givenName)
+	{
+		clientName = givenName;
 	}
 	
 	/**
@@ -102,6 +113,12 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public boolean addNewClientRole(NodeRole newNodeRole)
 	{
+		/*
+		 * Only add newNodeRole if:
+		 * 	- we don't have this role
+		 * 	- it's not the broker role
+		 */
+		
 		boolean successfulAdd = false;
 		if(!newNodeRole.equals(NodeRole.B) && !clientRoles.contains(newNodeRole))
 		{
@@ -109,46 +126,6 @@ public class PSClientPADRES implements java.io.Serializable
 			successfulAdd = true;
 		}
 		return successfulAdd;
-	}
-	
-	/**
-	 * Sets the runLength value
-	 * 
-	 * @param givenRL - the rL value to be set
-	 */
-	public void addRL(Long givenRL)
-	{
-		runLength = givenRL;
-	}
-	
-	/**
-	 * Sets the Client workload
-	 * 
-	 * @param givenW - the given Workload
-	 */
-	public void addWorkload(Workload givenW)
-	{
-		clientWorkload = givenW;
-	}
-	
-	/**
-	 * Adds the run number
-	 * 
-	 * @param givenRN - the given run number
-	 */
-	public void addRunNumber(Integer givenRN)
-	{
-		runNumber = givenRN;
-	}
-	
-	/**
-	 * Sets the Client's name
-	 * 
-	 * @param givenName - the new name
-	 */
-	public void setClientName(String givenName)
-	{
-		clientName = givenName;
 	}
 	
 	/**
@@ -163,13 +140,33 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	
 	/**
-	 * Adds the Logger this Client must use
+	 * Sets the Client workload
 	 * 
-	 * @param givenLogger - the Logger
+	 * @param givenW - the given Workload
 	 */
-	public void addLogger(Logger givenLogger)
+	public void addWorkload(Workload givenW)
 	{
-		logger = givenLogger;
+		clientWorkload = givenW;
+	}
+	
+	/**
+	 * Sets the runLength value
+	 * 
+	 * @param givenRL - the rL value to be set
+	 */
+	public void setRunLength(Long givenRL)
+	{
+		runLength = givenRL;
+	}
+	
+	/**
+	 * Adds the run number
+	 * 
+	 * @param givenRN - the given run number
+	 */
+	public void setRunNumber(Integer givenRN)
+	{
+		runNumber = givenRN;
 	}
 	
 	/**
@@ -203,43 +200,13 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	
 	/**
-	 * Gets this Client's roles
+	 * Adds the Logger this Client must use
 	 * 
-	 * @return a list of its roles
+	 * @param givenLogger - the Logger
 	 */
-	public ArrayList<NodeRole> getClientRoles()
+	public void addLogger(Logger givenLogger)
 	{
-		return clientRoles;
-	}
-	
-	/**
-	 * Get the runLength
-	 * 
-	 * @return the runLength
-	 */
-	public Long getRunLength()
-	{
-		return runLength;
-	}
-	
-	/**
-	 * Gets this Client's workload 
-	 * 
-	 * @return the stored Workload
-	 */
-	public Workload getWorkload()
-	{
-		return clientWorkload;
-	}
-	
-	/**
-	 * Gets this Client's run number
-	 * 
-	 * @return the stored run number
-	 */
-	public Integer getRunNumber()
-	{
-		return runNumber;
+		logger = givenLogger;
 	}
 	
 	/**
@@ -253,6 +220,16 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	
 	/**
+	 * Gets this Client's roles
+	 * 
+	 * @return a list of its roles
+	 */
+	public ArrayList<NodeRole> getClientRoles()
+	{
+		return clientRoles;
+	}
+	
+	/**
 	 * Gets the URIs of the Broker's this Client is connected to 
 	 * 
 	 * @return a list of the URIs
@@ -260,6 +237,36 @@ public class PSClientPADRES implements java.io.Serializable
 	public ArrayList<String> getBrokerURIs()
 	{
 		return brokerURIs;
+	}
+	
+	/**
+	 * Gets this Client's workload 
+	 * 
+	 * @return the stored Workload
+	 */
+	public Workload getWorkload()
+	{
+		return clientWorkload;
+	}
+	
+	/**
+	 * Get the runLength
+	 * 
+	 * @return the runLength
+	 */
+	public Long getRunLength()
+	{
+		return runLength;
+	}
+	
+	/**
+	 * Gets this Client's run number
+	 * 
+	 * @return the stored run number
+	 */
+	public Integer getRunNumber()
+	{
+		return runNumber;
 	}
 	
 	/**
@@ -302,6 +309,52 @@ public class PSClientPADRES implements java.io.Serializable
 	{
 		return distributed;
 	}
+	
+	public String generateDiaryName()
+	{
+		//Check that we have everything
+		if(runLength.equals(INIT_RUN_LENGTH) 
+				|| runNumber.equals(INIT_RUN_NUMBER) 
+				|| topologyFilePath.isEmpty()
+				|| protocol.equals(INIT_PROTOCOL)
+				|| distributed.equals(INIT_DISTRIBUTED)
+				|| clientName.isEmpty()
+			)
+		{
+			logger.error(logHeader + "Not all Diary values have been set");
+			return null;
+		}
+		// We do
+
+		// Check that we can access the distributed
+		DistributedFlagValue distributedFlag = null;
+		if(distributed.booleanValue() == true)
+		{
+			distributedFlag = DistributedFlagValue.D;
+		}
+		else if(distributed.booleanValue() == false)
+		{
+			distributedFlag = DistributedFlagValue.L;
+		}
+		else
+		{
+			logger.error(logHeader + "error with distributed");
+			return null;
+		}
+		// We can - it's now in a flag enum
+		// WHY a flag enum: to collapse the space to two values
+		
+		// Convert the nanosecond runLength into milliseconds
+		// WHY: neatness / it's what the user gave us->why confuse them?
+		Long milliRunLength = (long) (runLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
+		
+		return clientName + "-"
+				+ topologyFilePath + "-"
+				+ distributedFlag.toString() + "-"
+				+ protocol.toString() + "-"
+				+ milliRunLength.toString() + "-"
+				+ runNumber.toString();
+	}
 
 	/**
 	 * Sets some of the variables and creates a new Client
@@ -312,8 +365,16 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public boolean initialize(boolean connectAsWell) 
 	{
+		// Check that the name exists
+		if(clientName.isEmpty())
+		{
+			logger.error(logHeader + "Attempted to initialize a client with no name");
+			return false;
+		}
+		
 		logger.info(logHeader + "Attempting to initialize client " + clientName);
 		
+		// Attempt to create a new config file
 		try 
 		{
 			this.cConfig = new ClientConfig();
@@ -323,13 +384,24 @@ public class PSClientPADRES implements java.io.Serializable
 			logger.error(logHeader + "Error creating new Config for Client " + clientName, e);
 			return false;
 		}
+		// New Config file created
 		
 		this.cConfig.clientID = clientName;
+		
 		if(connectAsWell)
 		{
+			// Check that there are brokerURIs to connect to
+			if(brokerURIs.isEmpty())
+			{
+				logger.error(logHeader + "Attempted to connect client " + clientName + " that had no brokerURIs");
+				return false;
+			}
+			// There are
+			
 			this.cConfig.connectBrokerList = (String[]) brokerURIs.toArray(new String[brokerURIs.size()]);
 		}
 		
+		// Attempt to create the PADRES Client object
 		try 
 		{
 			actualClient = new PADRESClientExtension(cConfig, this);
@@ -339,6 +411,8 @@ public class PSClientPADRES implements java.io.Serializable
 			logger.error(logHeader + "Cannot initialize new client " + clientName, e);
 			return false;
 		}
+		// Successful
+		// If connecting was requested, that set would have also connected the client
 		
 		logger.info(logHeader + "Initialized client " + clientName);
 		return true;
@@ -363,7 +437,7 @@ public class PSClientPADRES implements java.io.Serializable
 			return false;
 		}
 		
-		logger.info(logHeader + "Shutdown client " + clientName);
+		logger.info(logHeader + "Client " + clientName + " shutdown");
 		return true;
 	}
 
@@ -417,16 +491,23 @@ public class PSClientPADRES implements java.io.Serializable
 	 */
 	public boolean startRun()
 	{
+		// Check if we have a runLength
 		if( runLength < MIN_RUNLENGTH )
 		{
-			logger.error(logHeader + "missing runLength\n" + "Please run addRL() first");
+			logger.error(logHeader + "missing runLength - Please run addRL() first");
 			return false;
 		}
+		// We do
 		
 		logger.info(logHeader + "Starting run");
-				
+		
+		// Get the start time
 		Long runStart = System.nanoTime();
 		
+		/*
+		 * Variable setting
+		 */
+		// Workloads / active Actions
 		ArrayList<PSAction> activeSubsList = new ArrayList<PSAction>();
 		ArrayList<PSAction> givenSubWorkload = clientWorkload.getSubscriberWorkload(); // Optimization: why get it multiple times?
 		
@@ -434,13 +515,16 @@ public class PSClientPADRES implements java.io.Serializable
 		ArrayList<PSAction> givenAdWorkload = clientWorkload.getAdvertiserWorkload(); // Optimization: why get it multiple times?
 		HashMap<PSAction, Integer> activeAdsPublicationJ = new HashMap<PSAction, Integer>();
 		
+		// Ints
 		int numAdsToSend = 0;
 		int numSubsToSend = 0;
 		int numAdsSent = 0;
 		int numSubsSent = 0;
 		
+		// Random
 		Random activeAdIGenerator = new Random(SEED_AD);
 		
+		// Determine how many Ads and Subs to send
 		for(int i = 0; i < clientRoles.size() ; i++)
 		{
 			if(clientRoles.get(i) == NodeRole.P)
@@ -460,6 +544,28 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		Long currentTime = System.nanoTime();
 		
+		/*
+		 * Run Pseudocode
+		 * 
+		 * While we're still allowed to run
+		 * 	If we haven't sent all our subs
+		 * 		Send a new sub
+		 * 		Get its delay
+		 * 	If we have sent all our subs
+		 * 		But haven't sent all our ads
+		 * 			Send an ad
+		 * 			Get its delay
+		 * 		And sent all our ads
+		 * 			Update our subs - i.e. remove subs that should be finished
+		 * 			If we're also a Publisher
+		 * 				Update our ads
+		 * 				If we have any ads active
+		 * 					Send a publication
+		 * 					Get its delay
+		 * 	Sleep for a bit using our delay - default or from the action
+		 * 
+		 * Note that if a Client is only a sub, or only a pub, the number of ads/subs it has to send is 0
+		 */
 		while( (currentTime - runStart) < runLength)
 		{
 			Long delayValue = new Long(DEFAULT_DELAY);
@@ -530,9 +636,7 @@ public class PSClientPADRES implements java.io.Serializable
 				}
 			}
 			
-			/*
-			 * Wait
-			 */
+			// Sleep for some time
 			try {				
 				logger.trace(logHeader + "pausing for " + delayValue.toString());
 				Thread.sleep(delayValue);
@@ -546,6 +650,10 @@ public class PSClientPADRES implements java.io.Serializable
 			currentTime = System.nanoTime();
 		}
 		
+		/*
+		 * Clean up
+		 */
+		// Ads
 		logger.debug(logHeader + "Unadvertizing any 'infinite' ads"); 
 		for(int i = 0 ; i < activeAdsList.size() ; i++)
 		{
@@ -558,6 +666,7 @@ public class PSClientPADRES implements java.io.Serializable
 			}
 		}
 		
+		// Subs
 		logger.debug(logHeader + "Unsubscribing any 'infinite' subs"); 
 		for(int i = 0 ; i < activeSubsList.size() ; i++)
 		{
@@ -615,6 +724,274 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	
 	/**
+	 * Launch the next unlaunched action 
+	 * and add it to its given active list
+	 * 
+	 * @param requestedAction - the type of Actions that are in this activeList and givenWorkload
+	 * @param activeList - the given activeList
+	 * @param givenWorkload - the master list of PSActions 
+	 * @param activeAdsPublicationJ - In the case of an Ad, the HashMap of Ads and their jTH value
+	 * 
+	 * @return null on failure, the delayValue of the next
+	 */
+	private Long increaseActiveList(PSActionType requestedAction, ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload,
+										HashMap<PSAction, Integer> activeAdsPublicationJ)
+	{
+		Long retVal = null;
+		int nextI = activeList.size();
+		int sizeGW = givenWorkload.size();
+		
+		/*
+		 * Checks
+		 * 
+		 * 0) If the requestedAction is an ad or a sub
+		 * 1) If activeList.size() is < givenWorkload.size()
+		 * 2) If the requestedAction is the same as the givenWorkload's
+		 * 3) If the requestedAction is the same as the activeList's - assuming activeList has Actions  
+		 */
+		if(!requestedAction.equals(PSActionType.A) && !requestedAction.equals(PSActionType.S))
+		{
+			logger.error(logHeader + "Illegal action requested");
+			return retVal;
+		}
+		if(nextI >= sizeGW)
+		{
+			logger.error(logHeader + "No more Actions to add: " + nextI + " = " + sizeGW);
+			return retVal;
+		}
+		if(requestedAction != givenWorkload.get(0).getActionType()) // This assumes that the Workload is proper. Can't check everything.
+		{
+			logger.error(logHeader + "Type mismatch - workload");
+			return retVal;
+		}
+		if(nextI > 0)
+		{
+			if(requestedAction != activeList.get(nextI-1).getActionType())
+			{
+				logger.error(logHeader + "Type mismatch - activeList");
+				return retVal;
+			}
+		}
+		
+		/*
+		 * Get the next action Pseudocode
+		 * 
+		 * Since the activeList is smaller than the givenWorkload
+		 * And the activeList is:
+		 * 	- empty 
+		 * 	- already has some of the givenWorkload's actions
+		 * Get the next action
+		 * Since it will always be different than the ones already in the list
+		 * 
+		 * ... as you can imagine, this is not a bulletproof idea...
+		 */
+		PSAction nextAction = givenWorkload.get(nextI);
+		
+		boolean check = launchAction(requestedAction, nextAction);
+		if(!check)
+		{
+			logger.error(logHeader + "Error launching " + requestedAction.toString() + " " + nextI + " " + nextAction.getAttributes());
+			return retVal;
+		}
+		
+		// If we're dealing with Advertisements, we also have to add them to the Publication J HashMap
+		// That way when we we know which publication we've sent / are on
+		if(requestedAction == PSActionType.A)
+		{
+			ArrayList<PSAction> newActionsPublications = clientWorkload.getPublicationWorkloadForAd(nextAction);
+			
+			if(newActionsPublications == null)
+			{
+				logger.error(logHeader + "Could not find any Publications for Ad " + nextAction.getAttributes());
+				
+				check = launchAction(PSActionType.V, nextAction);
+				if(!check)
+				{
+					logger.error(logHeader + "Error unadvertizing problem ad " + nextAction.getAttributes());
+					return retVal;
+				}
+				
+				return retVal;
+			}
+			
+			activeAdsPublicationJ.put(nextAction, INIT_J);
+		}
+		
+		activeList.add(nextAction);
+		
+		retVal = nextAction.getActionDelay();
+		
+		return retVal;
+	}
+	
+	/**
+	 * Updates the givenActiveList
+	 * I.e. checks every node and sees if it's still active or not
+	 * by looking at its start and exist time
+	 * 
+	 * @param givenActiveList - the ActiveList to look over
+	 * @return false on any error; true if successful
+	 */
+	private boolean updateActiveList(ArrayList<PSAction> givenActiveList)
+	{	
+		int numActiveActions = givenActiveList.size();
+		ArrayList<Integer> nodesToRemove = new ArrayList<Integer>();
+		
+		/*
+		 * updateActiveList Pseudocode
+		 * 
+		 * For each member of the givenActiveList
+		 * 	Get the iTH one - itself, its PSActionType and its Attributes
+		 * 	Get the currentTime using System.nanoTime()
+		 * 	Get the Diary Entry associated with this Action - the one that was created when it was launched
+		 * 		Can't find it?
+		 * 			Error
+		 * 		Found it?
+		 * 			Get the System.nanoTime() value associated with starting it (Currently that's getStartedAction())
+		 * 			If the Difference between the currentTime and the "start Time" is >= the time it should have been active
+		 * 				Launch the associated undo action - U or V (assuming that the offending Action is a S or A)
+		 * 					Undo Successful?
+		 * 						Add i to an ArrayList<Integer>
+		 * 					Undo Unsuccessful?
+		 * 						Error
+		 * 
+		 * After this is complete
+		 * 	Loop through the new ArrayList<Integer>
+		 * 		Remove the jTH Action from givenActiveList
+		 */
+		for(int i = 0 ; i < numActiveActions ; i++)
+		{
+			PSAction activeActionI = givenActiveList.get(i);
+			PSActionType aAIActionType = activeActionI.getActionType();
+			String aAIAttributes = activeActionI.getAttributes();
+			logger.trace(logHeader + "Accessing entry " + aAIAttributes);
+			
+			Long currentTime = System.nanoTime();
+			
+			DiaryEntry activeActionIEntry = diary.getDiaryEntryGivenActionTypeNAttributes(aAIActionType, aAIAttributes);
+			if(activeActionIEntry == null)
+			{
+				logger.error(logHeader + "Couldn't find " + activeActionI.getActionType() + " " + activeActionI.getAttributes() 
+										+ "'s diary entry!");
+				return false;
+			}
+			
+			Long activeActionIStartTime = activeActionIEntry.getStartedAction();
+			
+			logger.trace(logHeader + "Delay is = " + (currentTime - activeActionIStartTime) 
+							+ " TA is = " + activeActionI.getTimeActive());
+			
+			if((currentTime - activeActionIStartTime) >= activeActionI.getTimeActive())
+			{
+				boolean check = true;
+				if(activeActionI.getActionType() == PSActionType.S)
+				{
+					check = launchAction(PSActionType.U, activeActionI);
+				}
+				else if(activeActionI.getActionType() == PSActionType.A)
+				{
+					check = launchAction(PSActionType.V, activeActionI);
+				}
+				else
+				{
+					logger.error(logHeader + "improper active list given");
+					return false;
+				}
+				
+				if(!check)
+				{
+					logger.error(logHeader + "Error ending " + activeActionI.getActionType() + " " + activeActionI.getAttributes());
+					return false;
+				}
+				else
+				{
+					nodesToRemove.add(i);
+				}
+			}
+		}
+		
+		for(int i = 0 ; i < nodesToRemove.size() ; i++)
+		{
+			int j = nodesToRemove.get(i);
+			PSAction inactionActionJ = givenActiveList.get(j);
+			
+			logger.debug(logHeader + "Removing " + inactionActionJ.getActionType().toString() + " " + inactionActionJ.getAttributes()
+							+ " from ActiveList");
+			givenActiveList.remove(j);
+			logger.debug(logHeader + "Remove successful");
+		}
+		
+		logger.trace(logHeader + "Update complete");
+		return true;
+	}
+	
+	/**
+	 * Sends a publication
+	 * 
+	 * @param numActiveAds - the number of Active Ads 
+	 * @param activeAdsList - the list of Active Ads
+	 * @param activeAdIGenerator - a RNG 
+	 * @param activeAdsPublicationJ - The HashMap of Ads to the number of Publications they've sent 
+	 * @return the DelayValue associated with the launched publication; or null if there's an error
+	 */
+	private Long sendPublication(Integer numActiveAds, ArrayList<PSAction> activeAdsList, Random activeAdIGenerator,
+										HashMap<PSAction, Integer> activeAdsPublicationJ)
+	{
+		Long retVal = null;
+		
+		logger.debug(logHeader + "Attempting to send a new publication");
+		Integer i = activeAdIGenerator.nextInt(numActiveAds);
+		PSAction activeAdI = activeAdsList.get(i);
+		
+		ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
+		if(activeAdIsPublications == null)
+		{
+			logger.error(logHeader + "Couldn't find Publications for Ad " + activeAdI.getAttributes());
+			return retVal;
+		}
+		
+		Integer j = activeAdsPublicationJ.get(activeAdI);
+		
+		PSAction publicationJOfAdI = activeAdIsPublications.get(j);
+		
+		logger.debug(logHeader + "Attempting to send publication " + j);
+		boolean checkPublication = launchAction(PSActionType.P, publicationJOfAdI);
+		if(!checkPublication)
+		{
+			logger.error(logHeader + " Error sending Publication " + j);
+			return retVal;
+		}
+		
+		logger.info(logHeader + "Sent publication " + publicationJOfAdI.getAttributes());
+		
+		j++;
+		
+		if(j < activeAdIsPublications.size())
+		{
+			activeAdsPublicationJ.put(activeAdI, j);
+		}
+		else
+		{
+			// Unadvertise a finished ad
+			
+			logger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications -> Unadvertising");
+			
+			boolean checkUnad = launchAction(PSActionType.V, activeAdI);
+			if(!checkUnad)
+			{
+				logger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
+				return retVal;
+			}
+			
+			activeAdsPublicationJ.remove(activeAdI);
+			activeAdsList.remove(activeAdI);
+		}
+		
+		retVal = publicationJOfAdI.getActionDelay();
+		return retVal;
+	}
+	
+	/**
 	 * Create a new diary entry and record all the information associated with it
 	 * e.g. TimeStartedAction, AckDelay, TimeActiveAck, ...
 	 * assuming executeAction runs successfully.
@@ -628,6 +1005,10 @@ public class PSClientPADRES implements java.io.Serializable
 	{
 		logger.debug(logHeader + "Preparing to record " + selectedAction + " " + givenAction.getAttributes());
 		
+		/*
+		 *  Make sure our inputs are proper
+		 */
+		// The only time the ActionTypes should differ is if we want to Unad / Unsub
 		if(selectedAction != givenAction.getActionType())
 		{
 			if(selectedAction == PSActionType.V && givenAction.getActionType() == PSActionType.A)
@@ -644,11 +1025,20 @@ public class PSClientPADRES implements java.io.Serializable
 				return false;
 			}
 		}
+		// This function should be used for the R(eceived) ActionType
+		// That should be limited to storePublication
+		if(selectedAction.equals(PSActionType.R))
+		{
+			logger.error(logHeader + "launchAction doesn't handle Received publications. Use storePublication()");
+			return false;
+		}
 		
+		// Variable initialization - DiaryEntry and boolean (that will be returned)
+		// This is a pessimistic function - assumes that the action will fail
 		DiaryEntry thisEntry = new DiaryEntry();
-		thisEntry.addPSActionType(selectedAction);
 		boolean actionSuccessful = false;
 		
+		// Execute the action... after getting some number's first
 		Long startTime = System.currentTimeMillis();
 		Long startAction = System.nanoTime();
 		Message result = executeAction(selectedAction, givenAction);
@@ -657,11 +1047,15 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		if(result != null)
 		{
+			// It worked
 			actionSuccessful = true;
-			Long timeDiff = endAction - startAction;
 			
+			// Get a few missing recordings
+			Long timeDiff = endAction - startAction;
 			String attributes = givenAction.getAttributes();
 			
+			// Add all recordings to DiaryEntry
+			thisEntry.addPSActionType(selectedAction);
 			thisEntry.addStartedAction(startAction);
 			thisEntry.addEndedAction(endAction);
 			thisEntry.addActionDelay(timeDiff);
@@ -669,16 +1063,19 @@ public class PSClientPADRES implements java.io.Serializable
 			thisEntry.addTimeBrokerFinished(brokerFinished);
 			thisEntry.addMessageID(result.getMessageID());
 			thisEntry.addAttributes(attributes);
-						
+			
+			
 			if(selectedAction.equals(PSActionType.U) || selectedAction.equals(PSActionType.V))
 			{
+				// If we're unsubscribing / unadvertising, we need to determine how long they were active for
+				// So we need to find the associated subscribe / advertise
 				DiaryEntry ascAction = null;
 				
 				if(selectedAction.equals(PSActionType.U))
 				{
 					ascAction = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, attributes);
 				}
-				else
+				else // I can do this cause I limited the options above
 				{
 					ascAction = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, attributes);
 				}
@@ -701,6 +1098,8 @@ public class PSClientPADRES implements java.io.Serializable
 				}
 			}
 			
+			// Add the entry to the diary
+			// However, since the diary is being used by both the sending thread and the listening thread, we need a lock
 			try
 			{
 				lock.lock();
@@ -790,261 +1189,5 @@ public class PSClientPADRES implements java.io.Serializable
 		
 		logger.debug(logHeader + "Action successful");
 		return result;
-	}
-	
-	/**
-	 * Add a given action to a given active list
-	 * I.e. a sub to a sub or a ad to an ad
-	 * 
-	 * @param requestedAction - the 
-	 * @param activeList
-	 * @param givenWorkload
-	 * @param activeAdsPublicationJ
-	 * @return
-	 */
-	private Long increaseActiveList(PSActionType requestedAction, ArrayList<PSAction> activeList, ArrayList<PSAction> givenWorkload,
-										HashMap<PSAction, Integer> activeAdsPublicationJ)
-	{
-		Long retVal = null;
-		
-		int nextI = activeList.size();
-		PSAction nextAction = givenWorkload.get(nextI);
-		
-		if(givenWorkload.isEmpty())
-		{
-			logger.error(logHeader + "Workload has no actions");
-			return retVal;
-		}
-		if(requestedAction != givenWorkload.get(0).getActionType())
-		{
-			logger.error(logHeader + "Type mismatch - workload");
-			return retVal;
-		}
-		if(nextI > 0)
-		{
-			if(requestedAction != activeList.get(nextI-1).getActionType())
-			{
-				logger.error(logHeader + "Type mismatch - activeList");
-				return retVal;
-			}
-		}
-
-		boolean check = launchAction(requestedAction, nextAction);
-		
-		if(!check)
-		{
-			logger.error(logHeader + "Error launching " + requestedAction.toString() + " " + nextI);
-			return retVal;
-		}
-		
-		if(requestedAction == PSActionType.A)
-		{
-			check = addNewAdToActiveAdsPublicationJ(nextAction, activeAdsPublicationJ);
-			if(!check)
-			{
-				return retVal;
-			}
-		}
-		
-		activeList.add(nextAction);
-		
-		retVal = nextAction.getActionDelay();
-		
-		return retVal;
-	}
-	
-	private boolean addNewAdToActiveAdsPublicationJ(PSAction newAction, HashMap<PSAction, Integer> activeAdsPublicationJ)
-	{
-		if(newAction.getActionType() != PSActionType.A)
-		{
-			logger.error(logHeader + "newAction is not an Ad");
-			return false;
-		}
-		
-		ArrayList<PSAction> newActionsPublications = clientWorkload.getPublicationWorkloadForAd(newAction);
-		
-		if(newActionsPublications == null)
-		{
-			logger.error(logHeader + "Could not find any Publications for Ad " + newAction.getAttributes());
-			return false;
-		}
-		
-		if(activeAdsPublicationJ.containsKey(newAction))
-		{
-			logger.error(logHeader + "Ad " + newAction.getAttributes() + " already exists in activeAdsPublicationJ");
-			return false;
-		}
-		
-		activeAdsPublicationJ.put(newAction, 0);
-		logger.debug(logHeader + "added Ad " + newAction.getAttributes() + " to activeAdsPublicationJ");
-		return true;
-	}
-	
-	private boolean updateActiveList(ArrayList<PSAction> givenActiveList)
-	{	
-		int numActiveActions = givenActiveList.size();
-		ArrayList<Integer> nodesToRemove = new ArrayList<Integer>();
-		
-		for(int i = 0 ; i < numActiveActions ; i++)
-		{
-			PSAction activeActionI = givenActiveList.get(i);
-			PSActionType aAIActionType = activeActionI.getActionType();
-			String aAIAttributes = activeActionI.getAttributes();
-			logger.trace(logHeader + "Accessing entry " + aAIAttributes);
-			
-			Long currentTime = System.nanoTime();
-			
-			DiaryEntry activeActionIEntry = diary.getDiaryEntryGivenActionTypeNAttributes(aAIActionType, aAIAttributes);
-			if(activeActionIEntry == null)
-			{
-				logger.error(logHeader + "Couldn't find " + activeActionI.getActionType() + " " + activeActionI.getAttributes() 
-										+ "'s diary entry!");
-				return false;
-			}
-			
-			Long activeActionIStartTime = activeActionIEntry.getStartedAction();
-			
-			logger.trace(logHeader + "Delay is = " + (currentTime - activeActionIStartTime) 
-							+ " TA is = " + activeActionI.getTimeActive());
-			
-			if((currentTime - activeActionIStartTime) >= activeActionI.getTimeActive())
-			{
-				boolean check = true;
-				if(activeActionI.getActionType() == PSActionType.S)
-				{
-					check = launchAction(PSActionType.U, activeActionI);
-				}
-				else if(activeActionI.getActionType() == PSActionType.A)
-				{
-					check = launchAction(PSActionType.V, activeActionI);
-				}
-				else
-				{
-					logger.error(logHeader + "improper active list given");
-					return false;
-				}
-				
-				if(!check)
-				{
-					logger.error(logHeader + "Error ending " + activeActionI.getActionType() + " " + activeActionI.getAttributes());
-					return false;
-				}
-				else
-				{
-					nodesToRemove.add(i);
-				}
-			}
-		}
-		
-		for(int i = 0 ; i < nodesToRemove.size() ; i++)
-		{
-			int j = nodesToRemove.get(i);
-			PSAction inactionActionJ = givenActiveList.get(j);
-			
-			logger.debug(logHeader + "Removing " + inactionActionJ.getActionType().toString() + " " + inactionActionJ.getAttributes()
-							+ " from ActiveList");
-			givenActiveList.remove(j);
-			logger.debug(logHeader + "Remove successful");
-		}
-		
-		logger.trace(logHeader + "Update complete");
-		return true;
-	}
-	
-	private Long sendPublication(Integer numActiveAds, ArrayList<PSAction> activeAdsList, Random activeAdIGenerator,
-										HashMap<PSAction, Integer> activeAdsPublicationJ)
-	{
-		Long retVal = null;
-		
-		logger.debug(logHeader + "Attempting to send a new publication");
-		Integer i = activeAdIGenerator.nextInt(numActiveAds);
-		PSAction activeAdI = activeAdsList.get(i);
-		
-		ArrayList<PSAction> activeAdIsPublications = clientWorkload.getPublicationWorkloadForAd(activeAdI);
-		
-		if(activeAdIsPublications == null)
-		{
-			logger.error(logHeader + "Couldn't find Publications for Ad " + activeAdI.getAttributes());
-			return retVal;
-		}
-		
-		Integer j = activeAdsPublicationJ.get(activeAdI);
-		
-		PSAction publicationJOfAdI = activeAdIsPublications.get(j);
-		
-		logger.debug(logHeader + "Attempting to send publication " + j);
-		boolean checkPublication = launchAction(PSActionType.P, publicationJOfAdI);
-		if(!checkPublication)
-		{
-			logger.error(logHeader + " Error sending Publication " + j);
-			return retVal;
-		}
-		
-		logger.info(logHeader + "Sent publication " + publicationJOfAdI.getAttributes());
-		
-		j++;
-		
-		if(j < activeAdIsPublications.size())
-		{
-			activeAdsPublicationJ.put(activeAdI, j);
-		}
-		else
-		{
-			logger.debug(logHeader + "Advertisement " + activeAdI.getAttributes() + " has no more publications -> Unadvertising");
-			
-			boolean checkUnad = launchAction(PSActionType.V, activeAdI);
-			if(!checkUnad)
-			{
-				logger.error(logHeader + "Error unadvertising " + activeAdI.getAttributes());
-				return retVal;
-			}
-			
-			activeAdsPublicationJ.remove(activeAdI);
-			activeAdsList.remove(activeAdI);
-		}
-		
-		retVal = publicationJOfAdI.getActionDelay();
-		return retVal;
-	}
-	
-	public String generateDiaryName()
-	{
-		if(runLength.equals(INIT_RUN_LENGTH) 
-				|| runNumber.equals(INIT_RUN_NUMBER) 
-				|| topologyFilePath.isEmpty()
-				|| protocol.equals(INIT_PROTOCOL)
-				|| distributed.equals(INIT_DISTRIBUTED)
-				|| clientName.isEmpty()
-			)
-		{
-			logger.error(logHeader + "Not all Diary values have been set");
-			return null;
-		}
-		else
-		{
-			DistributedFlagValue distributedFlag = null;
-			if(distributed.booleanValue() == true)
-			{
-				distributedFlag = DistributedFlagValue.D;
-			}
-			else if(distributed.booleanValue() == false)
-			{
-				distributedFlag = DistributedFlagValue.L;
-			}
-			else
-			{
-				logger.error(logHeader + "error with distributed");
-				return null;
-			}
-			
-			Long milliRunLength = (long) (runLength / (double) PSTBUtil.MILLISEC_TO_NANOSEC);
-			
-			return clientName + "-"
-					+ topologyFilePath + "-"
-					+ distributedFlag.toString() + "-"
-					+ protocol.toString() + "-"
-					+ milliRunLength.toString() + "-"
-					+ runNumber.toString();
-		}
 	}
 }

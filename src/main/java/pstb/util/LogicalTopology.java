@@ -46,7 +46,7 @@ public class LogicalTopology {
 	 */
 	public void addGroup(NodeRole role, PubSubGroup input)
 	{
-		this.network.put(role, input);
+		network.put(role, input);
 	}
 	
 	/**
@@ -58,6 +58,28 @@ public class LogicalTopology {
 	public PubSubGroup getGroup(NodeRole role)
 	{
 		return network.get(role);
+	}
+	
+	/**
+	 * Adds a new node to the topology
+	 * This means it will add the new node to all the groups it belongs to. 
+	 * @param roles - a list of all of this node's roles
+	 * @param name - the name of this node
+	 * @param connections - what iArrays.toString(v))t's connected to
+	 */
+	public void addNewNodeToTopo(String[] roles, String name, ArrayList<String> connections)
+	{
+		for(int i = 0 ; i < roles.length ; i++)
+		{
+			NodeRole role = NodeRole.valueOf(roles[i]);
+			PubSubGroup wantedGroup = getGroup(role);
+			if(wantedGroup == null)
+			{
+				wantedGroup = new PubSubGroup();
+				addGroup(role, wantedGroup);
+			}
+			wantedGroup.addNewNode(name, connections);
+		}
 	}
 	
 	/**
@@ -91,28 +113,6 @@ public class LogicalTopology {
 	}
 	
 	/**
-	 * Adds a new node to the topology
-	 * This means it will add the new node to all the groups it belongs to. 
-	 * @param roles - a list of all of this node's roles
-	 * @param name - the name of this node
-	 * @param connections - what iArrays.toString(v))t's connected to
-	 */
-	public void addNewNodeToTopo(String[] roles, String name, ArrayList<String> connections)
-	{
-		for(int i = 0 ; i < roles.length ; i++)
-		{
-			NodeRole role = NodeRole.valueOf(roles[i]);
-			PubSubGroup wantedGroup = getGroup(role);
-			if(wantedGroup == null)
-			{
-				wantedGroup = new PubSubGroup();
-				addGroup(role, wantedGroup);
-			}
-			wantedGroup.addNewNode(name, connections);
-		}
-	}
-	
-	/**
 	 * Looks at all of the nodes in the Broker ("B") group and their connections.
 	 * If one node lists another in its connections, but it is not reciprocated
 	 * this function makes a note of it.
@@ -135,8 +135,7 @@ public class LogicalTopology {
 				if(!iTHNodesConnections.contains(node))
 				{
 					allBrokersMC = false;
-					logger.warn("Topology: Node " + iTHNode + 
-							" does not reciprocate Node " + node + "'s connection.");
+					logger.warn("Topology: Node " + iTHNode + " does not reciprocate Node " + node + "'s connection.");
 					NonMutuallyConnectedNodes problemPair = new NonMutuallyConnectedNodes(iTHNode, node);
 					problemNodes.add(problemPair);
 				}
@@ -174,109 +173,7 @@ public class LogicalTopology {
 		}
 	}
 	
-	/**
-	 * Returns a random node from the Broker ("B") group
-	 * 
-	 * @param brokerGroup - the "B" group
-	 * @returns the name of a broker node
-	 */
-	private String randomlySelectBrokerNode(PubSubGroup brokerGroup)
-	{
-		Random generator = new Random();
-		String[] brokerNodes = brokerGroup.keySet().toArray(new String[brokerGroup.size()]);
-		int i = generator.nextInt(brokerNodes.length);
-		return  brokerNodes[i];
-	}
-	
-	/**
-	 * Attempts to reach all of the nodes in the Broker ("B") group
-	 * It attempts to do so using a variation of the Breadth First Search
-	 * If a node doesn't have any connections; the attempt fails and returns false
-	 * (Technically this should be caught by TopologyFileParser;
-	 * however, this exists as a just in case)
-	 * 
-	 * @param brokerGroup - the "B" group
-	 * @param brokerVisitedList - a map of all the nodes and if they have been visited
-	 * @return true if the attempt runs through successfully; false if not
-	 */
-	private boolean attemptToReachAllBrokerNodes(PubSubGroup brokerGroup, HashMap<String, VisitedState> brokerVisitedList)
-	{
-		boolean nodesHaveConnections = true;
-		
-		Queue<String> queue = new LinkedList<String>();
-		
-		String startingNode = randomlySelectBrokerNode(brokerGroup);
-		logger.debug("Starting at node: " + startingNode);		
-		brokerVisitedList.put(startingNode, VisitedState.VISITED);
-		queue.add(startingNode);
-		
-		/*
-		 * The BFS
-		 */
-		while (!queue.isEmpty())
-		{
-			String element = queue.remove();
-			ArrayList<String> connections = brokerGroup.getNodeConnections(element);
-			
-			if(connections == null)
-			{
-				/*
-				 * Since TopologyFileParser.parse should be run first, 
-				 * this bit of code should never be called
-				 * However, it's here in case there are changes in the future.
-				 */
-				nodesHaveConnections = false;
-				break;
-			}
-			else
-			{
-				for(int i = 0 ; i < connections.size() ; i++)
-				{
-					String iNodeLabel = connections.get(i);
-					if(brokerVisitedList.get(iNodeLabel) == VisitedState.NOTVISITED)
-					{
-						queue.add(iNodeLabel);
-						brokerVisitedList.put(iNodeLabel, VisitedState.VISITED);
-					}
-				}
-			}
-        }
-		return nodesHaveConnections;
-	}
-	
-	/**
-	 * Look at all the connections of a given group
-	 * and see if their resulting matches in the broker "B" group are there
-	 * 
-	 * @param givenGroup - the given role group
-	 * @param brokerGroup - the "B" group
-	 * @return true if yes; false if no
-	 */
-	private boolean confirmBrokerNodeExistance(PubSubGroup givenGroup, PubSubGroup brokerGroup)
-	{
-		boolean neededBrokerNodesExist = false;
-		try
-		{
-			givenGroup.forEach((clientNode, cNSBrokerList)->{
-				for(int i = 0 ; i < cNSBrokerList.size() ; i++)
-				{
-					String iThBrokerNode = cNSBrokerList.get(i);
-					if(!brokerGroup.checkNodeIsPresent(iThBrokerNode))
-					{
-						throw new IllegalArgumentException("Broker " + iThBrokerNode + 
-								" doesn't exist for client " + clientNode +".");
-					}
-				}
-			});
-			neededBrokerNodesExist = true;
-		}
-		catch (IllegalArgumentException e)
-		{
-			logger.error("Topology: Couldn't find all brokers.", e);
-		}
-			
-		return neededBrokerNodesExist;
-    }
+
 	
 	/**
 	 * Sees if the Logical Topology is connected
@@ -313,7 +210,7 @@ public class LogicalTopology {
         	{
         		logger.info("Topology: All brokers are connected.");
         		
-        		logger.info("Topology: Looking at client connections...");
+        		logger.debug("Topology: Looking at client connections...");
         		try
         		{
         			network.forEach((k, v) -> {
@@ -326,15 +223,119 @@ public class LogicalTopology {
             				}
             			}
             		});
-        			logger.info("Topology: All clients are connected to existing brokers");
         		}
         		catch (IllegalArgumentException e)
         		{
         			logger.error("Topology: Not all brokers exist for some clients");
         			topoConnected = false;
         		}
+        		
+        		logger.info("Topology: All clients are connected to existing brokers");
         	}
         }
 		return topoConnected;
+    }
+	
+	/**
+	 * Attempts to reach all of the nodes in the Broker ("B") group
+	 * It attempts to do so using a variation of the Breadth First Search
+	 * If a node doesn't have any connections; the attempt fails and returns false
+	 * (Technically this should be caught by TopologyFileParser;
+	 * however, this exists as a just in case)
+	 * 
+	 * @param brokerGroup - the "B" group
+	 * @param brokerVisitedList - a map of all the nodes and if they have been visited
+	 * @return true if the attempt runs through successfully; false if not
+	 */
+	private boolean attemptToReachAllBrokerNodes(PubSubGroup brokerGroup, HashMap<String, VisitedState> brokerVisitedList)
+	{
+		boolean nodesHaveConnections = true;
+		
+		// To reach all nodes, this code uses a Breadth-First Search
+		
+		Queue<String> queue = new LinkedList<String>();
+		
+		String startingNode = randomlySelectBrokerNode(brokerGroup);
+		logger.debug("Starting at node: " + startingNode);		
+		brokerVisitedList.put(startingNode, VisitedState.VISITED);
+		queue.add(startingNode);
+		
+		
+		while (!queue.isEmpty())
+		{
+			String element = queue.remove();
+			ArrayList<String> connections = brokerGroup.getNodeConnections(element);
+			
+			if(connections == null)
+			{
+				/*
+				 * Since TopologyFileParser.parse() should be run first, 
+				 * this bit of code should never be called
+				 * However, it's here in case there are changes in the future.
+				 */
+				nodesHaveConnections = false;
+				break;
+			}
+			else
+			{
+				for(int i = 0 ; i < connections.size() ; i++)
+				{
+					String iNodeLabel = connections.get(i);
+					if(brokerVisitedList.get(iNodeLabel) == VisitedState.NOTVISITED)
+					{
+						queue.add(iNodeLabel);
+						brokerVisitedList.put(iNodeLabel, VisitedState.VISITED);
+					}
+				}
+			}
+        }
+		return nodesHaveConnections;
+	}
+	
+	/**
+	 * Returns a random node from the Broker ("B") group
+	 * 
+	 * @param brokerGroup - the "B" group
+	 * @returns the name of a broker node
+	 */
+	private String randomlySelectBrokerNode(PubSubGroup brokerGroup)
+	{
+		Random generator = new Random();
+		String[] brokerNodes = brokerGroup.keySet().toArray(new String[brokerGroup.size()]);
+		int i = generator.nextInt(brokerNodes.length);
+		return  brokerNodes[i];
+	}
+	
+	/**
+	 * Look at all the connections of a given group
+	 * and see if their resulting matches in the broker "B" group are there
+	 * 
+	 * @param givenGroup - the given role group
+	 * @param brokerGroup - the "B" group
+	 * @return true if yes; false if no
+	 */
+	private boolean confirmBrokerNodeExistance(PubSubGroup givenGroup, PubSubGroup brokerGroup)
+	{
+		boolean neededBrokerNodesExist = false;
+		try
+		{
+			givenGroup.forEach((clientNode, cNSBrokerList)->{
+				for(int i = 0 ; i < cNSBrokerList.size() ; i++)
+				{
+					String iThBrokerNode = cNSBrokerList.get(i);
+					if(!brokerGroup.checkNodeIsPresent(iThBrokerNode))
+					{
+						throw new IllegalArgumentException("Broker " + iThBrokerNode + " doesn't exist for client " + clientNode + ".");
+					}
+				}
+			});
+			neededBrokerNodesExist = true;
+		}
+		catch (IllegalArgumentException e)
+		{
+			logger.error("Topology: Couldn't find all brokers.", e);
+		}
+			
+		return neededBrokerNodesExist;
     }
 }
