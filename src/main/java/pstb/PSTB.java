@@ -29,46 +29,15 @@ import pstb.util.Workload;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * The main PSTB function and helpers.
  */
 public class PSTB {
 	private static final Logger logger = LogManager.getRootLogger();
 	
 	/**
-	 * Extracts the properties from a given properties file 
-	 * and stores it in a new Property object.
-	 * Throws an IOExpection if it cannot find the file along the path specified
-	 * @param propertyFilePath - the path to the properties file
-	 * @param defaultProperties - any existing properties files. 
-	 *        If none exist, add null.
-	 * @return a loaded properties file
-	 * @throws IOException
-	 */
-	private static Properties loadProperties(String propertyFilePath, Properties defaultProperties) throws IOException {
-		Properties properties = new Properties(defaultProperties);
-		
-		FileInputStream propFileStream = new FileInputStream(propertyFilePath);
-		properties.load(propFileStream);
-		propFileStream.close();
-		
-		return properties;
-	}
-	
-	/**
-	 * Ends the main program
-	 * @param errorClassification - the type of error that occurred - including no error
-	 * @param scannerSystemIn - the UI scanner used for the yes or no answers
-	 * @see PSTBError
-	 */
-	private static void endProgram(Integer errorClassification, Scanner scannerSystemIn)
-	{
-		logger.info("Ending program.");
-		scannerSystemIn.close();
-		System.exit(errorClassification);
-	}
-	
-	/**
 	 * The main function
+	 * 
 	 * @param args - the arguments to the main function
 	 */
 	public static void main(String[] args)
@@ -289,6 +258,40 @@ public class PSTB {
 		endProgram(0, userInput);
 	}
 	
+	/**
+	 * Extracts the properties from a given properties file 
+	 * and stores it in a new Property object.
+	 * 
+	 * Throws an IOExpection if it cannot find the file along the path specified
+	 * @param propertyFilePath - the path to the properties file
+	 * @param defaultProperties - any existing properties files (if none exist, add null).
+	 * @return a loaded properties file
+	 * @throws IOException
+	 */
+	private static Properties loadProperties(String propertyFilePath, Properties defaultProperties) throws IOException {
+		Properties properties = new Properties(defaultProperties);
+		
+		FileInputStream propFileStream = new FileInputStream(propertyFilePath);
+		properties.load(propFileStream);
+		propFileStream.close();
+		
+		return properties;
+	}
+	
+	/**
+	 * Ends the main program
+	 * 
+	 * @param errorClassification - the type of error that occurred - including no error
+	 * @param scannerSystemIn - the UI scanner used for the yes or no answers
+	 * @see PSTBError
+	 */
+	private static void endProgram(Integer errorClassification, Scanner scannerSystemIn)
+	{
+		logger.info("Ending program.");
+		scannerSystemIn.close();
+		System.exit(errorClassification);
+	}
+	
 	private static boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
 											Integer givenNumberOfRunsPerExperiment, Workload givenWorkload, Analyzer givenAnalyzer)
 	{
@@ -340,18 +343,20 @@ public class PSTB {
 				
 				Long startTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
-				sleepLength = (long) (iTHRunLengthNano / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
+				sleepLength = (long) (iTHRunLengthNano / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue()); // Check 10 times
 				Long currentTime = System.nanoTime();
 				
 				while( (currentTime - startTime) < iTHRunLengthNano)
 				{
 					valueCAP = givenPT.checkActiveProcesses();
+					// If there's an error, or all of our processes have finished, we have an error
 					if(valueCAP.equals(ActiveProcessRetVal.Error) || valueCAP.equals(ActiveProcessRetVal.AllOff))
 					{
 						logger.error("Run had an error");
 						givenPT.killAllProcesses();
 						return false;
 					}
+					// If there are brokers with no clients, has the experiment already finished?
 					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
 					{
 						currentTime = System.nanoTime();
@@ -362,8 +367,7 @@ public class PSTB {
 						}
 						else
 						{
-							// We finished already - there's no need to sleep again
-							break;
+							break; // We finished already - there's no need to sleep again
 						}
 					}
 					
@@ -384,9 +388,7 @@ public class PSTB {
 				
 				logger.info("Run successful");
 				
-				/*
-				 * Wait for the clients to finish
-				 */
+				// Wait for the clients to finish
 				valueCAP = givenPT.checkActiveProcesses();
 				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) && !valueCAP.equals(ActiveProcessRetVal.AllOff))
 				{
@@ -425,24 +427,24 @@ public class PSTB {
 					disFlag = DistributedFlagValue.L.toString();
 				}
 				
-				boolean allDiariesCollected = true;
+				boolean givenDiaryCollected = true;
 				for(int i = 0; i < clientNames.size() ; i++)
 				{
-					String diaryName = clientNames.get(i) + "-"
+					String diaryPath = clientNames.get(i) + "-"
 										+ givenPT.getTopologyFilePath() + "-"
 										+ disFlag + "-"
 										+ proto.toString() + "-"
 										+ iTHRunLengthMilli + "-"
 										+ runI;
-					allDiariesCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryName);
-					 
-					if(!allDiariesCollected)
+					givenDiaryCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryPath);
+					if(!givenDiaryCollected)
 					{
-						logger.error("Error collecting diaries");
+						logger.error("Error collecting diary " + diaryPath);
 						return false;
 					}
 				}
 				
+				logger.info("All diaries collected");
 				givenPT.clearProcessBuilders();
 			}
 		}

@@ -9,13 +9,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.ClientDiary;
 import pstb.util.DiaryEntry;
 import pstb.util.DiaryEntry.DiaryHeader;
+import pstb.util.DistributedFlagValue;
+import pstb.util.NetworkProtocol;
 import pstb.util.PSActionType;
+import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -181,6 +186,82 @@ public class Analyzer {
 					log.error(logHeader + "Diary Page is missing an associated Action Type");
 					return null;
 				}
+			}
+		}
+		
+		return retVal;
+	}
+	
+	public ArrayList<String> generateDiaryPathsList(String clientName, String topologyFilePath, DistributedFlagValue distributedFlag,
+														NetworkProtocol protocol, Long runLength, Integer runNumber)
+	{		
+		ArrayList<String> retVal = new ArrayList<String>();
+		String diaryPathTestString = new String();
+		
+		if(clientName != null)
+		{
+			diaryPathTestString += (clientName + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(topologyFilePath != null)
+		{
+			diaryPathTestString += (PSTBUtil.cleanTPF(topologyFilePath) + "-");
+		}
+		else
+		{
+			log.error(logHeader + "generateDiaryPathsList() needs a topologyFilePath at minimum"); 
+			return retVal;
+		}
+		
+		if(distributedFlag != null)
+		{
+			diaryPathTestString += (distributedFlag.toString() + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(protocol != null)
+		{
+			diaryPathTestString += (protocol.toString() + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(runLength != null)
+		{
+			diaryPathTestString += (runLength.toString() + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(runNumber != null)
+		{
+			diaryPathTestString += (runNumber.toString() + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		Pattern diaryPathTest = Pattern.compile(diaryPathTestString);
+		Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
+		
+		for( ; bookshelfIt.hasNext() ; )
+		{
+			String diaryPathI = bookshelfIt.next(); 
+			if(diaryPathTest.matcher(diaryPathI).matches())
+			{
+				retVal.add(diaryPathI);
 			}
 		}
 		

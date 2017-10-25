@@ -1,6 +1,3 @@
-/**
- * 
- */
 package pstb.util;
 
 import java.io.File;
@@ -8,7 +5,9 @@ import java.util.Scanner;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * This class handles PSTB's User Interface
+ * allowing it to collect input from the user
  */
 public class UI {
 	
