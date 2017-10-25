@@ -133,7 +133,7 @@ public class Analyzer {
 		return true;
 	}
 	
-	public Histogram developDelayHistogram(ArrayList<String> clientNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	public Histogram developDelayHistogram(ArrayList<String> diaryPaths, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( (delayType != DiaryHeader.ActionDelay) 
 			|| (delayType != DiaryHeader.TimeDifference)
@@ -145,21 +145,21 @@ public class Analyzer {
 		
 		Histogram retVal = new Histogram();
 		
-		for(int i = 0 ; i < clientNames.size() ; i++)
+		for(int i = 0 ; i < diaryPaths.size() ; i++)
 		{
-			String clientNameI = clientNames.get(i);
+			String diaryPathI = diaryPaths.get(i);
 			
-			if(!bookshelf.containsKey(clientNameI))
+			if(!bookshelf.containsKey(diaryPathI))
 			{
-				log.error(logHeader + "No diary exists from " + clientNameI);
+				log.error(logHeader + "No diary exists from " + diaryPathI);
 				return null;
 			}
 			
-			ClientDiary clientIsDiary = bookshelf.get(clientNameI);
+			ClientDiary diaryI = bookshelf.get(diaryPathI);
 			
-			for(int j = 0 ; j < clientIsDiary.size() ; j++)
+			for(int j = 0 ; j < diaryI.size() ; j++)
 			{
-				DiaryEntry pageJ = clientIsDiary.getDiaryEntryI(j);
+				DiaryEntry pageJ = diaryI.getDiaryEntryI(j);
 				if(pageJ.containsKey(DiaryHeader.PSActionType))
 				{
 					if(pageJ.getPSActionType() == typeToAnalyse)

@@ -90,7 +90,7 @@ public class PhysicalTopology {
 	 */
 	public boolean doObjectsExist()
 	{
-		return brokerObjects.isEmpty() && clientObjects.isEmpty();
+		return !brokerObjects.isEmpty() && !clientObjects.isEmpty();
 	}
 	
 	/**
@@ -100,7 +100,7 @@ public class PhysicalTopology {
 	 */
 	public boolean doProcessBuildersExist()
 	{
-		return brokerPBs.isEmpty() && clientPBs.isEmpty();
+		return !brokerPBs.isEmpty() && !clientPBs.isEmpty();
 	}
 	
 	/**
@@ -164,6 +164,16 @@ public class PhysicalTopology {
 	}
 	
 	/**
+	 * Gets the Topology File Path
+	 * 
+	 * @return the TopologyFilePath
+	 */
+	public String getTopologyFilePath() 
+	{
+		return topologyFilePath;
+	}
+	
+	/**
 	 * This code develops the Physical Topology
 	 * I.e. creates all the Broker and Client Objects
 	 * using information from the BenchmarkProperties file
@@ -182,7 +192,7 @@ public class PhysicalTopology {
 		
 		protocol = givenProtocol;
 		distributed = givenDistributed;
-		topologyFilePath = givenTFP;
+		topologyFilePath = PSTBUtil.cleanTPF(givenTFP);
 		
 		boolean checkGB = developBrokers(givenDistributed);
 		if(!checkGB)

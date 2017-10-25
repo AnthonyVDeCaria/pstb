@@ -16,6 +16,7 @@ import ca.utoronto.msrg.padres.common.message.Publication;
 import ca.utoronto.msrg.padres.common.message.PublicationMessage;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.PSActionType;
+import pstb.util.PSTBUtil;
 import pstb.util.ClientDiary;
 import pstb.util.DiaryEntry;
 import pstb.util.DistributedFlagValue;
@@ -1036,11 +1037,13 @@ public class PSClientPADRES implements java.io.Serializable
 				return null;
 			}
 			
+			Long milliRunLength = (long) (runLength / (double) PSTBUtil.MILLISEC_TO_NANOSEC);
+			
 			return clientName + "-"
-//					+ topologyFilePath + "-"
+					+ topologyFilePath + "-"
 					+ distributedFlag.toString() + "-"
 					+ protocol.toString() + "-"
-					+ runLength.toString() + "-"
+					+ milliRunLength.toString() + "-"
 					+ runNumber.toString();
 		}
 	}

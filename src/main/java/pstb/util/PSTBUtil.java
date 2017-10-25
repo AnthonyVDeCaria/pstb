@@ -22,6 +22,7 @@ import pstb.benchmark.PhysicalClient;
 
 public class PSTBUtil {
 	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
+	public static final Long SEC_TO_NANOSEC = new Long(1000000000L);
 	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
 	
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd HH:mm:ss.SSS");    
@@ -315,5 +316,10 @@ public class PSTBUtil {
 //		}
 		
 		return retVal;
+	}
+	
+	public static String cleanTPF(String givenTPF)
+	{
+		return givenTPF.replace('/', '_').replace('\\', '_');
 	}
 }

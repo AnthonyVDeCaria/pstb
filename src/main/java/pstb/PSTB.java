@@ -266,7 +266,7 @@ public class PSTB {
 				logger.info("Beginning experiment");
 				boolean successfulExperiment = true;
 				
-				if(!localPT.doObjectsExist())
+				if(localPT.doObjectsExist())
 				{
 					successfulExperiment = runExperiment(localPT, benchmarkRules.getRunLengths(), 
 															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
@@ -304,10 +304,11 @@ public class PSTB {
 		
 		for(int runLengthI = 0 ; runLengthI < givenRLs.size(); runLengthI++)
 		{
-			Long currentRunLength = givenRLs.get(runLengthI) * PSTBUtil.MIN_TO_NANOSEC;
+			Long iTHRunLengthMilli = givenRLs.get(runLengthI);
+			Long iTHRunLengthNano = iTHRunLengthMilli * PSTBUtil.MILLISEC_TO_NANOSEC;
 			Long sleepLength = null;
 			
-			boolean functionCheck = givenPT.addRunLengthToClients(currentRunLength);
+			boolean functionCheck = givenPT.addRunLengthToClients(iTHRunLengthNano);
 			if(!functionCheck)
 			{
 				logger.error("Error setting Run Length");
@@ -341,10 +342,10 @@ public class PSTB {
 				
 				Long startTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
-				sleepLength = (long) (currentRunLength / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
+				sleepLength = (long) (iTHRunLengthNano / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
 				Long currentTime = System.nanoTime();
 				
-				while( (currentTime - startTime) < currentRunLength)
+				while( (currentTime - startTime) < iTHRunLengthNano)
 				{
 					valueCAP = givenPT.checkActiveProcesses();
 					if(valueCAP.equals(ActiveProcessRetVal.Error) || valueCAP.equals(ActiveProcessRetVal.AllOff))
@@ -356,7 +357,7 @@ public class PSTB {
 					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
 					{
 						currentTime = System.nanoTime();
-						if((currentTime - startTime) < currentRunLength)
+						if((currentTime - startTime) < iTHRunLengthNano)
 						{
 							logger.error("Error - run finished early");
 							return false;
@@ -430,9 +431,10 @@ public class PSTB {
 				for(int i = 0; i < clientNames.size() ; i++)
 				{
 					String diaryName = clientNames.get(i) + "-"
+										+ givenPT.getTopologyFilePath() + "-"
 										+ disFlag + "-"
 										+ proto.toString() + "-"
-										+ currentRunLength + "-"
+										+ iTHRunLengthMilli + "-"
 										+ runI;
 					allDiariesCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryName);
 					 

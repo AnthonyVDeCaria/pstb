@@ -22,7 +22,7 @@ public class BenchmarkConfig {
 	private ArrayList<String> pubWorkloadFilesPaths;
 	private String subWorkloadFilePath;
 	
-	private ArrayList<Long> runLengths; // Minutes
+	private ArrayList<Long> runLengths; // Milliseconds
 	
 	private ArrayList<NetworkProtocol> protocols;
 	private ArrayList<String> topologyFilesPaths;
