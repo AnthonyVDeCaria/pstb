@@ -1,0 +1,4 @@
+#AnalysisType	DiaryHeader	PSActionType	TopologyFilePath	DistributedFlag	Protocol	RunLength	RunNumber	ClientName
+
+DelayHistogram	MessageDelay	R	src/test/java/star3topology.txt	null	null	null	null	null
+AverageDelay	MessageDelay	R	src/test/java/star3topology.txt	null	null	null	null	S0

@@ -67,7 +67,7 @@ public class BenchmarkConfig {
 		/*
 		 * numRunsPerExperiment
 		 */
-		String givenNRPE = givenProperty.getProperty("pstb.numRunsPerExperiment");
+		String givenNRPE = givenProperty.getProperty("startup.numRunsPerExperiment");
 		try
 		{
 			Integer intNRPE = Integer.parseInt(givenNRPE);
@@ -82,7 +82,7 @@ public class BenchmarkConfig {
 		/*
 		 * pubWorkloadFilesPaths
 		 */
-		String unsplitPWFP = givenProperty.getProperty("pstb.pubWorkloadFilesPaths");
+		String unsplitPWFP = givenProperty.getProperty("startup.pubWorkloadFilesPaths");
 		ArrayList<String> propPWFP = new ArrayList<String>();
 		if(unsplitPWFP != null)
 		{
@@ -94,13 +94,13 @@ public class BenchmarkConfig {
 		/*
 		 * subWorkloadFilePath
 		 */
-		String propSWFP = givenProperty.getProperty("pstb.subWorkloadFilePath");
+		String propSWFP = givenProperty.getProperty("startup.subWorkloadFilePath");
 		setSubWorkloadFilePath(propSWFP);
 		
 		/*
 		 * runLengths
 		 */
-		String unsplitRL = givenProperty.getProperty("pstb.runLengths");
+		String unsplitRL = givenProperty.getProperty("startup.runLengths");
 		ArrayList<Long> propRL = new ArrayList<Long>();
 		if(unsplitRL != null)
 		{
@@ -130,7 +130,7 @@ public class BenchmarkConfig {
 		/*
 		 * Protocols
 		 */
-		String unsplitProtocols = givenProperty.getProperty("pstb.protocols");
+		String unsplitProtocols = givenProperty.getProperty("startup.protocols");
 		ArrayList<NetworkProtocol> propProto = new ArrayList<NetworkProtocol>();
 		if(unsplitProtocols != null)
 		{
@@ -168,14 +168,14 @@ public class BenchmarkConfig {
 		/*
 		 * topologyFilesPaths
 		 */
-		String unsplitTFP = givenProperty.getProperty("pstb.topologyFilesPaths");
+		String unsplitTFP = givenProperty.getProperty("startup.topologyFilesPaths");
 		String[] splitTFP = unsplitTFP.split(PSTBUtil.COMMA);
 		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(splitTFP));
 		
 		/*
 		 * distributed
 		 */
-		String unsplitDis = givenProperty.getProperty("pstb.distributed");
+		String unsplitDis = givenProperty.getProperty("startup.distributed");
 		HashMap<String, DistributedState> propDis = new HashMap<String, DistributedState>();
 		if(unsplitDis != null)
 		{

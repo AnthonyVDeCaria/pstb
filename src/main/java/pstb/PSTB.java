@@ -11,6 +11,7 @@ import java.util.Scanner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.analysis.AnalysisFileParser;
 import pstb.analysis.Analyzer;
 import pstb.benchmark.PhysicalTopology;
 import pstb.benchmark.PhysicalTopology.ActiveProcessRetVal;
@@ -33,6 +34,7 @@ import pstb.util.Workload;
  * The main PSTB function and helpers.
  */
 public class PSTB {
+	private static final String DEFAULT_ANALYSIS_FILE_PATH = "src/test/java/defaultAnalysis.txt";
 	private static final Logger logger = LogManager.getRootLogger();
 	
 	/**
@@ -254,6 +256,34 @@ public class PSTB {
 		logger.info("Printing all diaries");
 		brain.printAllDiaries();
 		
+		String analysisFilePath = DEFAULT_ANALYSIS_FILE_PATH;
+		String customAnalysisFilePrompt = "Would you like to use a custom analysis file Y/n?";
+		boolean customAanlysisFileAns = UI.getYNAnswerFromUser(customAnalysisFilePrompt, userInput);
+		if (customAanlysisFileAns)
+		{
+			customAnalysisFilePrompt = "Please input the path to this Analysis file";
+			analysisFilePath = UI.getAndCheckFilePathFromUser(customAnalysisFilePrompt, userInput);
+		}
+		
+		AnalysisFileParser brainReader = new AnalysisFileParser();
+		brainReader.setAnalysisFilePath(analysisFilePath);
+		boolean analysisParseCheck = brainReader.parse();
+		
+		if(!analysisParseCheck)
+		{
+			logger.error("Analysis File Parse Failed!");
+			endProgram(PSTBError.ERROR_ANALYSIS, userInput);
+		}
+		
+		boolean analysisCheck = brain.executeAnalysis(brainReader.getRequestedAnalysis());
+		if(!analysisCheck)
+		{
+			logger.error("Analysis Failed!");
+			endProgram(PSTBError.ERROR_ANALYSIS, userInput);
+		}
+		
+		brain.printAll();
+		
 		logger.info("Benchmark complete");
 		endProgram(0, userInput);
 	}
@@ -430,12 +460,12 @@ public class PSTB {
 				boolean givenDiaryCollected = true;
 				for(int i = 0; i < clientNames.size() ; i++)
 				{
-					String diaryPath = clientNames.get(i) + "-"
-										+ givenPT.getTopologyFilePath() + "-"
+					String diaryPath = givenPT.getTopologyFilePath() + "-"
 										+ disFlag + "-"
 										+ proto.toString() + "-"
 										+ iTHRunLengthMilli + "-"
-										+ runI;
+										+ runI + "-"
+										+ clientNames.get(i);
 					givenDiaryCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryPath);
 					if(!givenDiaryCollected)
 					{

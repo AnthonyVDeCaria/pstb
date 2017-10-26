@@ -348,12 +348,12 @@ public class PSClientPADRES implements java.io.Serializable
 		// WHY: neatness / it's what the user gave us->why confuse them?
 		Long milliRunLength = (long) (runLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
 		
-		return clientName + "-"
-				+ topologyFilePath + "-"
+		return topologyFilePath + "-"
 				+ distributedFlag.toString() + "-"
 				+ protocol.toString() + "-"
 				+ milliRunLength.toString() + "-"
-				+ runNumber.toString();
+				+ runNumber.toString() + "-"
+				+ clientName;
 	}
 
 	/**

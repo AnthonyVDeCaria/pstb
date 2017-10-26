@@ -28,6 +28,8 @@ import pstb.util.PSTBUtil;
  */
 public class Analyzer {
 	private HashMap<String, ClientDiary> bookshelf;
+	private ArrayList<Object> analyzedInformation;
+	private ArrayList<AnalysisType> analyzedCheck;
 	private Logger log = null;
 	private String logHeader = "Analysis: ";
 	
@@ -38,6 +40,13 @@ public class Analyzer {
 	{
 		log = logger;
 		bookshelf = new HashMap<String, ClientDiary>();
+		analyzedInformation = new ArrayList<Object>();
+		analyzedCheck = new ArrayList<AnalysisType>();
+	}
+	
+	public ArrayList<Object> getAnalyzedInformation()
+	{
+		return analyzedInformation;
 	}
 	
 	public boolean collectDiaryAndAddToBookshelf (String diaryPath)
@@ -138,11 +147,160 @@ public class Analyzer {
 		return true;
 	}
 	
+	public boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, Object>> requestedAnalysis)
+	{
+		for(int i = 0 ; i < requestedAnalysis.size(); i++)
+		{
+			Object objectI = null;
+			HashMap<AnalysisInput, Object> analysisI = requestedAnalysis.get(i);
+			
+			AnalysisType requestedAT = (AnalysisType) analysisI.get(AnalysisInput.AnalysisType);
+			PSActionType requestedPSAT = (PSActionType) analysisI.get(AnalysisInput.PSActionType);
+			DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader);
+			String requestedTPF = (String) analysisI.get(AnalysisInput.TopologyFilePath);
+			DistributedFlagValue requestedDFV = (DistributedFlagValue) analysisI.get(AnalysisInput.DistributedFlag);
+			NetworkProtocol requestedP = (NetworkProtocol) analysisI.get(AnalysisInput.Protocol);
+			Long requestedRL = (Long) analysisI.get(AnalysisInput.RunLength);
+			Integer requestedRN = (Integer) analysisI.get(AnalysisInput.RunNumber);
+			String requestedCN = (String) analysisI.get(AnalysisInput.ClientName);
+			
+			ArrayList<String> requestedDiaryNames = generateDiaryPathsList(requestedTPF, requestedDFV, requestedP, requestedRL,
+																			requestedRN, requestedCN);
+			
+			switch(requestedAT)
+			{
+				case DelayHistogram:
+				{
+					objectI = developDelayHistogram(requestedDiaryNames, requestedPSAT, requestedDH);
+					break;
+				}
+				case AverageDelay:
+				{
+					objectI = developAverageDelay(requestedDiaryNames, requestedPSAT, requestedDH);
+					break;
+				}
+				default:
+					log.error(logHeader + "Invalid AnalysisType requested");
+					analyzedInformation.clear();
+					return false;
+			}
+			
+			analyzedInformation.add(objectI);
+			analyzedCheck.add(requestedAT);
+		}
+		
+		return true;
+	}
+	
+	public boolean printAll()
+	{
+		for(int i = 0 ; i < analyzedCheck.size() ; i++)
+		{
+			switch(analyzedCheck.get(i))
+			{
+				case DelayHistogram:
+				{
+					Histogram temp = (Histogram) analyzedInformation.get(i);
+					temp.printHistogram();
+					break;
+				}
+				case AverageDelay:
+				{
+					Long temp = (Long) analyzedInformation.get(i);
+					System.out.println(temp.toString());
+					break;
+				}
+				default:
+				{
+					log.error(logHeader + "Invalid AnalysisType requested");
+					return false;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	public ArrayList<String> generateDiaryPathsList(String topologyFilePath, DistributedFlagValue distributedFlag,
+														NetworkProtocol protocol, Long runLength, Integer runNumber, 
+														String clientName)
+	{		
+		ArrayList<String> retVal = new ArrayList<String>();
+		String diaryPathTestString = new String();
+		
+		if(topologyFilePath != null)
+		{
+			diaryPathTestString += (PSTBUtil.cleanTPF(topologyFilePath) + "-");
+		}
+		else
+		{
+			log.error(logHeader + "generateDiaryPathsList() needs a topologyFilePath at minimum"); 
+			return retVal;
+		}
+		
+		if(distributedFlag != null)
+		{
+			diaryPathTestString += (distributedFlag + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(protocol != null)
+		{
+			diaryPathTestString += (protocol + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(runLength != null)
+		{
+			diaryPathTestString += (runLength + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(runNumber != null)
+		{
+			diaryPathTestString += (runNumber + "-");
+		}
+		else
+		{
+			diaryPathTestString += "\\w+-";
+		}
+		
+		if(clientName != null)
+		{
+			diaryPathTestString += clientName;
+		}
+		else
+		{
+			diaryPathTestString += "\\w+";
+		}
+		
+		Pattern diaryPathTest = Pattern.compile(diaryPathTestString);
+		Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
+		
+		for( ; bookshelfIt.hasNext() ; )
+		{
+			String diaryPathI = bookshelfIt.next(); 
+			if(diaryPathTest.matcher(diaryPathI).matches())
+			{
+				retVal.add(diaryPathI);
+			}
+		}
+		
+		return retVal;
+	}
+	
 	public Histogram developDelayHistogram(ArrayList<String> diaryPaths, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
-		if( (delayType != DiaryHeader.ActionDelay) 
-			|| (delayType != DiaryHeader.TimeDifference)
-			)
+		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
 			log.error(logHeader + "That DiaryHeader is not a delay value.");
 			return null;
@@ -192,79 +350,69 @@ public class Analyzer {
 		return retVal;
 	}
 	
-	public ArrayList<String> generateDiaryPathsList(String clientName, String topologyFilePath, DistributedFlagValue distributedFlag,
-														NetworkProtocol protocol, Long runLength, Integer runNumber)
-	{		
-		ArrayList<String> retVal = new ArrayList<String>();
-		String diaryPathTestString = new String();
-		
-		if(clientName != null)
+	public Long developAverageDelay(ArrayList<String> diaryPaths, PSActionType typeToAnalyse, DiaryHeader delayType)
+	{
+		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
-			diaryPathTestString += (clientName + "-");
-		}
-		else
-		{
-			diaryPathTestString += "\\w+-";
+			log.error(logHeader + "That DiaryHeader is not a delay value.");
+			return null;
 		}
 		
-		if(topologyFilePath != null)
+		if(delayType.equals(DiaryHeader.ActionDelay) && typeToAnalyse.equals(PSActionType.R))
 		{
-			diaryPathTestString += (PSTBUtil.cleanTPF(topologyFilePath) + "-");
-		}
-		else
-		{
-			log.error(logHeader + "generateDiaryPathsList() needs a topologyFilePath at minimum"); 
-			return retVal;
+			log.error(logHeader + "Type mismatch - R's don't have an ActionDelay");
+			return null;
 		}
 		
-		if(distributedFlag != null)
+		if(delayType.equals(DiaryHeader.MessageDelay) && !typeToAnalyse.equals(PSActionType.R))
 		{
-			diaryPathTestString += (distributedFlag.toString() + "-");
-		}
-		else
-		{
-			diaryPathTestString += "\\w+-";
+			log.error(logHeader + "Type mismatch - only R has a MessageDelay");
+			return null;
 		}
 		
-		if(protocol != null)
-		{
-			diaryPathTestString += (protocol.toString() + "-");
-		}
-		else
-		{
-			diaryPathTestString += "\\w+-";
-		}
+		Long retVal = new Long(0L);
+		int k = 0;
 		
-		if(runLength != null)
+		for(int i = 0 ; i < diaryPaths.size() ; i++)
 		{
-			diaryPathTestString += (runLength.toString() + "-");
-		}
-		else
-		{
-			diaryPathTestString += "\\w+-";
-		}
-		
-		if(runNumber != null)
-		{
-			diaryPathTestString += (runNumber.toString() + "-");
-		}
-		else
-		{
-			diaryPathTestString += "\\w+-";
-		}
-		
-		Pattern diaryPathTest = Pattern.compile(diaryPathTestString);
-		Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
-		
-		for( ; bookshelfIt.hasNext() ; )
-		{
-			String diaryPathI = bookshelfIt.next(); 
-			if(diaryPathTest.matcher(diaryPathI).matches())
+			String diaryPathI = diaryPaths.get(i);
+			
+			if(!bookshelf.containsKey(diaryPathI))
 			{
-				retVal.add(diaryPathI);
+				log.error(logHeader + "No diary exists from " + diaryPathI);
+				return null;
+			}
+			
+			ClientDiary diaryI = bookshelf.get(diaryPathI);
+			
+			for(int j = 0 ; j < diaryI.size() ; j++)
+			{
+				DiaryEntry pageJ = diaryI.getDiaryEntryI(j);
+				if(pageJ.containsKey(DiaryHeader.PSActionType))
+				{
+					if(pageJ.getPSActionType() == typeToAnalyse)
+					{
+						if(pageJ.containsKey(delayType))
+						{
+							retVal += pageJ.getDelay(delayType);
+							k++;
+						}
+						else
+						{
+							log.error(logHeader + "There is a page where there is no " + delayType.toString()
+										+ " data for Action Type " + typeToAnalyse.toString());
+							return null;
+						}
+					}
+				}
+				else
+				{
+					log.error(logHeader + "Diary Page is missing an associated Action Type");
+					return null;
+				}
 			}
 		}
 		
-		return retVal;
+		return retVal / k;
 	}
 }

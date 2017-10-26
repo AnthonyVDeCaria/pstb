@@ -28,7 +28,7 @@ public class DiaryEntry  implements java.io.Serializable
 		StartedAction, EndedAction, ActionDelay,
 		MessageID, Attributes, PayloadSize, 
 		TimeActiveStarted, TimeActiveEnded,
-		TimeCreated, TimeReceived, TimeDifference
+		TimeMessageCreated, TimeMessageReceived, MessageDelay
 	}
 	
 	/**
@@ -115,17 +115,17 @@ public class DiaryEntry  implements java.io.Serializable
 	
 	public void addTimeCreated(Long givenTC)
 	{
-		page.put(DiaryHeader.TimeCreated, givenTC.toString());
+		page.put(DiaryHeader.TimeMessageCreated, givenTC.toString());
 	}
 	
 	public void addTimeReceived(Long givenTR)
 	{
-		page.put(DiaryHeader.TimeReceived, givenTR.toString());
+		page.put(DiaryHeader.TimeMessageReceived, givenTR.toString());
 	}
 	
 	public void addTimeDifference(Long givenTD)
 	{
-		page.put(DiaryHeader.TimeDifference, givenTD.toString());
+		page.put(DiaryHeader.MessageDelay, givenTD.toString());
 	}
 	
 	public PSActionType getPSActionType()
@@ -182,19 +182,19 @@ public class DiaryEntry  implements java.io.Serializable
 	
 	public Long getTimeCreated()
 	{
-		String storedTimeCreated = page.get(DiaryHeader.TimeCreated);
+		String storedTimeCreated = page.get(DiaryHeader.TimeMessageCreated);
 		return PSTBUtil.checkIfLong(storedTimeCreated, false, null);
 	}
 	
 	public Long getTimeReceived()
 	{
-		String storedTimeReceived = page.get(DiaryHeader.TimeReceived);
+		String storedTimeReceived = page.get(DiaryHeader.TimeMessageReceived);
 		return PSTBUtil.checkIfLong(storedTimeReceived, false, null);
 	}
 	
 	public Long getTimeDifference()
 	{
-		String storedTimeDifference = page.get(DiaryHeader.TimeDifference);
+		String storedTimeDifference = page.get(DiaryHeader.MessageDelay);
 		return PSTBUtil.checkIfLong(storedTimeDifference, false, null);
 	}
 	
@@ -204,7 +204,7 @@ public class DiaryEntry  implements java.io.Serializable
 		{
 			return getActionDelay();
 		}
-		else if(delayType == DiaryHeader.TimeDifference)
+		else if(delayType == DiaryHeader.MessageDelay)
 		{
 			return getTimeDifference();
 		}
@@ -269,11 +269,11 @@ public class DiaryEntry  implements java.io.Serializable
 				}
 				
 				if(header.equals(DiaryHeader.ActionDelay) 
-					|| header.equals(DiaryHeader.TimeDifference)
+					|| header.equals(DiaryHeader.MessageDelay)
 					|| header.equals(DiaryHeader.TimeActiveStarted)
 					|| header.equals(DiaryHeader.TimeActiveEnded)
-					|| header.equals(DiaryHeader.TimeCreated) 
-					|| header.equals(DiaryHeader.TimeReceived)
+					|| header.equals(DiaryHeader.TimeMessageCreated) 
+					|| header.equals(DiaryHeader.TimeMessageReceived)
 					)
 				{
 					Long convertedData = PSTBUtil.checkIfLong(data, false, null);
@@ -282,7 +282,7 @@ public class DiaryEntry  implements java.io.Serializable
 						String formatted = null;
 						
 						if(header.equals(DiaryHeader.ActionDelay) 
-								|| header.equals(DiaryHeader.TimeDifference)
+								|| header.equals(DiaryHeader.MessageDelay)
 								|| header.equals(DiaryHeader.TimeActiveStarted)
 								|| header.equals(DiaryHeader.TimeActiveEnded)
 								)

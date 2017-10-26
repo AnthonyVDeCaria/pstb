@@ -100,10 +100,11 @@ public class TopologyFileParser {
 				}
 			}
 			tFReader.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} 
+		catch (IOException e) 
+		{
 			isParseSuccessful = false;
-			logger.error("Parser: Cannot find file", e);
+			logger.error(logHeader + "Cannot find file", e);
 		}
 		return isParseSuccessful;
 	}
@@ -111,6 +112,7 @@ public class TopologyFileParser {
 	/**
 	 * Determines if the given line can be ignored
 	 * - i.e. its blank, or starts with a #
+	 * 
 	 * @param fileline - the line from the file
 	 * @return true if it can be ignored; false if it can't
 	 */
