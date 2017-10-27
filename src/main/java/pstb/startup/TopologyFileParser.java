@@ -45,6 +45,7 @@ public class TopologyFileParser {
 	
 	/**
 	 * Gets the logical topology contained in this parser
+	 * 
 	 * @return the Logical Topology
 	 */
 	public LogicalTopology getLogicalTopo()
@@ -53,8 +54,8 @@ public class TopologyFileParser {
 	}
 	
 	/**
-	 * @author padres-dev-4187
 	 * Parses the given Topology File
+	 * 
 	 * @returns false if there is an error; true if the parse is successful
 	 */
 	public boolean parse()
@@ -67,7 +68,7 @@ public class TopologyFileParser {
 			while( (line = tFReader.readLine()) != null)
 			{
 				linesRead++;
-				if(!checkIfLineIgnorable(line))
+				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
 					String[] splitLine = line.split(PSTBUtil.SPACE);
 					
@@ -110,26 +111,10 @@ public class TopologyFileParser {
 	}
 	
 	/**
-	 * Determines if the given line can be ignored
-	 * - i.e. its blank, or starts with a #
-	 * 
-	 * @param fileline - the line from the file
-	 * @return true if it can be ignored; false if it can't
-	 */
-	private boolean checkIfLineIgnorable(String fileline)
-	{
-		boolean isLineIgnorable = false;
-		if(fileline.length() == 0 || fileline.startsWith("#"))
-		{
-			isLineIgnorable = true;
-		}
-		return isLineIgnorable;
-	}
-	
-	/**
 	 * Determines if the given line has been properly written
 	 * - i.e. contains a node name, node types and node connections - 
 	 * by seeing if the split line has the right number of segments
+	 * 
 	 * @param splitFileline - the line from the file that has already be properly split
 	 * @return true if it is; false if it isn't
 	 */
@@ -145,6 +130,7 @@ public class TopologyFileParser {
 	
 	/**
 	 * Determines if the roles listed in the file line are proper PubSub roles
+	 * 
 	 * @param roles - the unsplit String of roles from the file
 	 * @return true if they are; false if they aren't
 	 */
@@ -195,6 +181,7 @@ public class TopologyFileParser {
 	/**
 	 * Determines if the given name is unique
 	 * I.e. doesn't already exist in any of the groups.
+	 * 
 	 * @param name - the name to check
 	 * @return true if the name is unique; false if it isn't
 	 */
@@ -220,6 +207,7 @@ public class TopologyFileParser {
 	
 	/**
 	 * Adds the line from the file to the topology
+	 * 
 	 * @param the line from the file
 	 */
 	private void addLineToTopo(String[] splitLine)

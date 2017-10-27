@@ -1,5 +1,9 @@
 package pstb.analysis;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 
@@ -51,12 +55,39 @@ public class Histogram
 	
 	/**
 	 * Prints the histogram on the screen
+	 * @param givenFilePath 
+	 * @return 
 	 */
-	public void printHistogram()
+	public boolean printHistogram(Path givenFilePath)
 	{
-		freq.forEach((dataPoint, numOccurances)->{
-			System.out.println(dataPoint.toString() + " occured " + numOccurances.toString());
-		});
+		try
+		{
+			freq.forEach((dataPoint, numOccurances)->{
+				String line = dataPoint.toString() + " occured " + numOccurances.toString();
+				try
+				{
+					if(Files.exists(givenFilePath))
+					{
+						Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
+					}
+					else
+					{
+						Files.write(givenFilePath, line.getBytes());
+					}
+				}
+				catch(IOException e)
+				{
+					throw new IllegalArgumentException();
+				}
+			});
+		}
+		catch(IllegalArgumentException e)
+		{
+			return false;
+		}
+		
+		return true;
+		
 	}
 	
 	/**

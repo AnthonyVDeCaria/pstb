@@ -17,6 +17,7 @@ import pstb.util.DiaryEntry.DiaryHeader;
 import pstb.util.DistributedFlagValue;
 import pstb.util.NetworkProtocol;
 import pstb.util.PSActionType;
+import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -24,7 +25,7 @@ import pstb.util.PSActionType;
  */
 public class AnalysisFileParser {
 	private ArrayList<HashMap<AnalysisInput, Object>> requestedAnalysis;
-	private String analysisFilePath;
+	private String analysisFileString;
 	
 	public final int NUM_SEGMENTS = 9;
 	public final int LOC_ANALYSIS_TYPE = 0;
@@ -40,25 +41,44 @@ public class AnalysisFileParser {
 	String logHeader = "AnalysisParser: ";
 	Logger log = LogManager.getRootLogger();
 	
+	/**
+	 * Empty Constructor
+	 */
 	public AnalysisFileParser()
 	{
 		requestedAnalysis = new ArrayList<HashMap<AnalysisInput, Object>>();
-		analysisFilePath = new String();
+		analysisFileString = new String();
 	}
 	
-	public void setAnalysisFilePath(String newAFP)
+	/**
+	 * Sets the AnalysisFileString
+	 * 
+	 * @param newAFS the new AnalysisFileString
+	 */
+	public void setAnalysisFileString(String newAFS)
 	{
-		analysisFilePath = newAFP;
+		analysisFileString = newAFS;
 	}
 	
+	/**
+	 * Gets the requestedAnalysis
+	 * 
+	 * @return the requestedAnalysis
+	 */
 	public ArrayList<HashMap<AnalysisInput, Object>> getRequestedAnalysis()
 	{
 		return requestedAnalysis;
 	}
 	
+	/**
+	 * Parses the given Analysis File
+	 * and extracts the analysis requested 
+	 * 
+	 * @return false on error; true otherwise
+	 */
 	public boolean parse()
 	{		
-		if(analysisFilePath.isEmpty())
+		if(analysisFileString.isEmpty())
 		{
 			log.error(logHeader + "No path to the Analysis file was given");
 			return false;
@@ -69,14 +89,13 @@ public class AnalysisFileParser {
 		int linesRead = 0;
 		
 		try {
-			BufferedReader readerAF = new BufferedReader(new FileReader(analysisFilePath));
+			BufferedReader readerAF = new BufferedReader(new FileReader(analysisFileString));
 			while( (line = readerAF.readLine()) != null)
 			{
 				linesRead++;
 				
-				if(!checkIfLineIgnorable(line))
+				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
-				
 					String[] splitLine = line.split("	");
 					
 					if(splitLine.length == NUM_SEGMENTS)
@@ -122,22 +141,11 @@ public class AnalysisFileParser {
 	}
 	
 	/**
-	 * Determines if the given line can be ignored
-	 * - i.e. its blank, or starts with a #
 	 * 
-	 * @param fileline - the line from the file
-	 * @return true if it can be ignored; false if it can't
+	 * 
+	 * @param splitLine
+	 * @return
 	 */
-	private boolean checkIfLineIgnorable(String fileline)
-	{
-		boolean isLineIgnorable = false;
-		if(fileline.length() == 0 || fileline.startsWith("#"))
-		{
-			isLineIgnorable = true;
-		}
-		return isLineIgnorable;
-	}
-	
 	private HashMap<AnalysisInput, Object> checkProperTypes(String[] splitLine)
 	{
 		HashMap<AnalysisInput, Object> retVal = new HashMap<AnalysisInput, Object>(); 

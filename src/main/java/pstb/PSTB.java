@@ -266,7 +266,7 @@ public class PSTB {
 		}
 		
 		AnalysisFileParser brainReader = new AnalysisFileParser();
-		brainReader.setAnalysisFilePath(analysisFilePath);
+		brainReader.setAnalysisFileString(analysisFilePath);
 		boolean analysisParseCheck = brainReader.parse();
 		
 		if(!analysisParseCheck)
@@ -282,7 +282,7 @@ public class PSTB {
 			endProgram(PSTBError.ERROR_ANALYSIS, userInput);
 		}
 		
-		brain.printAll();
+		brain.printAllAnalyzedInformation();
 		
 		logger.info("Benchmark complete");
 		endProgram(0, userInput);

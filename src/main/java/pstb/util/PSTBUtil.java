@@ -152,6 +152,15 @@ public class PSTBUtil {
 		return true;
 	}
 	
+	/**
+	 * Makes sure a given file extension is proper
+	 * 
+	 * @param fileExtension - the file extension to check
+	 * @param logger - the log associated with the function that called this 
+	 * (that way if things go wrong we know where to log it)
+	 * @param logHeader - the log header associated with that log
+	 * @return true if it works; false it it can't
+	 */
 	public static boolean checkFileExtension(String fileExtension, Logger logger, String logHeader)
 	{
 		// Check File Ending
@@ -164,10 +173,41 @@ public class PSTBUtil {
 		return true;
 	}
 	
+	/**
+	 * Determines if the given line can be ignored
+	 * - i.e. its blank, or starts with a #
+	 * 
+	 * @param fileline - the line from the file
+	 * @return true if it can be ignored; false if it can't
+	 */
+	public static boolean checkIfLineIgnorable(String fileline)
+	{
+		boolean isLineIgnorable = false;
+		if(fileline.length() == 0 || fileline.startsWith("#"))
+		{
+			isLineIgnorable = true;
+		}
+		return isLineIgnorable;
+	}
+	
+	/**
+	 * @author padres-dev-4187
+	 * 
+	 * Acceptable createTimeString units
+	 */
 	public enum TimeType{
 		Nano
 	}
 	
+	/**
+	 * Given a time value and what the original units are 
+	 * generates an associated string.
+	 * Example 1000000000 Nano -> 1 sec
+	 * 
+	 * @param givenTimeValue - the time value to convert
+	 * @param givenTT - the units of this time value
+	 * @return the associated converted string
+	 */
 	public static String createTimeString(Long givenTimeValue, TimeType givenTT)
 	{
 		String retVal = null;

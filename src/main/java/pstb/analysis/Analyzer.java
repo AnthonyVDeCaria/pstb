@@ -24,7 +24,11 @@ import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * Analyzes the information contained within the ClientDiaries.
+ * As such, it has functions to access these Diaries 
+ * As well as functions to sort them 
+ * on top of some analysis functions.
  */
 public class Analyzer {
 	private HashMap<String, ClientDiary> bookshelf;
@@ -35,7 +39,15 @@ public class Analyzer {
 	
 	private final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
 	private final String diariesFolderString = analysisFolderString + "diaries/";
+	private final String analyzedFolderString = analysisFolderString + "analyzed/";
+	private final String histogramFolderString = analyzedFolderString + "histogram/";
+	private final String avgDelayFolderString = analyzedFolderString + "avgDelay/";
 	
+	/**
+	 * Constructor
+	 * 
+	 * @param logger - the Logger that should be utilized for logging 
+	 */
 	public Analyzer(Logger logger)
 	{
 		log = logger;
@@ -44,14 +56,28 @@ public class Analyzer {
 		analyzedCheck = new ArrayList<AnalysisType>();
 	}
 	
+	/**
+	 * AnalyzedInformation getter
+	 * 
+	 * @return the analyzed Object List
+	 */
 	public ArrayList<Object> getAnalyzedInformation()
 	{
 		return analyzedInformation;
 	}
 	
-	public boolean collectDiaryAndAddToBookshelf (String diaryPath)
+	/**
+	 * Gets a certain serialized diary object 
+	 * and adds it to the "bookshelf" 
+	 * - a collection of ClientDiaries
+	 * 
+	 * @param diaryName - the name associated the diary object
+	 * @see PSClientPADRES
+	 * @return true if the book has been added; false otherwise
+	 */
+	public boolean collectDiaryAndAddToBookshelf (String diaryName)
 	{
-		ClientDiary tiedDiary = readDiaryFile(diaryPath);
+		ClientDiary tiedDiary = readDiaryObject(diaryName);
 		
 		if(tiedDiary == null)
 		{
@@ -59,17 +85,23 @@ public class Analyzer {
 		}
 		else
 		{
-			addDiaryToBookshelf(diaryPath, tiedDiary);
+			addDiaryToBookshelf(diaryName, tiedDiary);
 			return true;
 		}
 	}
 	
-	public ClientDiary readDiaryFile(String diaryPath)
+	/**
+	 * Deserializes a ClientDiary object
+	 * 
+	 * @param diaryName - the name of this diary
+	 * @return null on failure; the requested diary otherwise
+	 */
+	public ClientDiary readDiaryObject(String diaryName)
 	{
 		ClientDiary diaryI = null;
 		try
 		{
-			FileInputStream fileIn = new FileInputStream("/tmp/" + diaryPath + ".dia");
+			FileInputStream fileIn = new FileInputStream("/tmp/" + diaryName + ".dia");
 			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
 			diaryI = (ClientDiary) oISIn.readObject();
 			oISIn.close();
@@ -77,7 +109,7 @@ public class Analyzer {
 		} 
 		catch (FileNotFoundException e) 
 		{
-			log.error(logHeader + "couldn't find serialized diary file ", e);
+			log.error(logHeader + "couldn't find serialized diary object ", e);
 			return null;
 		}
 		catch (IOException e)
@@ -94,11 +126,23 @@ public class Analyzer {
 		return diaryI;
 	}
 	
-	public void addDiaryToBookshelf(String diaryPath, ClientDiary givenDiary)
+	/**
+	 * Adds a Diary to the Bookshelf
+	 * (Basically a fancy HashMap put())
+	 * 
+	 * @param diaryName - the ClientDiary object's name
+	 * @param givenDiary - the ClientDiary object itself
+	 */
+	public void addDiaryToBookshelf(String diaryName, ClientDiary givenDiary)
 	{
-		bookshelf.put(diaryPath, givenDiary);
+		bookshelf.put(diaryName, givenDiary);
 	}
 	
+	/**
+	 * Prints all the diaries on the bookshelf into files
+	 * 
+	 * @return false on an error; true otherwise
+	 */
 	public boolean printAllDiaries()
 	{	
 		Path diaryFolderPath = Paths.get(diariesFolderString);
@@ -117,21 +161,21 @@ public class Analyzer {
 		
 		try
 		{
-			bookshelf.forEach((diaryPath, diary)->
+			bookshelf.forEach((diaryName, diary)->
 			{
-				String pathString = diariesFolderString + diaryPath + ".txt";
-				Path printedDiaryPath = Paths.get(pathString);
+				String diaryFileString = diariesFolderString + diaryName + ".txt";
+				Path diaryFilePath = Paths.get(diaryFileString);
 				
 				try 
 				{
-					Files.deleteIfExists(printedDiaryPath);
+					Files.deleteIfExists(diaryFilePath);
 				} 
 				catch (IOException e)
 				{
-					throw new IllegalArgumentException("IO couldn't delete file " + pathString);
+					throw new IllegalArgumentException("IO couldn't delete file " + diaryFileString);
 				}
 				
-				boolean check = diary.printDiary(printedDiaryPath, log);
+				boolean check = diary.printDiary(diaryFilePath, log);
 				if(!check)
 				{
 					throw new IllegalArgumentException();
@@ -147,11 +191,17 @@ public class Analyzer {
 		return true;
 	}
 	
+	/**
+	 * Executes the analysis requested by the user
+	 * @see AnalysisFileParser
+	 * 
+	 * @param requestedAnalysis - the converted analysis file 
+	 * @return false on an error; true otherwise
+	 */
 	public boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, Object>> requestedAnalysis)
 	{
 		for(int i = 0 ; i < requestedAnalysis.size(); i++)
 		{
-			Object objectI = null;
 			HashMap<AnalysisInput, Object> analysisI = requestedAnalysis.get(i);
 			
 			AnalysisType requestedAT = (AnalysisType) analysisI.get(AnalysisInput.AnalysisType);
@@ -164,9 +214,10 @@ public class Analyzer {
 			Integer requestedRN = (Integer) analysisI.get(AnalysisInput.RunNumber);
 			String requestedCN = (String) analysisI.get(AnalysisInput.ClientName);
 			
-			ArrayList<String> requestedDiaryNames = generateDiaryPathsList(requestedTPF, requestedDFV, requestedP, requestedRL,
+			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedTPF, requestedDFV, requestedP, requestedRL,
 																			requestedRN, requestedCN);
 			
+			Object objectI = null;
 			switch(requestedAT)
 			{
 				case DelayHistogram:
@@ -192,22 +243,98 @@ public class Analyzer {
 		return true;
 	}
 	
-	public boolean printAll()
+	/**
+	 * Prints the information contained within the analyzedInformation object
+	 * 
+	 * @return false on an error; true otherwise
+	 */
+	public boolean printAllAnalyzedInformation()
 	{
+		int numHistograms = 0;
+		int numAvgDelays = 0;
+		
+		Path histogramFolderPath = Paths.get(histogramFolderString);
+		Path avgDelayFolderPath = Paths.get(avgDelayFolderString);
+		
+		if(Files.notExists(histogramFolderPath))
+		{
+			try 
+			{
+				Files.createDirectories(histogramFolderPath);
+			} 
+			catch (IOException e) 
+			{
+				log.error(logHeader + "error creating histogram folder", e);
+				return false;
+			}
+		}
+		
+		if(Files.notExists(avgDelayFolderPath))
+		{
+			try 
+			{
+				Files.createDirectories(avgDelayFolderPath);
+			} 
+			catch (IOException e) 
+			{
+				log.error(logHeader + "error creating average delay folder", e);
+				return false;
+			}
+		}
+		
 		for(int i = 0 ; i < analyzedCheck.size() ; i++)
 		{
 			switch(analyzedCheck.get(i))
 			{
 				case DelayHistogram:
 				{
-					Histogram temp = (Histogram) analyzedInformation.get(i);
-					temp.printHistogram();
+					PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
+					
+					String histogramFileString = histogramFolderString + temp.getHistogramName() +"-" + numHistograms + ".txt";
+					Path histogramFilePath = Paths.get(histogramFileString);
+					
+					try
+					{
+						Files.deleteIfExists(histogramFilePath);
+					} 
+					catch (IOException e)
+					{
+						throw new IllegalArgumentException("IO couldn't delete file " + histogramFileString);
+					}
+					
+					boolean check = temp.printHistogram(histogramFilePath);
+					if(!check)
+					{
+						log.error(logHeader + "Error printing Histogram " + i);
+						return false;
+					}
+					
+					numHistograms++;
 					break;
 				}
 				case AverageDelay:
 				{
-					Long temp = (Long) analyzedInformation.get(i);
-					System.out.println(temp.toString());
+					PSTBDelay temp = (PSTBDelay) analyzedInformation.get(i);
+					String avgDelayFileString = avgDelayFolderString + temp.getName() +"-" + numAvgDelays + ".txt";
+					Path avgDelayFilePath = Paths.get(avgDelayFileString);
+					
+					try
+					{
+						Files.deleteIfExists(avgDelayFilePath);
+					} 
+					catch (IOException e)
+					{
+						throw new IllegalArgumentException("IO couldn't delete file " + avgDelayFileString);
+					}
+					
+					boolean check = temp.printDelay(avgDelayFilePath);
+					if(!check)
+					{
+						log.error(logHeader + "Error printing Average Delay " + i);
+						return false;
+					}
+					
+					numAvgDelays++;
 					break;
 				}
 				default:
@@ -221,84 +348,105 @@ public class Analyzer {
 		return true;
 	}
 	
-	public ArrayList<String> generateDiaryPathsList(String topologyFilePath, DistributedFlagValue distributedFlag,
+	/**
+	 * Given a set of parameters, gets a bunch of ClientDiary Paths that match
+	 * If null is inputed, it will be assumed that the user wants all of that type of parameter
+	 * For example, if a null if given for distributedFlag, all diaries that match the other 5 parameters
+	 * will be added.
+	 * 
+	 * @param topologyFileString - The topology file associated with these Diaries
+	 * @param distributedFlag - the DistributedFlagValue associated with these Diaries
+	 * @param protocol - the NetworkProtocol associated with these Diaries
+	 * @param runLength - the runLength associated with these Diaries
+	 * @param runNumber - the runNumber associated with these Diaries
+	 * @param clientName - the ClientName associated with these Diaries
+	 * @return the list of matching diary names
+	 */
+	public ArrayList<String> getAffiliatedDiaryNames(String topologyFileString, DistributedFlagValue distributedFlag,
 														NetworkProtocol protocol, Long runLength, Integer runNumber, 
 														String clientName)
 	{		
 		ArrayList<String> retVal = new ArrayList<String>();
-		String diaryPathTestString = new String();
+		String nameTestString = new String();
 		
-		if(topologyFilePath != null)
+		if(topologyFileString != null)
 		{
-			diaryPathTestString += (PSTBUtil.cleanTPF(topologyFilePath) + "-");
+			nameTestString += (PSTBUtil.cleanTPF(topologyFileString) + "-");
 		}
 		else
 		{
-			log.error(logHeader + "generateDiaryPathsList() needs a topologyFilePath at minimum"); 
-			return retVal;
+			nameTestString += "\\w+-";
 		}
 		
 		if(distributedFlag != null)
 		{
-			diaryPathTestString += (distributedFlag + "-");
+			nameTestString += (distributedFlag + "-");
 		}
 		else
 		{
-			diaryPathTestString += "\\w+-";
+			nameTestString += "\\w+-";
 		}
 		
 		if(protocol != null)
 		{
-			diaryPathTestString += (protocol + "-");
+			nameTestString += (protocol + "-");
 		}
 		else
 		{
-			diaryPathTestString += "\\w+-";
+			nameTestString += "\\w+-";
 		}
 		
 		if(runLength != null)
 		{
-			diaryPathTestString += (runLength + "-");
+			nameTestString += (runLength + "-");
 		}
 		else
 		{
-			diaryPathTestString += "\\w+-";
+			nameTestString += "\\w+-";
 		}
 		
 		if(runNumber != null)
 		{
-			diaryPathTestString += (runNumber + "-");
+			nameTestString += (runNumber + "-");
 		}
 		else
 		{
-			diaryPathTestString += "\\w+-";
+			nameTestString += "\\w+-";
 		}
 		
 		if(clientName != null)
 		{
-			diaryPathTestString += clientName;
+			nameTestString += clientName;
 		}
 		else
 		{
-			diaryPathTestString += "\\w+";
+			nameTestString += "\\w+";
 		}
 		
-		Pattern diaryPathTest = Pattern.compile(diaryPathTestString);
+		Pattern nameTest = Pattern.compile(nameTestString);
 		Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
 		
 		for( ; bookshelfIt.hasNext() ; )
 		{
-			String diaryPathI = bookshelfIt.next(); 
-			if(diaryPathTest.matcher(diaryPathI).matches())
+			String diaryNameI = bookshelfIt.next(); 
+			if(nameTest.matcher(diaryNameI).matches())
 			{
-				retVal.add(diaryPathI);
+				retVal.add(diaryNameI);
 			}
 		}
 		
 		return retVal;
 	}
 	
-	public Histogram developDelayHistogram(ArrayList<String> diaryPaths, PSActionType typeToAnalyse, DiaryHeader delayType)
+	/**
+	 * Develops a delay histogram
+	 * 
+	 * @param diaryNames - the given set of diaries to develop the histogram from
+	 * @param typeToAnalyse - the type of action to get the delay of
+	 * @param delayType - the type of delay
+	 * @return the associated histogram
+	 */
+	public PSTBHistogram developDelayHistogram(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
@@ -306,11 +454,12 @@ public class Analyzer {
 			return null;
 		}
 		
-		Histogram retVal = new Histogram();
+		PSTBHistogram retVal = new PSTBHistogram();
+		retVal.setHistogramName(typeToAnalyse.toString() + "-" + delayType.toString());
 		
-		for(int i = 0 ; i < diaryPaths.size() ; i++)
+		for(int i = 0 ; i < diaryNames.size() ; i++)
 		{
-			String diaryPathI = diaryPaths.get(i);
+			String diaryPathI = diaryNames.get(i);
 			
 			if(!bookshelf.containsKey(diaryPathI))
 			{
@@ -325,7 +474,7 @@ public class Analyzer {
 				DiaryEntry pageJ = diaryI.getDiaryEntryI(j);
 				if(pageJ.containsKey(DiaryHeader.PSActionType))
 				{
-					if(pageJ.getPSActionType() == typeToAnalyse)
+					if(pageJ.getPSActionType().equals(typeToAnalyse))
 					{
 						if(pageJ.containsKey(delayType))
 						{
@@ -350,7 +499,18 @@ public class Analyzer {
 		return retVal;
 	}
 	
-	public Long developAverageDelay(ArrayList<String> diaryPaths, PSActionType typeToAnalyse, DiaryHeader delayType)
+	/**
+	 * Determines the average delay for a given delay type
+	 * NOTE: Certain delays only exist for certain PSActionTypes
+	 * The MessageDelay is only for R PSActions
+	 * While R PSActions do NOT have an ActionDelay - everyone else does.
+	 * 
+	 * @param diaryNames - a list of diaries that will be combed over
+	 * @param typeToAnalyse - the type of PSActionType requested to look at
+	 * @param delayType - the type of delay: Action or Message
+	 * @return the average delay
+	 */
+	public PSTBDelay developAverageDelay(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
@@ -370,12 +530,14 @@ public class Analyzer {
 			return null;
 		}
 		
-		Long retVal = new Long(0L);
-		int k = 0;
+		Long totalDelay = new Long(0L);
+		double instances = 0;
+		PSTBDelay retVal = new PSTBDelay();
+		retVal.setName(typeToAnalyse.toString() + "-" + delayType.toString());
 		
-		for(int i = 0 ; i < diaryPaths.size() ; i++)
+		for(int i = 0 ; i < diaryNames.size() ; i++)
 		{
-			String diaryPathI = diaryPaths.get(i);
+			String diaryPathI = diaryNames.get(i);
 			
 			if(!bookshelf.containsKey(diaryPathI))
 			{
@@ -394,8 +556,8 @@ public class Analyzer {
 					{
 						if(pageJ.containsKey(delayType))
 						{
-							retVal += pageJ.getDelay(delayType);
-							k++;
+							totalDelay += pageJ.getDelay(delayType);
+							instances++;
 						}
 						else
 						{
@@ -413,6 +575,11 @@ public class Analyzer {
 			}
 		}
 		
-		return retVal / k;
+		if(instances > 0)
+		{
+			retVal.setValue((long) (totalDelay / instances));
+		}
+		
+		return retVal;
 	}
 }

@@ -40,9 +40,9 @@ public class WorkloadFileParser {
 	}
 	
 	/**
-	 * FilePath constructor
-	 * @param nSWFP - the new path to the subscriber workload file
-	 * @param nPWFP - the array containing all the paths to the publisher workload files
+	 * Constructor
+	 * 
+	 * @param log - the Logger that is requested we log to
 	 */
 	public WorkloadFileParser(Logger log)
 	{
@@ -54,6 +54,7 @@ public class WorkloadFileParser {
 	
 	/**
 	 * Gets the Workload object
+	 * 
 	 * @return the Workload
 	 */
 	public Workload getWorkload()
