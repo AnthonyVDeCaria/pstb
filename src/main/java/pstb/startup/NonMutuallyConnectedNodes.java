@@ -15,7 +15,6 @@ public class NonMutuallyConnectedNodes {
 	
 	/**
 	 * Empty Constructor
-	 * 
 	 */
 	public NonMutuallyConnectedNodes()
 	{
@@ -33,13 +32,17 @@ public class NonMutuallyConnectedNodes {
 	}
 	
 	/**
-	 * @return the node
+	 * Gets the problematic node
+	 * 
+	 * @return the problematic node
 	 */
 	public String getProblematicNode() {
 		return problematicNode;
 	}
 
 	/**
+	 * Gets the missingConnection
+	 * 
 	 * @return the missingConnection
 	 */
 	public String getMissingConnection() {
@@ -47,6 +50,8 @@ public class NonMutuallyConnectedNodes {
 	}
 	
 	/**
+	 * Sets the problematicNode
+	 * 
 	 * @param pN - the name of the problematic node
 	 */
 	public void setProblematicNode(String pN) {
@@ -54,6 +59,8 @@ public class NonMutuallyConnectedNodes {
 	}
 
 	/**
+	 * Sets the missingConnection
+	 * 
 	 * @param missingConnection - the name of the missingConnection
 	 */
 	public void setMissingConnection(String mC) {

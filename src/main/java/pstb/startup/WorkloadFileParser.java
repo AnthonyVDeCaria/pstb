@@ -19,8 +19,8 @@ import pstb.util.PSAction;
 
 public class WorkloadFileParser {
 	private Workload wload;
-	private ArrayList<String> pubWorkloadFilesPaths;
-	private String subWorkloadFilePath;
+	private ArrayList<String> pubWorkloadFilesStrings;
+	private String subWorkloadFileString;
 	
 	private PSAction fileAd; // this exists on a per file basis
 	
@@ -34,6 +34,11 @@ public class WorkloadFileParser {
 	private final String logHeader = "Workload Parser: ";
 	private  Logger logger = null;
 	
+	/**
+	 * @author padres-dev-4187
+	 * 
+	 * The types of workload files
+	 */
 	public enum WorkloadFileType
 	{
 		P, S;
@@ -48,8 +53,8 @@ public class WorkloadFileParser {
 	{
 		logger = log;
 		wload = new Workload();
-		pubWorkloadFilesPaths = new ArrayList<String>();
-		subWorkloadFilePath = new String();
+		pubWorkloadFilesStrings = new ArrayList<String>();
+		subWorkloadFileString = new String();
 	}
 	
 	/**
@@ -62,23 +67,39 @@ public class WorkloadFileParser {
 		return wload;
 	}
 	
-	public void setPubWorkloadFilesPaths(ArrayList<String> givenPWFP)
+	/**
+	 * Sets the PubWorkloadFilesStrings
+	 * 
+	 * @param givenPWFS - the given PubWorkloadFilesStrings
+	 */
+	public void setPubWorkloadFilesStrings(ArrayList<String> givenPWFS)
 	{
-		pubWorkloadFilesPaths = givenPWFP;
+		pubWorkloadFilesStrings = givenPWFS;
 	}
 	
-	public void setSubWorkloadFilePath(String givenSWFP)
+	/**
+	 * Sets the SubWorkloadFileString
+	 * 
+	 * @param givenSWFS
+	 */
+	public void setSubWorkloadFileString(String givenSWFS)
 	{
-		subWorkloadFilePath = givenSWFP;
+		subWorkloadFileString = givenSWFS;
 	}
 	
+	/**
+	 * Parses the Workload file as stated by the requestedWF
+	 * 
+	 * @param requestedWF - the type of Workload file that is to be parsed
+	 * @return false on failure; true otherwise
+	 */
 	public boolean parseWorkloadFiles(WorkloadFileType requestedWF)
 	{
 		boolean parseSuccessful = true;
 		
-		if(pubWorkloadFilesPaths.isEmpty() || subWorkloadFilePath.isEmpty())
+		if(pubWorkloadFilesStrings.isEmpty() || subWorkloadFileString.isEmpty())
 		{
-			logger.error(logHeader + "One of the File(s) Path(s) doesn't exist");
+			logger.error(logHeader + "One of the File(s) Strings doesn't exist");
 			return false;
 		}
 		
@@ -87,7 +108,7 @@ public class WorkloadFileParser {
 			BufferedReader sWFReader = null;
 			try
 			{
-				sWFReader = new BufferedReader(new FileReader(subWorkloadFilePath));
+				sWFReader = new BufferedReader(new FileReader(subWorkloadFileString));
 			}
 			catch (IOException e) 
 			{
@@ -98,12 +119,12 @@ public class WorkloadFileParser {
 			parseSuccessful = parseGivenWorkloadFile(sWFReader, requestedWF);
 			if(!parseSuccessful)
 			{
-				logger.error(logHeader + "Error in file " + subWorkloadFilePath);
+				logger.error(logHeader + "Error in file " + subWorkloadFileString);
 			}
 		}
 		else
 		{
-			ArrayList<FileReader> fileList = tryToAccessWorkloadFiles(pubWorkloadFilesPaths);
+			ArrayList<FileReader> fileList = tryToAccessWorkloadFiles(pubWorkloadFilesStrings);
 			
 			if(fileList != null)
 			{
@@ -127,6 +148,13 @@ public class WorkloadFileParser {
 		return parseSuccessful;
 	}
 	
+	/**
+	 * Parses a given Workload File
+	 * 
+	 * @param givenFile - the file to parse
+	 * @param requestedWF - the type of Workload File it is
+	 * @return false on failure; true otherwise
+	 */
 	private boolean parseGivenWorkloadFile(BufferedReader givenFile, WorkloadFileType requestedWF)
 	{
 		boolean isParseSuccessful = true;
@@ -216,6 +244,7 @@ public class WorkloadFileParser {
 	 * - i.e. contains a client action, attributes 
 	 * and either a payload size or a time active - 
 	 * by seeing if the split line has the right number of segments
+	 * 
 	 * @param splitFileLine - the split line
 	 * @return true if it does; false otherwise
 	 */
@@ -268,6 +297,13 @@ public class WorkloadFileParser {
 		return test;
 	}
 	
+	/**
+	 * Determines is a Payload/TimeActive value is valid
+	 * 
+	 * @param sPOrTA - the Payload/TimeActive string
+	 * @param givenAction - the action tied to this Payload/TimeActive
+	 * @return null on an error; the value otherwise
+	 */
 	private Long checkValidPayloadOrTimeActive(String sPOrTA, PSActionType givenAction)
 	{
 		if(givenAction == PSActionType.R || givenAction == PSActionType.U || givenAction == PSActionType.V)
@@ -280,7 +316,8 @@ public class WorkloadFileParser {
 	}
 	
 	/**
-	 * Attempts to read all the PubWorkloadFiles
+	 * Attempts to access all the PubWorkloadFiles
+	 * 
 	 * @return null if a file cannot be read; an ArrayList of FileReaders if successful
 	 */
 	private ArrayList<FileReader> tryToAccessWorkloadFiles(ArrayList<String> pubWorkloadFilesPaths)
@@ -305,6 +342,15 @@ public class WorkloadFileParser {
 		return temp;
 	}
 	
+	/**
+	 * Adds and action to the Workload
+	 * 
+	 * @param actionDelay - the desired delay
+	 * @param actionType - the desired PSActionType
+	 * @param attributes - the desired attributes
+	 * @param payloadOrTA - the desired Payload/TimeActive
+	 * @return false on error; true otherwise
+	 */
 	private boolean addActionToWorkload(Long actionDelay, PSActionType actionType, String attributes, Long payloadOrTA)
 	{
 		PSAction newAction = new PSAction();

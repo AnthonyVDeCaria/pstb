@@ -16,6 +16,8 @@ import pstb.util.PSTBUtil;
  * @author padres-dev-4187
  *
  * The Client Process
+ * Calls the client functions after the client object has been created
+ * @see PhysicalTopology
  *
  * Algorithm
  * Search the args for the name flag

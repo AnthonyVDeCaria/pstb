@@ -93,8 +93,8 @@ public class PSTB {
 		logger.info("No errors loading the Properties file!");
 				
 		WorkloadFileParser parseWLF = new WorkloadFileParser(logger);
-		parseWLF.setPubWorkloadFilesPaths(benchmarkRules.getPubWorkloadFilesPaths());
-		parseWLF.setSubWorkloadFilePath(benchmarkRules.getSubWorkloadFilePath());
+		parseWLF.setPubWorkloadFilesStrings(benchmarkRules.getPubWorkloadFilesStrings());
+		parseWLF.setSubWorkloadFileString(benchmarkRules.getSubWorkloadFileString());
 		
 		logger.info("Parsing Workload Files...");
 		
@@ -119,7 +119,7 @@ public class PSTB {
 		Workload askedWorkload = parseWLF.getWorkload();
 		
 		boolean allToposOk = true;
-		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesPaths();
+		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesStrings();
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
 		
 		logger.info("Starting to disect Topology Files...");
@@ -325,6 +325,7 @@ public class PSTB {
 	private static boolean runExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
 											Integer givenNumberOfRunsPerExperiment, Workload givenWorkload, Analyzer givenAnalyzer)
 	{
+		// We'll need this to collect the diaries latter, so...
 		Boolean givenPTDis = givenPT.getDistributed();
 		
 		if(givenPTDis == null)
@@ -333,6 +334,7 @@ public class PSTB {
 			return false;
 		}
 		
+		// Loop through the Run Lengths
 		for(int runLengthI = 0 ; runLengthI < givenRLs.size(); runLengthI++)
 		{
 			Long iTHRunLengthMilli = givenRLs.get(runLengthI);
@@ -353,6 +355,7 @@ public class PSTB {
 				return false;
 			}
 			
+			// Loop through the runs
 			for(int runI = 0 ; runI < givenNumberOfRunsPerExperiment ; runI++)
 			{
 				givenPT.setRunNumber(runI);
@@ -364,14 +367,15 @@ public class PSTB {
 					return false;
 				}
 				
+				// Run starts here
 				functionCheck = givenPT.startProcesses();
 				if(!functionCheck)
 				{
 					logger.error("Error starting run");
 					return false;
 				}
-				
 				Long startTime = System.nanoTime();
+				
 				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
 				sleepLength = (long) (iTHRunLengthNano / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue()); // Check 10 times
 				Long currentTime = System.nanoTime();
@@ -401,6 +405,7 @@ public class PSTB {
 						}
 					}
 					
+					// So that we don't continuously check, let's put this thread to sleep
 					try 
 					{				
 						logger.trace("Pausing main");
@@ -442,6 +447,7 @@ public class PSTB {
 						return false;
 					}
 				}
+				
 				givenPT.killAllProcesses();
 				
 				logger.debug("Collecting diaries");
@@ -460,18 +466,19 @@ public class PSTB {
 				boolean givenDiaryCollected = true;
 				for(int i = 0; i < clientNames.size() ; i++)
 				{
-					String diaryPath = givenPT.getTopologyFilePath() + "-"
+					String diaryName = givenPT.getTopologyFilePath() + "-"
 										+ disFlag + "-"
 										+ proto.toString() + "-"
 										+ iTHRunLengthMilli + "-"
 										+ runI + "-"
 										+ clientNames.get(i);
-					givenDiaryCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryPath);
+					givenDiaryCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryName);
 					if(!givenDiaryCollected)
 					{
-						logger.error("Error collecting diary " + diaryPath);
+						logger.error("Error collecting diary " + diaryName);
 						return false;
 					}
+					logger.trace("Collected diary " + diaryName);
 				}
 				
 				logger.info("All diaries collected");

@@ -19,13 +19,13 @@ import pstb.util.NetworkProtocol;
 
 public class BenchmarkConfig {
 	private Integer numRunsPerExperiment;
-	private ArrayList<String> pubWorkloadFilesPaths;
-	private String subWorkloadFilePath;
+	private ArrayList<String> pubWorkloadFilesStrings;
+	private String subWorkloadFileString;
 	
 	private ArrayList<Long> runLengths; // Milliseconds
 	
 	private ArrayList<NetworkProtocol> protocols;
-	private ArrayList<String> topologyFilesPaths;
+	private ArrayList<String> topologyFilesStrings;
 	private HashMap<String, DistributedState> distributed;
 	
 	private Logger logger = null;
@@ -41,11 +41,11 @@ public class BenchmarkConfig {
 		logger = log;
 		
 		numRunsPerExperiment = new Integer(0);
-		pubWorkloadFilesPaths = new ArrayList<String>();
-		subWorkloadFilePath = new String();
+		pubWorkloadFilesStrings = new ArrayList<String>();
+		subWorkloadFileString = new String();
 		runLengths = new ArrayList<Long>();
 		protocols = new ArrayList<NetworkProtocol>();
-		topologyFilesPaths = new ArrayList<String>();
+		topologyFilesStrings = new ArrayList<String>();
 		distributed = new HashMap<String, DistributedState>();
 	}
 	
@@ -64,9 +64,7 @@ public class BenchmarkConfig {
 	{
 		boolean everythingisProper = true;
 		
-		/*
-		 * numRunsPerExperiment
-		 */
+		// numRunsPerExperiment
 		String givenNRPE = givenProperty.getProperty("startup.numRunsPerExperiment");
 		try
 		{
@@ -79,27 +77,21 @@ public class BenchmarkConfig {
 			everythingisProper = false;
 		}
 		
-		/*
-		 * pubWorkloadFilesPaths
-		 */
-		String unsplitPWFP = givenProperty.getProperty("startup.pubWorkloadFilesPaths");
+		// pubWorkloadFilesStrings
+		String unsplitPWFP = givenProperty.getProperty("startup.pubWorkloadFilesStrings");
 		ArrayList<String> propPWFP = new ArrayList<String>();
 		if(unsplitPWFP != null)
 		{
 			String[] splitPWFP = unsplitPWFP.split(PSTBUtil.COMMA);
 			propPWFP = PSTBUtil.turnStringArrayIntoArrayListString(splitPWFP);
 		}
-		setPubWorkloadFilesPaths(propPWFP);
+		setPubWorkloadFilesStrings(propPWFP);
 		
-		/*
-		 * subWorkloadFilePath
-		 */
-		String propSWFP = givenProperty.getProperty("startup.subWorkloadFilePath");
-		setSubWorkloadFilePath(propSWFP);
+		// subWorkloadFileString
+		String propSWFP = givenProperty.getProperty("startup.subWorkloadFileString");
+		setSubWorkloadFileString(propSWFP);
 		
-		/*
-		 * runLengths
-		 */
+		// runLengths
 		String unsplitRL = givenProperty.getProperty("startup.runLengths");
 		ArrayList<Long> propRL = new ArrayList<Long>();
 		if(unsplitRL != null)
@@ -127,9 +119,7 @@ public class BenchmarkConfig {
 		}
 		setRunLengths(propRL);
 		
-		/*
-		 * Protocols
-		 */
+		// Protocols
 		String unsplitProtocols = givenProperty.getProperty("startup.protocols");
 		ArrayList<NetworkProtocol> propProto = new ArrayList<NetworkProtocol>();
 		if(unsplitProtocols != null)
@@ -165,16 +155,12 @@ public class BenchmarkConfig {
 		}
 		setProtocols(propProto);
 		
-		/*
-		 * topologyFilesPaths
-		 */
-		String unsplitTFP = givenProperty.getProperty("startup.topologyFilesPaths");
+		// topologyFilesStrings
+		String unsplitTFP = givenProperty.getProperty("startup.topologyFilesStrings");
 		String[] splitTFP = unsplitTFP.split(PSTBUtil.COMMA);
-		setTopologyFilesPaths(PSTBUtil.turnStringArrayIntoArrayListString(splitTFP));
+		setTopologyFilesStrings(PSTBUtil.turnStringArrayIntoArrayListString(splitTFP));
 		
-		/*
-		 * distributed
-		 */
+		// distributed
 		String unsplitDis = givenProperty.getProperty("startup.distributed");
 		HashMap<String, DistributedState> propDis = new HashMap<String, DistributedState>();
 		if(unsplitDis != null)
@@ -188,7 +174,7 @@ public class BenchmarkConfig {
 					try
 					{
 						DistributedState sDI = DistributedState.valueOf(splitDis[i]);
-						propDis.put(topologyFilesPaths.get(i), sDI);
+						propDis.put(topologyFilesStrings.get(i), sDI);
 					}
 					catch(IllegalArgumentException e)
 					{
@@ -209,9 +195,6 @@ public class BenchmarkConfig {
 		}
 		setDistributed(propDis);
 		
-		/*
-		 * return
-		 */
 		return everythingisProper;
 	}
 	
@@ -221,17 +204,18 @@ public class BenchmarkConfig {
 	public void printAllFields()
 	{
 		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
-		logger.info("Properties: pubWorkloadFilePath = " + Arrays.toString(pubWorkloadFilesPaths.toArray()));
-		logger.info("Properties: subWorkloadFilePath = " + subWorkloadFilePath);
+		logger.info("Properties: pubWorkloadFilesStrings = " + Arrays.toString(pubWorkloadFilesStrings.toArray()));
+		logger.info("Properties: subWorkloadFileString = " + subWorkloadFileString);
 		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
 		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
-		logger.info("Properties: topologyFilesPaths = " + Arrays.toString(topologyFilesPaths.toArray()));
+		logger.info("Properties: topologyFilesStrings = " + Arrays.toString(topologyFilesStrings.toArray()));
 		logger.info("Properties: distributed = " + distributed.toString());
 	}
 	
 	/**
 	 * Checks if any of the fields are "null"
 	 * I.e. Not been set
+	 * 
 	 * @return false if no field is "null", true if one is
 	 */
 	public boolean checkForNullFields()
@@ -243,14 +227,14 @@ public class BenchmarkConfig {
 			logger.error("Properties: No Number of Experiment Runs was given!");
 			anyFieldNull = true;
 		}
-		if(pubWorkloadFilesPaths.isEmpty())
+		if(pubWorkloadFilesStrings.isEmpty())
 		{
-			logger.error("Properties: No Publisher Workload Files were given!");
+			logger.error("Properties: No Publisher Workload Strings were given!");
 			anyFieldNull = true;
 		}
-		if(subWorkloadFilePath.isEmpty())
+		if(subWorkloadFileString.isEmpty())
 		{
-			logger.error("Properties: No Subscriber Workload File was given!");
+			logger.error("Properties: No Subscriber Workload String was given!");
 			anyFieldNull = true;
 		}
 		if(runLengths.isEmpty())
@@ -263,9 +247,9 @@ public class BenchmarkConfig {
 			logger.error("Properties: No Protocol(s) were given!");
 			anyFieldNull = true;
 		}
-		if(topologyFilesPaths.isEmpty())
+		if(topologyFilesStrings.isEmpty())
 		{
-			logger.error("Properties: No Topology File(s) were given!");
+			logger.error("Properties: No Topology File String(s) were given!");
 			anyFieldNull = true;
 		}
 		if(distributed.isEmpty())
@@ -278,75 +262,13 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Gets the numRunsPerExperiment
-	 * @return numRunsPerExperiment - the number of runs an experiment has to complete
-	 */
-	public Integer getNumRunsPerExperiment()
-	{
-		return this.numRunsPerExperiment;
-	}
-	
-	/**
-	 * Gets the runLength
-	 * @return  runLength - the list of minutes each experiment's run's will take
-	 */
-	public ArrayList<Long> getRunLengths()
-	{
-		return this.runLengths;
-	}
-	
-	/**
-	 * Gets the protocols
-	 * @return protocols - the list of protocols to be use in different runs
-	 */
-	public ArrayList<NetworkProtocol> getProtocols()
-	{
-		return this.protocols;
-	}
-	
-	/**
-	 * Gets the topologyFilesPaths
-	 * @return topologyFilesPaths - the paths to all the Topology Files
-	 */
-	public ArrayList<String> getTopologyFilesPaths()
-	{
-		return this.topologyFilesPaths;
-	}
-	
-	/**
-	 * Gets the distributed
-	 * @return distributed - the list of wither each topology is distributed or not
-	 */
-	public HashMap<String, DistributedState> getDistributed()
-	{
-		return this.distributed;
-	}
-	
-	/**
-	 * Gets the pubWorkloadFilesPaths
-	 * @return the pubWorkloadFilesPaths
-	 */
-	public ArrayList<String> getPubWorkloadFilesPaths()
-	{
-		return this.pubWorkloadFilesPaths;
-	}
-	
-	/**
-	 * Gets the subWorkloadFilePath
-	 * @return the subWorkloadFilePath
-	 */
-	public String getSubWorkloadFilePath()
-	{
-		return this.subWorkloadFilePath;
-	}
-	
-	/**
 	 * NOTE: All the setter functions are private 
 	 * as the only "setter" that should be accessed is setBenchmarkConfig
 	 */
 	
 	/**
 	 * Sets the numRunsPerExperiment
+	 * 
 	 * @param nRPE - the new numRunsPerExperiment
 	 */
 	private void setNumRunsPerExperiment(Integer nRPE)
@@ -355,25 +277,28 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Sets the pubWorkloadFilesPaths
-	 * @param nPWFP - the new pubWorkloadFilesPaths
+	 * Sets the pubWorkloadFilesStrings
+	 * 
+	 * @param nPWFS - the new pubWorkloadFilesStrings
 	 */
-	private void setPubWorkloadFilesPaths(ArrayList<String> nPWFP)
+	private void setPubWorkloadFilesStrings(ArrayList<String> nPWFS)
 	{
-		pubWorkloadFilesPaths = nPWFP;
+		pubWorkloadFilesStrings = nPWFS;
 	}
 	
 	/**
-	 * Sets the subWorkloadFilePath
-	 * @param nSWFP - the new subWorkloadFilePath
+	 * Sets the subWorkloadFileString
+	 * 
+	 * @param nSWFS - the new subWorkloadFileString
 	 */
-	private void setSubWorkloadFilePath(String nSWFP)
+	private void setSubWorkloadFileString(String nSWFS)
 	{
-		subWorkloadFilePath = nSWFP;
+		subWorkloadFileString = nSWFS;
 	}
 	
 	/**
 	 * Sets the runLength
+	 * 
 	 * @param proto - the new protocols
 	 */
 	private void setRunLengths(ArrayList<Long> rL)
@@ -383,6 +308,7 @@ public class BenchmarkConfig {
 	
 	/**
 	 * Sets the protocols
+	 * 
 	 * @param proto - the new protocols
 	 */
 	private void setProtocols(ArrayList<NetworkProtocol> proto)
@@ -391,20 +317,92 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Sets the topologyFilesPaths
-	 * @param tFP - the new topologyFilesPaths
+	 * Sets the topologyFilesStrings
+	 * 
+	 * @param tFS - the new topologyFilesStrings
 	 */
-	private void setTopologyFilesPaths(ArrayList<String> tFP)
+	private void setTopologyFilesStrings(ArrayList<String> tFS)
 	{
-		topologyFilesPaths = tFP;
+		topologyFilesStrings = tFS;
 	}
 	
 	/**
 	 * Sets the distributed array
+	 * 
 	 * @param dis - the new distributed
 	 */
 	private void setDistributed(HashMap<String, DistributedState> dis)
 	{
 		distributed = dis;
+	}
+	
+	/**
+	 * Gets the numRunsPerExperiment
+	 * 
+	 * @return numRunsPerExperiment - the number of runs an experiment has to complete
+	 */
+	public Integer getNumRunsPerExperiment()
+	{
+		return this.numRunsPerExperiment;
+	}
+	
+	/**
+	 * Gets the runLength
+	 * 
+	 * @return  runLength - the list of minutes each experiment's run's will take
+	 */
+	public ArrayList<Long> getRunLengths()
+	{
+		return this.runLengths;
+	}
+	
+	/**
+	 * Gets the protocols
+	 * 
+	 * @return protocols - the list of protocols to be use in different runs
+	 */
+	public ArrayList<NetworkProtocol> getProtocols()
+	{
+		return this.protocols;
+	}
+	
+	/**
+	 * Gets the topologyFilesStrings
+	 * 
+	 * @return topologyFilesStrings - the paths to all the Topology Files
+	 */
+	public ArrayList<String> getTopologyFilesStrings()
+	{
+		return this.topologyFilesStrings;
+	}
+	
+	/**
+	 * Gets the distributed
+	 * 
+	 * @return distributed - the list of wither each topology is distributed or not
+	 */
+	public HashMap<String, DistributedState> getDistributed()
+	{
+		return this.distributed;
+	}
+	
+	/**
+	 * Gets the pubWorkloadFilesStrings
+	 * 
+	 * @return the pubWorkloadFilesStrings 
+	 */
+	public ArrayList<String> getPubWorkloadFilesStrings()
+	{
+		return this.pubWorkloadFilesStrings;
+	}
+	
+	/**
+	 * Gets the subWorkloadFileString
+	 * 
+	 * @return the subWorkloadFileString
+	 */
+	public String getSubWorkloadFileString()
+	{
+		return this.subWorkloadFileString;
 	}
 }

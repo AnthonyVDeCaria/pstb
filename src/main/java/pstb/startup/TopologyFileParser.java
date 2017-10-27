@@ -23,7 +23,7 @@ import pstb.util.PSTBUtil;
  */
 public class TopologyFileParser {	
 	private LogicalTopology logicalTopo;
-	private String topoFilePath;
+	private String topoFileString;
 	
 	private final int SEGMENTSNUM = 3;
 	private final int NODE_NAME_LOCATION = 0;
@@ -35,12 +35,15 @@ public class TopologyFileParser {
 	
 	/**
 	 * FilePath Constructor
+	 * 
+	 * @param givenTPS - the Topology File String to parse
+	 * @param log - the Logger we have to use
 	 */
-	public TopologyFileParser(String nTPF, Logger log)
+	public TopologyFileParser(String givenTPS, Logger log)
     {
 		logger = log;
 		logicalTopo = new LogicalTopology(log);
-		topoFilePath = nTPF;
+		topoFileString = givenTPS;
     }
 	
 	/**
@@ -64,7 +67,7 @@ public class TopologyFileParser {
 		String line = null;
 		int linesRead = 0;
 		try {
-			BufferedReader tFReader = new BufferedReader(new FileReader(topoFilePath));
+			BufferedReader tFReader = new BufferedReader(new FileReader(topoFileString));
 			while( (line = tFReader.readLine()) != null)
 			{
 				linesRead++;

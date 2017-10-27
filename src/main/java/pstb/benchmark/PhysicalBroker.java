@@ -13,7 +13,27 @@ import pstb.util.PSTBError;
 
 /**
  * @author padres-dev-4187
+ * 
+ * The Process Class
+ * Calls the Broker functions after the broker object has been created
+ * @see PhysicalTopology
+ * 
+ * Algorithm
+ * Search the args for the name flag
+ * If it's not there
+ * 	Exit with error
+ * Else
+ * 	Try to find associated broker object file
+ * 	Can't
+ * 		Exit with error
+ * 	Can
+ * 		Attempt to create broker
+ * 		Attempt to start broker
  *
+ * 		Any of these attempts fail
+ * 			Exit with error
+ * 		Otherwise
+ * 			Float until killed
  */
 public class PhysicalBroker {
 	private static final String logHeader = "PhyBroker: ";
