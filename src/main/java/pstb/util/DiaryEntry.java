@@ -19,6 +19,8 @@ public class DiaryEntry  implements java.io.Serializable
 	private static final long serialVersionUID = 1L;
 	HashMap<DiaryHeader, String> page;
 	
+	private final String logHeader = "DiaryEntry: ";
+	
 	/**
 	 * The allowed headers for this Diary Entry
 	 */
@@ -230,15 +232,29 @@ public class DiaryEntry  implements java.io.Serializable
 		return page.containsValue(value);
 	}
 	
-	public boolean printPage(Path givenFilePath, Logger log)
+	public boolean recordPage(Path givenFilePath, Logger log)
 	{
+		if(!Files.exists(givenFilePath))
+		{
+			try 
+			{
+				Files.createFile(givenFilePath);
+			} 
+			catch (IOException e) 
+			{
+				log.error(logHeader + "Couldn't create a new file for this DiaryEntry: ", e);
+				return false;
+			}
+		}
+		
 		try
 		{
 			page.forEach((header, data)->{
-				if(
-						header.equals(DiaryHeader.TimeActionStarted)
-						|| header.equals(DiaryHeader.TimeBrokerFinished)
-					)
+				/*
+				 *  If we're looking at TimeActionStarted or TimeBrokerFinished, don't record the number value
+				 *  Instead, convert that number into a date
+				 */
+				if(header.equals(DiaryHeader.TimeActionStarted) || header.equals(DiaryHeader.TimeBrokerFinished))
 				{
 					Long convertedData = PSTBUtil.checkIfLong(data, false, null);
 					if(convertedData != null)
@@ -247,27 +263,29 @@ public class DiaryEntry  implements java.io.Serializable
 					}
 					else
 					{
-						throw new IllegalArgumentException("Converted data null at line " + header.toString() + ": " + data);
+						throw new IllegalArgumentException("Converted data null for header" + header.toString() 
+																+ " and data " + data);
 					}
 				}
 				
 				String line = header.toString() + ": " + data;
 				try
 				{
-					if(Files.exists(givenFilePath))
-					{
-						Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
-					}
-					else
-					{
-						Files.write(givenFilePath, line.getBytes());
-					}
+					Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
 				}
 				catch(IOException e)
 				{
 					throw new IllegalArgumentException("IO failed at line " + line);
 				}
 				
+				/*
+				 * If we're looking at a delay value or a time started/ended value,
+				 * Then let's convert it from a long number into something meaningful.
+				 * Except for TimeStartedAction or TimeEndedAction - these values don't mean anything.
+				 * 
+				 * Why have both the original value and the converted value?
+				 * That way a user can double check that the values are accurate, if they wish.
+				 */
 				if(header.equals(DiaryHeader.ActionDelay) 
 					|| header.equals(DiaryHeader.MessageDelay)
 					|| header.equals(DiaryHeader.TimeActiveStarted)
@@ -281,14 +299,20 @@ public class DiaryEntry  implements java.io.Serializable
 					{
 						String formatted = null;
 						
+						// All of these are time stamps in nanoseconds
 						if(header.equals(DiaryHeader.ActionDelay) 
-								|| header.equals(DiaryHeader.MessageDelay)
 								|| header.equals(DiaryHeader.TimeActiveStarted)
 								|| header.equals(DiaryHeader.TimeActiveEnded)
 								)
 						{
 							formatted = PSTBUtil.createTimeString(convertedData, TimeType.Nano);
 						}
+						// This time stamp is in milliseconds
+						else if(header.equals(DiaryHeader.MessageDelay))
+						{
+							formatted = PSTBUtil.createTimeString(convertedData, TimeType.Milli);
+						}
+						// The other 2 (for now) are dates 
 						else
 						{
 							formatted = PSTBUtil.DATE_FORMAT.format(convertedData);
@@ -297,14 +321,7 @@ public class DiaryEntry  implements java.io.Serializable
 						line = " -> " + formatted;
 						try
 						{
-							if(Files.exists(givenFilePath))
-							{
-								Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
-							}
-							else
-							{
-								Files.write(givenFilePath, line.getBytes());
-							}
+							Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
 						}
 						catch(IOException e)
 						{
@@ -320,14 +337,7 @@ public class DiaryEntry  implements java.io.Serializable
 				line = "\n";
 				try
 				{
-					if(Files.exists(givenFilePath))
-					{
-						Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
-					}
-					else
-					{
-						Files.write(givenFilePath, line.getBytes());
-					}
+					Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
 				}
 				catch(IOException e)
 				{
@@ -337,7 +347,7 @@ public class DiaryEntry  implements java.io.Serializable
 		}
 		catch(IllegalArgumentException e)
 		{
-			log.error("DiaryEntry: Error writing to file", e);
+			log.error(logHeader + "Error writing to file: ", e);
 			return false;
 		}
 		

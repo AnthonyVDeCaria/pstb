@@ -22,10 +22,9 @@ public class ClientDiary implements java.io.Serializable
 	}
 	
 	/**
-	 * Creates a new diary entry
-	 * @param givenAction - the action the client is accomplishing; be it Advertise, Publish, etc
-	 * @param attributes - the Attributes associated with this action
-	 * @return the new diary entry
+	 * Adds a new diary entry to this diary
+	 * 
+	 * @param givenDE - the diary entry to add
 	 */
 	public void addDiaryEntryToDiary(DiaryEntry givenDE) 
 	{
@@ -34,6 +33,7 @@ public class ClientDiary implements java.io.Serializable
 	
 	/**
 	 * Gets a diary entry given it's associated Message ID
+	 * 
 	 * @param mID - the associated messageID
 	 * @return Either the given diary entry, or null
 	 */
@@ -77,6 +77,7 @@ public class ClientDiary implements java.io.Serializable
 	
 	/**
 	 * Gets the Diary Entry at index i
+	 * 
 	 * @param i - index
 	 * @return the associated DiaryEntry
 	 */
@@ -88,31 +89,28 @@ public class ClientDiary implements java.io.Serializable
 	/**
 	 * Returns the size of the Diary
 	 * (Basically an extension of the ArrayList<> size function)
-	 * @return
+	 * 
+	 * @return the size of the diary
 	 */
 	public int size() {
 		return diary.size();
 	}
 	
 	/**
-	 * @param log 
+	 * Takes the contents of this diary, and writes it to a file
 	 * 
+	 * @param givenFilePath - the Path of the file to write to
+	 * @param log - the Logger to record errors
 	 */
-	public boolean printDiary(Path givenFilePath, Logger log)
+	public boolean recordDiary(Path givenFilePath, Logger log)
 	{
 		int diarySize = diary.size();
 		
 		String openingLine = "There are " + diarySize + " entries\n\n";
 		try
 		{
-			if(Files.exists(givenFilePath))
-			{
-				Files.write(givenFilePath, openingLine.getBytes(), StandardOpenOption.APPEND);
-			}
-			else
-			{
-				Files.write(givenFilePath, openingLine.getBytes());
-			}
+			Files.deleteIfExists(givenFilePath);
+			Files.write(givenFilePath, openingLine.getBytes());
 		}
 		catch(IOException e)
 		{
@@ -123,17 +121,9 @@ public class ClientDiary implements java.io.Serializable
 		for(int i = 0; i < diarySize ; i++)
 		{
 			String intro = "Page " + i + ":\n";
-			
 			try
 			{
-				if(Files.exists(givenFilePath))
-				{
-					Files.write(givenFilePath, intro.getBytes(), StandardOpenOption.APPEND);
-				}
-				else
-				{
-					Files.write(givenFilePath, intro.getBytes());
-				}
+				Files.write(givenFilePath, intro.getBytes(), StandardOpenOption.APPEND);
 			}
 			catch(IOException e)
 			{
@@ -141,23 +131,16 @@ public class ClientDiary implements java.io.Serializable
 				return false;
 			}
 			
-			boolean check = diary.get(i).printPage(givenFilePath, log);
+			boolean check = diary.get(i).recordPage(givenFilePath, log);
 			if(!check)
 			{
 				return false;
 			}
 			
+			String newLine = "\n";
 			try
 			{
-				String newLine = "\n";
-				if(Files.exists(givenFilePath))
-				{
-					Files.write(givenFilePath, newLine.getBytes(), StandardOpenOption.APPEND);
-				}
-				else
-				{
-					Files.write(givenFilePath, newLine.getBytes());
-				}
+				Files.write(givenFilePath, newLine.getBytes(), StandardOpenOption.APPEND);
 			}
 			catch(IOException e)
 			{

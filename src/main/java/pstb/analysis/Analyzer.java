@@ -143,7 +143,7 @@ public class Analyzer {
 	 * 
 	 * @return false on an error; true otherwise
 	 */
-	public boolean printAllDiaries()
+	public boolean recordAllDiaries()
 	{	
 		Path diaryFolderPath = Paths.get(diariesFolderString);
 		if(Files.notExists(diaryFolderPath))
@@ -175,7 +175,7 @@ public class Analyzer {
 					throw new IllegalArgumentException("IO couldn't delete file " + diaryFileString);
 				}
 				
-				boolean check = diary.printDiary(diaryFilePath, log);
+				boolean check = diary.recordDiary(diaryFilePath, log);
 				if(!check)
 				{
 					throw new IllegalArgumentException();
@@ -248,7 +248,7 @@ public class Analyzer {
 	 * 
 	 * @return false on an error; true otherwise
 	 */
-	public boolean printAllAnalyzedInformation()
+	public boolean recordAllAnalyzedInformation()
 	{
 		int numHistograms = 0;
 		int numAvgDelays = 0;
@@ -290,19 +290,11 @@ public class Analyzer {
 				{
 					PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
 					
-					String histogramFileString = histogramFolderString + temp.getHistogramName() +"-" + numHistograms + ".txt";
+					String histogramFileString = histogramFolderString + temp.getHistogramName()
+													+ "-" + numHistograms + ".txt";
 					Path histogramFilePath = Paths.get(histogramFileString);
 					
-					try
-					{
-						Files.deleteIfExists(histogramFilePath);
-					} 
-					catch (IOException e)
-					{
-						throw new IllegalArgumentException("IO couldn't delete file " + histogramFileString);
-					}
-					
-					boolean check = temp.printHistogram(histogramFilePath);
+					boolean check = temp.recordPSTBHistogram(histogramFilePath, log);
 					if(!check)
 					{
 						log.error(logHeader + "Error printing Histogram " + i);
@@ -314,20 +306,11 @@ public class Analyzer {
 				}
 				case AverageDelay:
 				{
-					PSTBDelay temp = (PSTBDelay) analyzedInformation.get(i);
+					PSTBAvgDelay temp = (PSTBAvgDelay) analyzedInformation.get(i);
 					String avgDelayFileString = avgDelayFolderString + temp.getName() +"-" + numAvgDelays + ".txt";
 					Path avgDelayFilePath = Paths.get(avgDelayFileString);
 					
-					try
-					{
-						Files.deleteIfExists(avgDelayFilePath);
-					} 
-					catch (IOException e)
-					{
-						throw new IllegalArgumentException("IO couldn't delete file " + avgDelayFileString);
-					}
-					
-					boolean check = temp.printDelay(avgDelayFilePath);
+					boolean check = temp.recordAvgDelay(avgDelayFilePath, log);
 					if(!check)
 					{
 						log.error(logHeader + "Error printing Average Delay " + i);
@@ -456,7 +439,8 @@ public class Analyzer {
 		
 		PSTBHistogram retVal = new PSTBHistogram();
 		retVal.setHistogramName(typeToAnalyse.toString() + "-" + delayType.toString());
-		
+		retVal.setHistogramType(typeToAnalyse);
+				
 		for(int i = 0 ; i < diaryNames.size() ; i++)
 		{
 			String diaryPathI = diaryNames.get(i);
@@ -510,7 +494,7 @@ public class Analyzer {
 	 * @param delayType - the type of delay: Action or Message
 	 * @return the average delay
 	 */
-	public PSTBDelay developAverageDelay(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	public PSTBAvgDelay developAverageDelay(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
@@ -532,9 +516,10 @@ public class Analyzer {
 		
 		Long totalDelay = new Long(0L);
 		double instances = 0;
-		PSTBDelay retVal = new PSTBDelay();
+		PSTBAvgDelay retVal = new PSTBAvgDelay();
 		retVal.setName(typeToAnalyse.toString() + "-" + delayType.toString());
-		
+		retVal.setDelayType(typeToAnalyse);
+				
 		for(int i = 0 ; i < diaryNames.size() ; i++)
 		{
 			String diaryPathI = diaryNames.get(i);

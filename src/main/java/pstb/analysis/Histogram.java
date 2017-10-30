@@ -7,6 +7,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 
+import org.apache.logging.log4j.Logger;
+
 /**
  * @author padres-dev-4187
  * 
@@ -16,6 +18,7 @@ import java.util.function.BiConsumer;
 public class Histogram 
 {
 	private HashMap<Double, Integer> freq;   // freq.get(i) = # occurrences of value i
+	private final String logHeader = "Histogram: ";
 
 	/**
 	 * 	Empty Constructor 
@@ -54,40 +57,49 @@ public class Histogram
 	}
 	
 	/**
-	 * Prints the histogram on the screen
-	 * @param givenFilePath 
-	 * @return 
+	 * Writes the histogram into a file
+	 * 
+	 * @param givenFilePath - the Path of the file we're writing to
+	 * @param log - the Logger we record to if there's an error
+	 * @return false if there's a failure; true otherwise
 	 */
-	public boolean printHistogram(Path givenFilePath)
+	public boolean recordHistogram(Path givenFilePath, Logger log)
 	{
+		if(!Files.exists(givenFilePath))
+		{
+			try 
+			{
+				Files.createFile(givenFilePath);
+			} 
+			catch (IOException e) 
+			{
+				log.error("Couldn't create a new file for this Histogram: ", e);
+				return false;
+			}
+		}
+		
 		try
 		{
 			freq.forEach((dataPoint, numOccurances)->{
-				String line = dataPoint.toString() + " occured " + numOccurances.toString();
+				String line = dataPoint.toString() + " occurred " + numOccurances.toString() + "\n";
 				try
 				{
-					if(Files.exists(givenFilePath))
-					{
-						Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
-					}
-					else
-					{
-						Files.write(givenFilePath, line.getBytes());
-					}
+					Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
 				}
 				catch(IOException e)
 				{
-					throw new IllegalArgumentException();
+					throw new IllegalArgumentException("Error writing dataPoint " + dataPoint.toString() 
+															+ " with occurance " + numOccurances.toString());
 				}
 			});
 		}
 		catch(IllegalArgumentException e)
 		{
+			log.error(logHeader, e);
 			return false;
 		}
 		
 		return true;
-		
 	}
 	
 	/**

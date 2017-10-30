@@ -16,16 +16,14 @@ import pstb.util.PubSubGroup;
 /**
  * @author padres-dev-4187
  * 
- * The Logical Topology.
- * Contains a collection of all the NodeRole PubSubGroups that make this topology.
- * I.e. the needed broker and client nodes.
- *
+ * The Logical Topology of the network.
+ * Contains a collection of all the NodeRole PubSubGroups - I.e. the needed broker and client nodes - that make this topology.
  */
 public class LogicalTopology {
 	private HashMap<NodeRole, PubSubGroup> network;
 	
 	private enum VisitedState{ NOTVISITED, VISITED }
-	private ArrayList<NonMutuallyConnectedNodes> problemNodes = new ArrayList<NonMutuallyConnectedNodes>();
+	private ArrayList<NonMutuallyConnectedNodes> problemNodes;
 	
 	private Logger logger = null;
 	
@@ -36,6 +34,7 @@ public class LogicalTopology {
     {
 		logger = log;
 		network = new HashMap<NodeRole, PubSubGroup>();
+		problemNodes = new ArrayList<NonMutuallyConnectedNodes>();
     }
 	
 	/**
@@ -62,7 +61,8 @@ public class LogicalTopology {
 	
 	/**
 	 * Adds a new node to the topology
-	 * This means it will add the new node to all the groups it belongs to. 
+	 * This means it will add the new node to all the groups it belongs to.
+	 * 
 	 * @param roles - a list of all of this node's roles
 	 * @param name - the name of this node
 	 * @param connections - what iArrays.toString(v))t's connected to
@@ -83,27 +83,28 @@ public class LogicalTopology {
 	}
 	
 	/**
-	 * Prints out all the "B" nodes that are not mutually connected
+	 * Logs all the logical brokers that are not mutually connected.
 	 */
-	public void printNonMutuallyConnectedNodes()
+	public void logNonMutuallyConnectedNodes()
 	{
 		if(!problemNodes.isEmpty())
 		{
 			problemNodes.forEach((pair)->{
 				String n = pair.getProblematicNode();
 				String mC = pair.getMissingConnection();
-				System.out.println("Node " + n + " doesn't reciprocate Node " + mC + "'s connection.");
+				logger.info("Node " + n + " doesn't reciprocate Node " + mC + "'s connection.");
 			});
 		}
 		else
 		{
-			System.out.println("All B Nodes are mutually connected.");
+			logger.info("All B Nodes are mutually connected.");
 		}
 	}
 	
 	/**
 	 * Allows an action to be resolved on every group in the topology
-	 * (A port of the HashMap's forEach)
+	 * (An extension of the HashMap's forEach)
+	 * 
 	 * @param action - the action that's to be applied to every node
 	 * @see HashMap
 	 */
@@ -149,28 +150,30 @@ public class LogicalTopology {
 	 * If none exist, it throws an exception
 	 * (Expects confirmBrokerMutualConnectivity() to be run first)
 	 * Once the fix is complete - the non-mutually connected list is lost
+	 * 
+	 * @return false on failure; true otherwise
 	 */
-	public void forceMutualConnectivity()
+	public boolean forceMutualConnectivity()
 	{
 		if(problemNodes.isEmpty())
 		{
-			throw new IllegalArgumentException("No non-mutually connected nodes exist. "
-					+ "Was confirmBrokerMutualConnectivity() run first?");
+			logger.error("No non-mutually connected nodes exist!");
+			return false;
 		}
-		else
-		{
-			PubSubGroup brokerGroup = getGroup(NodeRole.B);
-			problemNodes.forEach((problemPair)->{
-				String node = problemPair.getProblematicNode();
-				String missingConnection = problemPair.getMissingConnection();
-				
-				ArrayList<String> connections = brokerGroup.getNodeConnections(node);
-				connections.add(missingConnection);
-				brokerGroup.addNewNode(node,connections);
-			});
-			problemNodes.clear();
-			logger.info("All nodes mutually connected!");
-		}
+		
+		PubSubGroup brokerGroup = getGroup(NodeRole.B);
+		problemNodes.forEach((problemPair)->{
+			String node = problemPair.getProblematicNode();
+			String missingConnection = problemPair.getMissingConnection();
+			
+			ArrayList<String> connections = brokerGroup.getNodeConnections(node);
+			connections.add(missingConnection);
+			brokerGroup.addNewNode(node,connections);
+		});
+		
+		problemNodes.clear();
+		logger.info("All nodes mutually connected.");
+		return true;
 	}
 	
 

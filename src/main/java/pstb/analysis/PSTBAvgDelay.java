@@ -6,8 +6,10 @@ package pstb.analysis;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 
+import org.apache.logging.log4j.Logger;
+
+import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
 import pstb.util.PSTBUtil.TimeType;
 
@@ -18,14 +20,17 @@ import pstb.util.PSTBUtil.TimeType;
  * and a name associated with it 
  * @see Analyzer
  */
-public class PSTBDelay {
+public class PSTBAvgDelay {
 	private String name;
 	private Long value;
+	private PSActionType delayType;
+	
+	private final String logHeader = "PSTBAvgDelay: ";
 
 	/**
 	 * Constructor
 	 */
-	public PSTBDelay() {
+	public PSTBAvgDelay() {
 		setName(new String());
 		setValue(new Long(0));
 	}
@@ -49,6 +54,13 @@ public class PSTBDelay {
 	}
 	
 	/**
+	 * @param delayType the delayType to set
+	 */
+	public void setDelayType(PSActionType delayType) {
+		this.delayType = delayType;
+	}
+	
+	/**
 	 * Gets the name of this Delay
 	 * 
 	 * @return the name
@@ -67,28 +79,43 @@ public class PSTBDelay {
 	}
 	
 	/**
+	 * @return the delayType
+	 */
+	public PSActionType getDelayType() {
+		return delayType;
+	}
+	
+	/**
 	 * Prints the delay value
 	 * 
 	 * @param givenFilePath - the location to print to
 	 * @return false on failure; true otherwise
 	 */
-	public boolean printDelay(Path givenFilePath)
+	public boolean recordAvgDelay(Path givenFilePath, Logger log)
 	{
-		String line = PSTBUtil.createTimeString(value, TimeType.Nano);
+		String line = null;
+		
+		if(delayType.equals(null))
+		{
+			log.error(logHeader + "No delayType was set");
+		}
+		else if(delayType.equals(PSActionType.R))
+		{
+			line = PSTBUtil.createTimeString(value, TimeType.Milli);
+		}
+		else
+		{
+			line = PSTBUtil.createTimeString(value, TimeType.Nano);
+		}
 		
 		try
 		{
-			if(Files.exists(givenFilePath))
-			{
-				Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
-			}
-			else
-			{
-				Files.write(givenFilePath, line.getBytes());
-			}
+			Files.deleteIfExists(givenFilePath);
+			Files.write(givenFilePath, line.getBytes());
 		}
 		catch(IOException e)
 		{
+			log.error(logHeader + " error writing average delay to the requested file: ", e);
 			return false;
 		}
 		

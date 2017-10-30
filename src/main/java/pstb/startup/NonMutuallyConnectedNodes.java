@@ -3,8 +3,9 @@ package pstb.startup;
 /**
  * @author padres-dev-4187
  * 
- * This class helps the mutually connected functions
- * by creating a class that contains both strings.
+ * This class helps the mutually connected functions by creating a class that contains both strings.
+ * While it would appear that a HashMap would be sufficient, a given Node might be missing several connections.
+ * A HashMap would override these individual connections, leaving just the last connection added.
  * 
  * @see cconfirmBrokerMutualConnectivity
  * @see fixMutualConnectivty
@@ -32,7 +33,7 @@ public class NonMutuallyConnectedNodes {
 	}
 	
 	/**
-	 * Gets the problematic node
+	 * Gets the problematic node for this pair
 	 * 
 	 * @return the problematic node
 	 */
@@ -41,7 +42,7 @@ public class NonMutuallyConnectedNodes {
 	}
 
 	/**
-	 * Gets the missingConnection
+	 * Gets the missingConnection for this pair
 	 * 
 	 * @return the missingConnection
 	 */
@@ -50,7 +51,7 @@ public class NonMutuallyConnectedNodes {
 	}
 	
 	/**
-	 * Sets the problematicNode
+	 * Sets the problematicNode for this pair
 	 * 
 	 * @param pN - the name of the problematic node
 	 */
@@ -59,7 +60,7 @@ public class NonMutuallyConnectedNodes {
 	}
 
 	/**
-	 * Sets the missingConnection
+	 * Sets the missingConnection for this pair
 	 * 
 	 * @param missingConnection - the name of the missingConnection
 	 */

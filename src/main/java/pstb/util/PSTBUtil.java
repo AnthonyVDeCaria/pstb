@@ -196,7 +196,7 @@ public class PSTBUtil {
 	 * Acceptable createTimeString units
 	 */
 	public enum TimeType{
-		Nano
+		Nano, Milli
 	}
 	
 	/**
@@ -347,13 +347,72 @@ public class PSTBUtil {
 				retVal = String.format("%02d ns", nanoseconds);
 			}
 		}
-//		else if(givenTT.equals(TimeType.Milli))
-//		{
-//			hours = TimeUnit.MILLISECONDS.toHours(givenTimeValue);
-//			minutes = TimeUnit.MILLISECONDS.toMinutes(givenTimeValue);
-//			seconds = TimeUnit.MILLISECONDS.toSeconds(givenTimeValue);
-//			milliseconds = TimeUnit.MILLISECONDS.toMillis(givenTimeValue);
-//		}
+		else if(givenTT.equals(TimeType.Milli))
+		{
+			hours = TimeUnit.MILLISECONDS.toHours(givenTimeValue);
+			minutes = TimeUnit.MILLISECONDS.toMinutes(givenTimeValue);
+			seconds = TimeUnit.MILLISECONDS.toSeconds(givenTimeValue);
+			milliseconds = TimeUnit.MILLISECONDS.toMillis(givenTimeValue);
+			
+			if(hours.compareTo(0L) > 0)
+			{
+				Long hMinutes = minutes - TimeUnit.HOURS.toMinutes(hours);
+				Long hSeconds = seconds - TimeUnit.HOURS.toSeconds(hours);
+				Long hMillis = milliseconds - TimeUnit.HOURS.toMillis(hours);
+				
+				if(hMinutes.compareTo(0L) > 0)
+				{
+					retVal = String.format("%02d h, %02d m", hours, hMinutes);
+				}
+				else if(hSeconds.compareTo(0L) > 0)
+				{
+					retVal = String.format("%02d h, %02d s", hours, hSeconds);
+				}
+				else if(hMillis.compareTo(0L) > 0)
+				{
+					retVal = String.format("%02d h, %02d ms", hours, hMillis);
+				}
+				else
+				{
+					retVal = String.format("%02d h", hours);
+				}
+			}
+			else if(minutes.compareTo(0L) > 0)
+			{
+				Long mSeconds = seconds - TimeUnit.MINUTES.toSeconds(minutes);
+				Long mMillis = milliseconds - TimeUnit.MINUTES.toMillis(minutes);
+				
+				if(mSeconds.compareTo(0L) > 0)
+				{
+					retVal = String.format("%02d m, %02d s", minutes, mSeconds);
+				}
+				else if(mMillis.compareTo(0L) > 0)
+				{
+					retVal = String.format("%02d m, %02d ms", minutes, mMillis);
+				}
+				else
+				{
+					retVal = String.format("%02d m", minutes);
+				}
+			}
+			else if(seconds.compareTo(0L) > 0)
+			{
+				Long sMillis = milliseconds - TimeUnit.SECONDS.toMillis(seconds);
+				
+				if(sMillis.compareTo(0L) > 0)
+				{
+					retVal = String.format("%02d s, %02d ms", seconds, sMillis);
+				}
+				else
+				{
+					retVal = String.format("%02d s", seconds);
+				}
+			}
+			else
+			{
+				retVal = String.format("%02d ms", milliseconds);
+			}
+		}
 		
 		return retVal;
 	}
