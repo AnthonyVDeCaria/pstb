@@ -259,18 +259,25 @@ public class PSTB {
 		brain.recordAllDiaries();
 		logger.info("All diaries now in files.");
 		
-		String analysisFilePath = DEFAULT_ANALYSIS_FILE_STRING;
-		String customAnalysisFilePrompt = "Would you like to use a custom analysis file Y/n?";
-		boolean customAanlysisFileAns = UI.getYNAnswerFromUser(customAnalysisFilePrompt, userInput);
-		if (customAanlysisFileAns)
+		String analysisFileString = DEFAULT_ANALYSIS_FILE_STRING;
+		String customAnalysisFilePrompt = null;
+		boolean customAnalysisFileAns = customBenchPropAns;
+		
+		if(!customBenchPropAns)
 		{
-			customAnalysisFilePrompt = "Please input the path to this Analysis file";
-			analysisFilePath = UI.getAndCheckFilePathFromUser(customAnalysisFilePrompt, userInput);
+			customAnalysisFilePrompt = "Would you like to use a custom analysis file Y/n?";
+			customAnalysisFileAns = UI.getYNAnswerFromUser(customAnalysisFilePrompt, userInput);
+		}
+		
+		if(customAnalysisFileAns)
+		{
+			customAnalysisFilePrompt = "Please input the path to the new analysis file";
+			analysisFileString = UI.getAndCheckFilePathFromUser(customAnalysisFilePrompt, userInput);
 		}
 		
 		logger.info("Parsing analysis file...");
 		AnalysisFileParser brainReader = new AnalysisFileParser();
-		brainReader.setAnalysisFileString(analysisFilePath);
+		brainReader.setAnalysisFileString(analysisFileString);
 		
 		boolean analysisParseCheck = brainReader.parse();
 		if(!analysisParseCheck)

@@ -34,14 +34,20 @@ public class Analyzer {
 	private HashMap<String, ClientDiary> bookshelf;
 	private ArrayList<Object> analyzedInformation;
 	private ArrayList<AnalysisType> analyzedCheck;
+	
+	private String analyzedFolderString;
+	private String diariesFolderString;
+	private String histogramFolderString;
+	private String avgDelayFolderString;
+	
 	private Logger log = null;
 	private String logHeader = "Analysis: ";
 	
 	private final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
-	private final String diariesFolderString = analysisFolderString + "diaries/";
-	private final String analyzedFolderString = analysisFolderString + "analyzed/";
-	private final String histogramFolderString = analyzedFolderString + "histogram/";
-	private final String avgDelayFolderString = analyzedFolderString + "avgDelay/";
+	private final String diariesStub = "diaries/";
+	private final String analyzedStub = "analyzed/";
+	private final String histogramStub = "histogram/";
+	private final String avgDelayStub = "avgDelay/";
 	
 	/**
 	 * Constructor
@@ -54,6 +60,14 @@ public class Analyzer {
 		bookshelf = new HashMap<String, ClientDiary>();
 		analyzedInformation = new ArrayList<Object>();
 		analyzedCheck = new ArrayList<AnalysisType>();
+		
+		Long currTime = System.currentTimeMillis();
+		String currFolderString = PSTBUtil.DATE_FORMAT.format(currTime) + "/";
+		
+		analyzedFolderString = analysisFolderString + currFolderString + analyzedStub;
+		diariesFolderString = analysisFolderString + currFolderString + diariesStub;
+		histogramFolderString = analyzedFolderString + histogramStub;
+		avgDelayFolderString = analyzedFolderString + avgDelayStub; 
 	}
 	
 	/**
