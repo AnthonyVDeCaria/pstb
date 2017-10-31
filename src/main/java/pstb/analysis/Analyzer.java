@@ -26,9 +26,8 @@ import pstb.util.PSTBUtil;
  * @author padres-dev-4187
  * 
  * Analyzes the information contained within the ClientDiaries.
- * As such, it has functions to access these Diaries 
- * As well as functions to sort them 
- * on top of some analysis functions.
+ * As such, it has functions to access and sort these Diaries 
+ * as well as key analysis functions.
  */
 public class Analyzer {
 	private HashMap<String, ClientDiary> bookshelf;
@@ -76,16 +75,6 @@ public class Analyzer {
 		diariesFolderString = analysisFolderString + currFolderString + diariesStub;
 		histogramFolderString = analyzedFolderString + histogramStub;
 		avgDelayFolderString = analyzedFolderString + avgDelayStub; 
-	}
-	
-	/**
-	 * AnalyzedInformation getter
-	 * 
-	 * @return the analyzed Object List
-	 */
-	public ArrayList<Object> getAnalyzedInformation()
-	{
-		return analyzedInformation;
 	}
 	
 	/**
@@ -287,7 +276,7 @@ public class Analyzer {
 	}
 	
 	/**
-	 * Prints the information contained within the analyzedInformation object
+	 * Prints the information contained within the analyzedInformation object to a file
 	 * 
 	 * @return false on an error; true otherwise
 	 */
@@ -435,6 +424,7 @@ public class Analyzer {
 			numCN = requestedCN.size();
 		}
 		
+		// Loop through them all
 		for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
 		{
 			if(nullTPF)
@@ -526,10 +516,13 @@ public class Analyzer {
 	
 	/**
 	 * Develops a delay histogram
+	 * NOTE: Certain delays only exist for certain PSActionTypes
+	 * The MessageDelay is only for R PSActions
+	 * While R PSActions do NOT have an ActionDelay - everyone else does.
 	 * 
-	 * @param diaryNames - the given set of diaries to develop the histogram from
-	 * @param typeToAnalyse - the type of action to get the delay of
-	 * @param delayType - the type of delay
+	 * @param diaryNames - a list of diaries that will be combed over
+	 * @param typeToAnalyse - the type of PSActionType requested to look at
+	 * @param delayType - the type of delay: Action or Message
 	 * @return the associated histogram
 	 */
 	public PSTBHistogram developDelayHistogram(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)

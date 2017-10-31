@@ -21,7 +21,10 @@ import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * Reads and Parses an Analysis File
+ * Creating a List of requested analysis.
+ * @see etc/defaultAnalysis.txt
  */
 public class AnalysisFileParser {
 	private ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis;
@@ -80,7 +83,7 @@ public class AnalysisFileParser {
 	{		
 		if(analysisFileString.isEmpty())
 		{
-			log.error(logHeader + "No path to the Analysis file was given");
+			log.error(logHeader + "No path to the Analysis file was given!");
 			return false;
 		}
 		
@@ -100,13 +103,12 @@ public class AnalysisFileParser {
 					
 					if(splitLine.length == NUM_SEGMENTS)
 					{
-						HashMap<AnalysisInput, ArrayList<Object>> requested = checkProperTypes(splitLine);
+						HashMap<AnalysisInput, ArrayList<Object>> requested = developRequestMatrix(splitLine);
 						if(!requested.equals(null))
 						{
-							AnalysisType requestedAT = (AnalysisType) requested.get(AnalysisInput.AnalysisType).get(0);
 							DiaryHeader requestedDH = (DiaryHeader) requested.get(AnalysisInput.DiaryHeader).get(0);
 							PSActionType requestedPSAT = (PSActionType) requested.get(AnalysisInput.PSActionType).get(0);
-							if(checkProperRelationships(splitLine, requestedAT, requestedDH, requestedPSAT))
+							if(checkProperRelationships(requestedDH, requestedPSAT))
 							{
 								log.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
 								requestedAnalysis.add(requested);
@@ -114,19 +116,19 @@ public class AnalysisFileParser {
 							else
 							{
 								isParseSuccessful = false;
-								log.error(logHeader + "Error in Line " + linesRead + " - Error with relationships");
+								log.error(logHeader + "Error in Line " + linesRead + " - Error with relationships!");
 							}
 						}
 						else
 						{
 							isParseSuccessful = false;
-							log.error(logHeader + "Error in Line " + linesRead + " - Error with Types");
+							log.error(logHeader + "Error in Line " + linesRead + " - Error with Types!");
 						}
 					}
 					else
 					{
 						isParseSuccessful = false;
-						log.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct");
+						log.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct!");
 					}
 				}
 			}
@@ -135,18 +137,19 @@ public class AnalysisFileParser {
 		catch (IOException e) 
 		{
 			isParseSuccessful = false;
-			log.error(logHeader + "Cannot find file", e);
+			log.error(logHeader + "Cannot find file!", e);
 		}
 		return isParseSuccessful;
 	}
 	
 	/**
+	 * Checks if the user input for the given line is proper. 
+	 * If it is, returns a HashMap containing all of these requests.
 	 * 
-	 * 
-	 * @param splitLine
-	 * @return
+	 * @param splitLine - the line from the analysis file broken apart 
+	 * @return null on error; a HashMap of the different requests otherwise
 	 */
-	private HashMap<AnalysisInput, ArrayList<Object>> checkProperTypes(String[] splitLine)
+	private HashMap<AnalysisInput, ArrayList<Object>> developRequestMatrix(String[] splitLine)
 	{
 		HashMap<AnalysisInput, ArrayList<Object>> retVal = new HashMap<AnalysisInput, ArrayList<Object>>();
 		Object tempObject = null;
@@ -184,7 +187,7 @@ public class AnalysisFileParser {
 		}
 		catch(Exception e)
 		{
-			log.error(logHeader + "Given string isn't a AnalysisType");
+			log.error(logHeader + "Given string isn't a AnalysisType!");
 			error = true;
 		}
 		if(!tempObject.equals(null))
@@ -201,7 +204,7 @@ public class AnalysisFileParser {
 		}
 		catch(Exception e)
 		{
-			log.error(logHeader + "Given string isn't a DiaryHeader");
+			log.error(logHeader + "Given string isn't a DiaryHeader!");
 			error = true;
 		}
 		if(!tempObject.equals(null))
@@ -218,7 +221,7 @@ public class AnalysisFileParser {
 		}
 		catch(Exception e)
 		{
-			log.error(logHeader + "Given string isn't a PSActionType");
+			log.error(logHeader + "Given string isn't a PSActionType!");
 			error = true;
 		}
 		if(!tempObject.equals(null))
@@ -228,6 +231,7 @@ public class AnalysisFileParser {
 		}
 		tempObject = null;
 		
+		// Topologies
 		int numTopologies = splitTopologies.length;
 		if(numTopologies == 1 && splitTopologies[0] == null)
 		{
@@ -240,7 +244,7 @@ public class AnalysisFileParser {
 				String topologyI = splitTopologies[i];
 				if(topologyI.equals("null"))
 				{
-					log.error(logHeader + "TopologyFile " + i + " is null when there are other topologies requested");
+					log.error(logHeader + "TopologyFile " + i + " is null when there are other topologies requested!");
 					error = true;
 				}
 				else
@@ -251,7 +255,7 @@ public class AnalysisFileParser {
 					}
 					else
 					{
-						log.error(logHeader + "Cannot find given TopologyFile " + i + " in the system");
+						log.error(logHeader + "Cannot find given TopologyFile " + i + " in the system!");
 						listTopology.clear();
 						error = true;
 					}
@@ -264,7 +268,8 @@ public class AnalysisFileParser {
 			}
 		}
 		tempObject = null;
-				
+		
+		// Distributed
 		int numDistributedFlags = splitDistributedFlags.length;
 		if(numDistributedFlags == DistributedFlagValue.values().length)
 		{
@@ -303,6 +308,7 @@ public class AnalysisFileParser {
 			}
 		}
 		
+		// Protocols
 		int numProtocols = splitProtocols.length;
 		if(numProtocols == NetworkProtocol.values().length)
 		{
@@ -339,8 +345,9 @@ public class AnalysisFileParser {
 			}
 		}
 		
+		// RunLengths
 		int numRunLengths = splitRunLengths.length;
-		if(numRunLengths == 1 && splitRunLengths[0].equals("null"))
+		if(numRunLengths == 1 && splitRunLengths[0].equals("null!"))
 		{
 			retVal.put(AnalysisInput.RunLength, null);
 		}
@@ -357,16 +364,17 @@ public class AnalysisFileParser {
 					{
 						listRunLength.add(tempObject);
 					}
+					// Should also be compared to BenchmarkConfig
 					else
 					{
-						log.error(logHeader + "Given string " + i + " is a Long less than 1");
+						log.error(logHeader + "Given string " + i + " is a Long less than 1!");
 						listRunLength.clear();
 						error = true;
 					}
 				}
 				catch(Exception e)
 				{
-					log.error(logHeader + "Given string isn't a Long, or is null with other Run Lengths");
+					log.error(logHeader + "Given string isn't a Long, or is null with other Run Lengths!");
 					listRunLength.clear();
 					error = true;
 				}
@@ -378,6 +386,7 @@ public class AnalysisFileParser {
 			}
 		}
 		
+		// Run Numbers
 		int numRunNumbers = splitRunNumbers.length;
 		if(numRunNumbers == 1 && splitRunNumbers[0].equals("null"))
 		{
@@ -398,14 +407,14 @@ public class AnalysisFileParser {
 					}
 					else
 					{
-						log.error(logHeader + "Given string " + i + " is a Long less than 0");
+						log.error(logHeader + "Given string " + i + " is a Long less than 0!");
 						listRunNumber.clear();
 						error = true;
 					}
 				}
 				catch(Exception e)
 				{
-					log.error(logHeader + "Given string " + i + " isn't a Long, or is null with other Run Numbers");
+					log.error(logHeader + "Given string " + i + " isn't a Long, or is null with other Run Numbers!");
 					listRunNumber.clear();
 					error = true;
 				}
@@ -417,6 +426,7 @@ public class AnalysisFileParser {
 			}
 		}
 		
+		// ClientNames
 		int numClientNames = splitClientNames.length;
 		if(numClientNames == 1 && splitClientNames[0].equals("null"))
 		{
@@ -429,7 +439,7 @@ public class AnalysisFileParser {
 				String clientNameI = splitClientNames[i];
 				if(clientNameI.equals("null"))
 				{
-					log.error(logHeader + "ClientName " + i + " is null when there are other ClientNames requested");
+					log.error(logHeader + "ClientName " + i + " is null when there are other ClientNames requested!");
 					error = true;
 				}
 				else
@@ -454,55 +464,36 @@ public class AnalysisFileParser {
 		return retVal;
 	}
 	
-	private boolean checkProperRelationships(String[] splitLine, AnalysisType givenAT, DiaryHeader givenDH, PSActionType givenPSAT)
+	/**
+	 * Checks if the relationships between the inputed Objects are correct.
+	 * As:
+	 *  1) Only MessageDelay or ActionDelay DiaryHeaders are suitable for analysis
+	 *  2) A MessageDelay only comes from a R PSActionType
+	 *  3) A R ActionType will never have a ActionDelay
+	 * 
+	 * @param givenDH - the DiaryHeader given
+	 * @param givenPSAT - the PSActionType given
+	 * @return false on error; true otherwise
+	 */
+	private boolean checkProperRelationships(DiaryHeader givenDH, PSActionType givenPSAT)
 	{
 		boolean relationshipsProper = true;
 		
-		switch(givenAT)
+		if(!givenDH.equals(DiaryHeader.MessageDelay) && !givenDH.equals(DiaryHeader.ActionDelay))
 		{
-			case AverageDelay:
-			{
-				if(!givenDH.equals(DiaryHeader.MessageDelay) && !givenDH.equals(DiaryHeader.ActionDelay))
-				{
-					log.error(logHeader + "Improper 'delays' requested"); 
-					relationshipsProper = false;
-				}
-				if(givenDH.equals(DiaryHeader.MessageDelay) && !givenPSAT.equals(PSActionType.R))
-				{
-					log.error(logHeader + "Attempting to find an average MessageDelay for something other than a received message"); 
-					relationshipsProper = false;
-				}
-				if(givenDH.equals(DiaryHeader.ActionDelay) && givenPSAT.equals(PSActionType.R))
-				{
-					log.error(logHeader + "Attempting to find an average ActionDelay for something that won't have one"); 
-					relationshipsProper = false;
-				}
-				break;
-			}
-			case DelayHistogram:
-			{
-				if(!givenDH.equals(DiaryHeader.MessageDelay) && !givenDH.equals(DiaryHeader.ActionDelay))
-				{
-					log.error(logHeader + "Improper 'delays' requested"); 
-					relationshipsProper = false;
-				}
-				if(givenDH.equals(DiaryHeader.MessageDelay) && !givenPSAT.equals(PSActionType.R))
-				{
-					log.error(logHeader + "Attempting to create a MessageDelay histogram "
-								+ "for something other than a received message"); 
-					relationshipsProper = false;
-				}
-				if(givenDH.equals(DiaryHeader.ActionDelay) && givenPSAT.equals(PSActionType.R))
-				{
-					log.error(logHeader + "Attempting to find an ActionDelay histogram for something that won't have one"); 
-					relationshipsProper = false;
-				}
-				break;
-			}
-			default:
-				log.error(logHeader + "Case statement broke"); 
-				relationshipsProper = false;
-				break;
+			log.error(logHeader + "Improper 'delays' requested!"); 
+			relationshipsProper = false;
+		}
+		if(givenDH.equals(DiaryHeader.MessageDelay) && !givenPSAT.equals(PSActionType.R))
+		{
+			log.error(logHeader + "Attempting to create a MessageDelay histogram "
+						+ "for something other than a received message!"); 
+			relationshipsProper = false;
+		}
+		if(givenDH.equals(DiaryHeader.ActionDelay) && givenPSAT.equals(PSActionType.R))
+		{
+			log.error(logHeader + "Attempting to find an ActionDelay histogram for something that won't have one!"); 
+			relationshipsProper = false;
 		}
 		
 		return relationshipsProper;

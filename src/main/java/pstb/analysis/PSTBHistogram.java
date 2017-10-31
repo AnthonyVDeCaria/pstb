@@ -14,8 +14,10 @@ import pstb.util.PSActionType;
 /**
  * @author padres-dev-4187
  * 
- * Extends the histogram class to allow the inclusion of a name
- * @see Histogram
+ * Extends the histogram class to allow increased functionality crucial to PSTB
+ * Such as what type of PSActionType is this Histogram recording, 
+ * as well as personalizing the histogram for recording into a file
+ * @see Histogram for the proper histogram functions
  */
 public class PSTBHistogram extends Histogram {
 	private String histogramName;
@@ -66,6 +68,13 @@ public class PSTBHistogram extends Histogram {
 		return histogramType;
 	}
 	
+	/**
+	 * Writes this PSTB histogram into a file - including providing unit help.
+	 * 
+	 * @param givenFilePath - the Path we are to write to
+	 * @param log - the Logger file we should use if there are errors
+	 * @return false on failure; true otherwise
+	 */
 	public boolean recordPSTBHistogram(Path givenFilePath, Logger log)
 	{
 		String line = null;

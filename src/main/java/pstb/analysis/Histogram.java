@@ -12,8 +12,8 @@ import org.apache.logging.log4j.Logger;
 /**
  * @author padres-dev-4187
  * 
- * Handles a histogram - a tool that can record the number of times a specific event occurs.
- * For example, how many trees in a forest are 10 feet tall.
+ * A tool that can record the number of times a specific event occurs.
+ * For example, it can keep track of how many trees in a forest are 10 feet tall, or 11 feet tall, etc.
  */
 public class Histogram 
 {
@@ -29,7 +29,8 @@ public class Histogram
 	}
 
 	/**
-	 * Add one occurrence of the value dataPoint. 
+	 * Add one occurrence of the value dataPoint.
+	 * 
 	 * @param dataPoint - the data point to add
 	 */
 	public void addOccurrence(Double dataPoint)
@@ -48,6 +49,7 @@ public class Histogram
 	
 	/**
 	 * Gets the occurrences of a certain dataPoint
+	 * 
 	 * @param dataPoint - the data point requested
 	 * @return the number of occurrences
 	 */
