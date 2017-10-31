@@ -24,19 +24,19 @@ import pstb.util.PSTBUtil;
  *
  */
 public class AnalysisFileParser {
-	private ArrayList<HashMap<AnalysisInput, Object>> requestedAnalysis;
+	private ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis;
 	private String analysisFileString;
 	
-	public final int NUM_SEGMENTS = 9;
-	public final int LOC_ANALYSIS_TYPE = 0;
-	public final int LOC_DIARY_HEADER = 1;
-	public final int LOC_PS_ACTION_TYPE = 2;
-	public final int LOC_TOPO_FILE_PATH = 3;
-	public final int LOC_DISTRIBUTED_FLAG = 4;
-	public final int LOC_PROTOCOL = 5;
-	public final int LOC_RUN_LENGTH = 6;
-	public final int LOC_RUN_NUMBER = 7;
-	public final int LOC_CLIENT_NAME = 8;
+	private final int NUM_SEGMENTS = 9;
+	private final int LOC_ANALYSIS_TYPE = 0;
+	private final int LOC_DIARY_HEADER = 1;
+	private final int LOC_PS_ACTION_TYPE = 2;
+	private final int LOC_TOPO_FILE_PATH = 3;
+	private final int LOC_DISTRIBUTED_FLAG = 4;
+	private final int LOC_PROTOCOL = 5;
+	private final int LOC_RUN_LENGTH = 6;
+	private final int LOC_RUN_NUMBER = 7;
+	private final int LOC_CLIENT_NAME = 8;
 	
 	String logHeader = "AnalysisParser: ";
 	Logger log = LogManager.getRootLogger();
@@ -46,7 +46,7 @@ public class AnalysisFileParser {
 	 */
 	public AnalysisFileParser()
 	{
-		requestedAnalysis = new ArrayList<HashMap<AnalysisInput, Object>>();
+		requestedAnalysis = new ArrayList<HashMap<AnalysisInput, ArrayList<Object>>>();
 		analysisFileString = new String();
 	}
 	
@@ -65,7 +65,7 @@ public class AnalysisFileParser {
 	 * 
 	 * @return the requestedAnalysis
 	 */
-	public ArrayList<HashMap<AnalysisInput, Object>> getRequestedAnalysis()
+	public ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> getRequestedAnalysis()
 	{
 		return requestedAnalysis;
 	}
@@ -100,12 +100,12 @@ public class AnalysisFileParser {
 					
 					if(splitLine.length == NUM_SEGMENTS)
 					{
-						HashMap<AnalysisInput, Object> requested = checkProperTypes(splitLine);
-						if(!requested.isEmpty())
+						HashMap<AnalysisInput, ArrayList<Object>> requested = checkProperTypes(splitLine);
+						if(!requested.equals(null))
 						{
-							AnalysisType requestedAT = (AnalysisType) requested.get(AnalysisInput.AnalysisType);
-							DiaryHeader requestedDH = (DiaryHeader) requested.get(AnalysisInput.DiaryHeader);
-							PSActionType requestedPSAT = (PSActionType) requested.get(AnalysisInput.PSActionType);
+							AnalysisType requestedAT = (AnalysisType) requested.get(AnalysisInput.AnalysisType).get(0);
+							DiaryHeader requestedDH = (DiaryHeader) requested.get(AnalysisInput.DiaryHeader).get(0);
+							PSActionType requestedPSAT = (PSActionType) requested.get(AnalysisInput.PSActionType).get(0);
 							if(checkProperRelationships(splitLine, requestedAT, requestedDH, requestedPSAT))
 							{
 								log.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
@@ -146,139 +146,309 @@ public class AnalysisFileParser {
 	 * @param splitLine
 	 * @return
 	 */
-	private HashMap<AnalysisInput, Object> checkProperTypes(String[] splitLine)
+	private HashMap<AnalysisInput, ArrayList<Object>> checkProperTypes(String[] splitLine)
 	{
-		HashMap<AnalysisInput, Object> retVal = new HashMap<AnalysisInput, Object>(); 
-		Object temp = new Object();
+		HashMap<AnalysisInput, ArrayList<Object>> retVal = new HashMap<AnalysisInput, ArrayList<Object>>();
+		Object tempObject = null;
+		
+		ArrayList<Object> listAnalysisType = new ArrayList<Object>();
+		ArrayList<Object> listDiaryHeader = new ArrayList<Object>();
+		ArrayList<Object> listPSActionType = new ArrayList<Object>();
+		ArrayList<Object> listTopology = new ArrayList<Object>();
+		ArrayList<Object> listDistributed = new ArrayList<Object>();
+		ArrayList<Object> listProtocol = new ArrayList<Object>();
+		ArrayList<Object> listRunLength = new ArrayList<Object>();
+		ArrayList<Object> listRunNumber = new ArrayList<Object>();
+		ArrayList<Object> listClientName = new ArrayList<Object>();
+		
+		String topologies = splitLine[LOC_TOPO_FILE_PATH];
+		String distributedFlags = splitLine[LOC_DISTRIBUTED_FLAG];
+		String protocols = splitLine[LOC_PROTOCOL];
+		String runLengths = splitLine[LOC_RUN_LENGTH];
+		String runNumbers = splitLine[LOC_RUN_NUMBER];
+		String clientNames = splitLine[LOC_CLIENT_NAME];
+		
+		String[] splitTopologies = topologies.split(",");
+		String[] splitDistributedFlags = distributedFlags.split(",");
+		String[] splitProtocols = protocols.split(",");
+		String[] splitRunLengths = runLengths.split(",");
+		String[] splitRunNumbers = runNumbers.split(",");
+		String[] splitClientNames = clientNames.split(",");
+		
 		boolean error = false;
 		
+		// Analysis Type Parsing
 		try
 		{
-			temp = AnalysisType.valueOf(splitLine[LOC_ANALYSIS_TYPE]);
-			retVal.put(AnalysisInput.AnalysisType, temp);
+			tempObject = AnalysisType.valueOf(splitLine[LOC_ANALYSIS_TYPE]);
 		}
 		catch(Exception e)
 		{
 			log.error(logHeader + "Given string isn't a AnalysisType");
 			error = true;
 		}
+		if(!tempObject.equals(null))
+		{
+			listAnalysisType.add(tempObject);
+			retVal.put(AnalysisInput.AnalysisType, listAnalysisType);
+		}
+		tempObject = null;
 		
+		// Diary Header Parsing
 		try
 		{
-			temp = DiaryHeader.valueOf(splitLine[LOC_DIARY_HEADER]);
-			retVal.put(AnalysisInput.DiaryHeader, temp);
+			tempObject = DiaryHeader.valueOf(splitLine[LOC_DIARY_HEADER]);
 		}
 		catch(Exception e)
 		{
 			log.error(logHeader + "Given string isn't a DiaryHeader");
 			error = true;
 		}
+		if(!tempObject.equals(null))
+		{
+			listDiaryHeader.add(tempObject);
+			retVal.put(AnalysisInput.DiaryHeader, listDiaryHeader);
+		}
+		tempObject = null;
 		
+		// PSActionType
 		try
 		{
-			temp = PSActionType.valueOf(splitLine[LOC_PS_ACTION_TYPE]);
-			retVal.put(AnalysisInput.PSActionType, temp);
+			tempObject = PSActionType.valueOf(splitLine[LOC_PS_ACTION_TYPE]);
 		}
 		catch(Exception e)
 		{
 			log.error(logHeader + "Given string isn't a PSActionType");
 			error = true;
 		}
-		
-		if(!new File(splitLine[LOC_TOPO_FILE_PATH]).isFile())
+		if(!tempObject.equals(null))
 		{
-			log.error(logHeader + "Cannot find given TopologyFile in the system");
-			error = true;
+			listPSActionType.add(tempObject);
+			retVal.put(AnalysisInput.PSActionType, listPSActionType);
+		}
+		tempObject = null;
+		
+		int numTopologies = splitTopologies.length;
+		if(numTopologies == 1 && splitTopologies[0] == null)
+		{
+			retVal.put(AnalysisInput.TopologyFilePath, null);
 		}
 		else
 		{
-			retVal.put(AnalysisInput.TopologyFilePath, splitLine[LOC_TOPO_FILE_PATH]);
-		}
-		
-		try
-		{
-			temp = DistributedFlagValue.valueOf(splitLine[LOC_DISTRIBUTED_FLAG]);
-			retVal.put(AnalysisInput.DistributedFlag, temp);
-		}
-		catch(Exception e)
-		{
-			if(!splitLine[LOC_DISTRIBUTED_FLAG].equals("null"))
+			for(int i = 0 ; i < numTopologies ; i++)
 			{
-				log.error(logHeader + "Given string isn't a DistributedFlagValue");
-				error = true;
+				String topologyI = splitTopologies[i];
+				if(topologyI.equals("null"))
+				{
+					log.error(logHeader + "TopologyFile " + i + " is null when there are other topologies requested");
+					error = true;
+				}
+				else
+				{
+					if(new File(topologyI).isFile()) // This should be changed to seeing if it's in the BenchmarkConfig
+					{
+						listTopology.add(PSTBUtil.cleanTPF(splitTopologies[i]));
+					}
+					else
+					{
+						log.error(logHeader + "Cannot find given TopologyFile " + i + " in the system");
+						listTopology.clear();
+						error = true;
+					}
+				}
 			}
-			else
+			
+			if(!error)
 			{
-				retVal.put(AnalysisInput.DistributedFlag, null);
-			}
-		}
-		
-		try
-		{
-			temp = NetworkProtocol.valueOf(splitLine[LOC_PROTOCOL]);
-			retVal.put(AnalysisInput.Protocol, temp);
-		}
-		catch(Exception e)
-		{
-			if(!splitLine[LOC_PROTOCOL].equals("null"))
-			{
-				log.error(logHeader + "Given string isn't a NetworkProtocol");
-				error = true;
-			}
-			else
-			{
-				retVal.put(AnalysisInput.Protocol, null);
+				retVal.put(AnalysisInput.TopologyFilePath, listTopology);
 			}
 		}
-		
-		try
+		tempObject = null;
+				
+		int numDistributedFlags = splitDistributedFlags.length;
+		if(numDistributedFlags == DistributedFlagValue.values().length)
 		{
-			temp = Long.valueOf(splitLine[LOC_RUN_LENGTH]);
-			retVal.put(AnalysisInput.RunLength, temp);
+			log.warn(logHeader + "This was not necessary - typing null would have sufficed.");
+			retVal.put(AnalysisInput.DistributedFlag, null);
 		}
-		catch(Exception e)
+		else if(numDistributedFlags == 1 && splitDistributedFlags[0].equals("null"))
 		{
-			if(!splitLine[LOC_RUN_LENGTH].equals("null"))
-			{
-				log.error(logHeader + "Given string isn't a Long");
-				error = true;
-			}
-			else
-			{
-				retVal.put(AnalysisInput.RunLength, null);
-			}
+			retVal.put(AnalysisInput.DistributedFlag, null);
 		}
-		
-		try
+		else
 		{
-			temp = Integer.valueOf(splitLine[LOC_RUN_NUMBER]);
-			retVal.put(AnalysisInput.RunNumber, temp);
-		}
-		catch(Exception e)
-		{
-			if(!splitLine[LOC_RUN_NUMBER].equals("null"))
+			for(int i = 0 ; i < numDistributedFlags ; i++)
 			{
-				log.error(logHeader + "Given string isn't an Integer");
-				error = true;
+				String distributedFlagI = splitDistributedFlags[i];
+				
+				// Check if it should be distributed
+				
+				try
+				{
+					tempObject = DistributedFlagValue.valueOf(distributedFlagI);
+					listDistributed.add(tempObject);
+				}
+				catch(Exception e)
+				{
+					log.error(logHeader + "Given string " + i + " isn't a DistributedFlagValue,"
+									+ " or is null with other FlagValues!");
+					listDistributed.clear();
+					error = true;
+				}
 			}
-			else
+			
+			if(!error)
 			{
-				retVal.put(AnalysisInput.RunNumber, null);
+				retVal.put(AnalysisInput.DistributedFlag, listDistributed);
 			}
 		}
 		
-		if(splitLine[LOC_CLIENT_NAME].equals("null"))
+		int numProtocols = splitProtocols.length;
+		if(numProtocols == NetworkProtocol.values().length)
+		{
+			log.warn(logHeader + "This was not necessary - typing null would have sufficed.");
+			retVal.put(AnalysisInput.Protocol, null);
+		}
+		else if(numProtocols == 1 && splitProtocols[0].equals("null"))
+		{
+			retVal.put(AnalysisInput.Protocol, null);
+		}
+		else
+		{
+			for(int i = 0 ; i < numProtocols ; i++)
+			{
+				// Check if this protocol is in BenchmarkConfig
+				
+				try
+				{
+					tempObject = NetworkProtocol.valueOf(splitProtocols[i]);
+					listProtocol.add(tempObject);
+				}
+				catch(Exception e)
+				{
+					log.error(logHeader + "Given string " + i + " isn't a NetworkProtocol, "
+									+ "or is null with other Protocols!");
+					listProtocol.clear();
+					error = true;
+				}
+			}
+			
+			if(!error)
+			{
+				retVal.put(AnalysisInput.Protocol, listProtocol);
+			}
+		}
+		
+		int numRunLengths = splitRunLengths.length;
+		if(numRunLengths == 1 && splitRunLengths[0].equals("null"))
+		{
+			retVal.put(AnalysisInput.RunLength, null);
+		}
+		else
+		{
+			for(int i = 0 ; i < numRunLengths ; i++)
+			{
+				try
+				{
+					tempObject = Long.valueOf(splitRunLengths[i]);
+					Long test = (Long) tempObject;
+					
+					if(test.compareTo(0L) > 0)
+					{
+						listRunLength.add(tempObject);
+					}
+					else
+					{
+						log.error(logHeader + "Given string " + i + " is a Long less than 1");
+						listRunLength.clear();
+						error = true;
+					}
+				}
+				catch(Exception e)
+				{
+					log.error(logHeader + "Given string isn't a Long, or is null with other Run Lengths");
+					listRunLength.clear();
+					error = true;
+				}
+			}
+			
+			if(!error)
+			{
+				retVal.put(AnalysisInput.RunLength, listRunLength);
+			}
+		}
+		
+		int numRunNumbers = splitRunNumbers.length;
+		if(numRunNumbers == 1 && splitRunNumbers[0].equals("null"))
+		{
+			retVal.put(AnalysisInput.RunNumber, null);
+		}
+		else
+		{
+			for(int i = 0 ; i < numRunNumbers ; i++)
+			{
+				try
+				{
+					tempObject = Long.valueOf(splitRunNumbers[i]);
+					Long test = (Long) tempObject;
+					
+					if(test.compareTo(0L) > -1)
+					{
+						listRunNumber.add(tempObject);
+					}
+					else
+					{
+						log.error(logHeader + "Given string " + i + " is a Long less than 0");
+						listRunNumber.clear();
+						error = true;
+					}
+				}
+				catch(Exception e)
+				{
+					log.error(logHeader + "Given string " + i + " isn't a Long, or is null with other Run Numbers");
+					listRunNumber.clear();
+					error = true;
+				}
+			}
+			
+			if(!error)
+			{
+				retVal.put(AnalysisInput.RunNumber, listRunNumber);
+			}
+		}
+		
+		int numClientNames = splitClientNames.length;
+		if(numClientNames == 1 && splitClientNames[0].equals("null"))
 		{
 			retVal.put(AnalysisInput.ClientName, null);
 		}
 		else
 		{
-			retVal.put(AnalysisInput.ClientName, splitLine[LOC_CLIENT_NAME]);
+			for(int i = 0 ; i < numClientNames ; i++)
+			{
+				String clientNameI = splitClientNames[i];
+				if(clientNameI.equals("null"))
+				{
+					log.error(logHeader + "ClientName " + i + " is null when there are other ClientNames requested");
+					error = true;
+				}
+				else
+				{
+					// This should be changed to seeing if it's in the BenchmarkConfig
+					listClientName.add(clientNameI);
+				}
+			}
+			
+			if(!error)
+			{
+				retVal.put(AnalysisInput.ClientName, listClientName);
+			}
 		}
 		
 		if(error)
 		{
 			retVal.clear();
+			retVal = null;
 		}
 		
 		return retVal;

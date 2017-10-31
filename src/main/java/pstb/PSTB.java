@@ -484,7 +484,7 @@ public class PSTB {
 				}
 				
 				givenPT.killAllProcesses();
-				logger.info("Run complete.");
+				logger.info("Run " + runI + " complete.");
 				
 				logger.debug("Collecting diaries...");
 				ArrayList<String> clientNames = givenPT.getAllClientNames();

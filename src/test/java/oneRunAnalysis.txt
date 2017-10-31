@@ -1,0 +1,25 @@
+#AnalysisType	DiaryHeader	PSActionType	TopologyFilePath	DistributedFlag	Protocol	RunLength	RunNumber	ClientName
+
+DelayHistogram	ActionDelay	A	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	A	etc/star3topology.txt	null	null	null	null	null
+
+DelayHistogram	ActionDelay	V	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	V	etc/star3topology.txt	null	null	null	null	null
+
+DelayHistogram	ActionDelay	S	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	S	etc/star3topology.txt	null	null	null	null	null
+
+DelayHistogram	ActionDelay	U	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	U	etc/star3topology.txt	null	null	null	null	null
+
+DelayHistogram	ActionDelay	P	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	P	etc/star3topology.txt	null	null	null	null	null
+
+DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	null	S0
+DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	null	S1
+DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	null	S2
+DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	null	S0
+AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	null	S1
+AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	null	S2
+AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	null	null

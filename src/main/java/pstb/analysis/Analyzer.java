@@ -49,6 +49,14 @@ public class Analyzer {
 	private final String histogramStub = "histogram/";
 	private final String avgDelayStub = "avgDelay/";
 	
+	private final int NUM_STRINGS = 6;
+	private final int LOC_TOPO_FILE_PATH = 0;
+	private final int LOC_DISTRIBUTED_FLAG = 1;
+	private final int LOC_PROTOCOL = 2;
+	private final int LOC_RUN_LENGTH = 3;
+	private final int LOC_RUN_NUMBER = 4;
+	private final int LOC_CLIENT_NAME = 5;
+	
 	/**
 	 * Constructor
 	 * 
@@ -212,24 +220,45 @@ public class Analyzer {
 	 * @param requestedAnalysis - the converted analysis file 
 	 * @return false on an error; true otherwise
 	 */
-	public boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, Object>> requestedAnalysis)
+	public boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis)
 	{
 		for(int i = 0 ; i < requestedAnalysis.size(); i++)
 		{
-			HashMap<AnalysisInput, Object> analysisI = requestedAnalysis.get(i);
+			HashMap<AnalysisInput, ArrayList<Object>> analysisI = requestedAnalysis.get(i);
 			
-			AnalysisType requestedAT = (AnalysisType) analysisI.get(AnalysisInput.AnalysisType);
-			PSActionType requestedPSAT = (PSActionType) analysisI.get(AnalysisInput.PSActionType);
-			DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader);
-			String requestedTPF = (String) analysisI.get(AnalysisInput.TopologyFilePath);
-			DistributedFlagValue requestedDFV = (DistributedFlagValue) analysisI.get(AnalysisInput.DistributedFlag);
-			NetworkProtocol requestedP = (NetworkProtocol) analysisI.get(AnalysisInput.Protocol);
-			Long requestedRL = (Long) analysisI.get(AnalysisInput.RunLength);
-			Integer requestedRN = (Integer) analysisI.get(AnalysisInput.RunNumber);
-			String requestedCN = (String) analysisI.get(AnalysisInput.ClientName);
+			ArrayList<Object> requestedATList = analysisI.get(AnalysisInput.AnalysisType);
+			ArrayList<Object> requestedPSATList =  analysisI.get(AnalysisInput.PSActionType);
+			ArrayList<Object> requestedDHList =  analysisI.get(AnalysisInput.DiaryHeader);
 			
-			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedTPF, requestedDFV, requestedP, requestedRL,
-																			requestedRN, requestedCN);
+			if(requestedATList.size() != 1)
+			{
+				log.error(logHeader + "There are multiple requested AnalysisTypes!"); 
+				return false;
+			}
+			if(requestedPSATList.size() != 1)
+			{
+				log.error(logHeader + "There are multiple requested PSActionTypes!"); 
+				return false;
+			}
+			if(requestedDHList.size() != 1)
+			{
+				log.error(logHeader + "There are multiple requested DiaryHeaders!"); 
+				return false;
+			}
+			
+			AnalysisType requestedAT = (AnalysisType) analysisI.get(AnalysisInput.AnalysisType).get(0);
+			PSActionType requestedPSAT = (PSActionType) analysisI.get(AnalysisInput.PSActionType).get(0);
+			DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader).get(0);
+			
+			ArrayList<Object> requestedTPF = analysisI.get(AnalysisInput.TopologyFilePath);
+			ArrayList<Object> requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
+			ArrayList<Object> requestedP = analysisI.get(AnalysisInput.Protocol);
+			ArrayList<Object> requestedRL = analysisI.get(AnalysisInput.RunLength);
+			ArrayList<Object> requestedRN = analysisI.get(AnalysisInput.RunNumber);
+			ArrayList<Object> requestedCN = analysisI.get(AnalysisInput.ClientName);
+			
+			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedTPF, requestedDFV, requestedP, 
+																				requestedRL, requestedRN, requestedCN);
 			
 			Object objectI = null;
 			switch(requestedAT)
@@ -351,84 +380,144 @@ public class Analyzer {
 	 * For example, if a null if given for distributedFlag, all diaries that match the other 5 parameters
 	 * will be added.
 	 * 
-	 * @param topologyFileString - The topology file associated with these Diaries
-	 * @param distributedFlag - the DistributedFlagValue associated with these Diaries
-	 * @param protocol - the NetworkProtocol associated with these Diaries
-	 * @param runLength - the runLength associated with these Diaries
-	 * @param runNumber - the runNumber associated with these Diaries
-	 * @param clientName - the ClientName associated with these Diaries
+	 * @param requestedTPF - The topology file associated with these Diaries
+	 * @param requestedDFV - the DistributedFlagValue associated with these Diaries
+	 * @param requestedP - the NetworkProtocol associated with these Diaries
+	 * @param requestedRL - the runLength associated with these Diaries
+	 * @param requestedRN - the runNumber associated with these Diaries
+	 * @param requestedCN - the ClientName associated with these Diaries
 	 * @return the list of matching diary names
 	 */
-	public ArrayList<String> getAffiliatedDiaryNames(String topologyFileString, DistributedFlagValue distributedFlag,
-														NetworkProtocol protocol, Long runLength, Integer runNumber, 
-														String clientName)
+	public ArrayList<String> getAffiliatedDiaryNames(ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
+														ArrayList<Object> requestedP, ArrayList<Object> requestedRL, 
+														ArrayList<Object> requestedRN, ArrayList<Object> requestedCN)
 	{		
 		ArrayList<String> retVal = new ArrayList<String>();
-		String nameTestString = new String();
+		String[] nameTestArray = new String[NUM_STRINGS];
 		
-		if(topologyFileString != null)
-		{
-			nameTestString += (PSTBUtil.cleanTPF(topologyFileString) + "-");
-		}
-		else
-		{
-			nameTestString += "\\w+-";
-		}
+		boolean nullTPF = requestedTPF == null;
+		boolean nullDFV = requestedDFV == null;
+		boolean nullP = requestedP == null;
+		boolean nullRL = requestedRL == null;
+		boolean nullRN = requestedRN == null;
+		boolean nullCN = requestedCN == null;
 		
-		if(distributedFlag != null)
-		{
-			nameTestString += (distributedFlag + "-");
-		}
-		else
-		{
-			nameTestString += "\\w+-";
-		}
+		int numTPF = 1;
+		int numDFV = 1;
+		int numP = 1;
+		int numRL = 1;
+		int numRN = 1;
+		int numCN = 1;
 		
-		if(protocol != null)
+		// Set nums
+		if(!nullTPF)
 		{
-			nameTestString += (protocol + "-");
+			numTPF = requestedTPF.size();
 		}
-		else
+		if(!nullDFV)
 		{
-			nameTestString += "\\w+-";
+			numDFV = requestedDFV.size();
 		}
-		
-		if(runLength != null)
+		if(!nullP)
 		{
-			nameTestString += (runLength + "-");
+			numP = requestedP.size();
 		}
-		else
+		if(!nullRL)
 		{
-			nameTestString += "\\w+-";
+			numRL = requestedRL.size();
 		}
-		
-		if(runNumber != null)
+		if(!nullRN)
 		{
-			nameTestString += (runNumber + "-");
+			numRN = requestedRN.size();
 		}
-		else
+		if(!nullCN)
 		{
-			nameTestString += "\\w+-";
+			numCN = requestedCN.size();
 		}
 		
-		if(clientName != null)
+		for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
 		{
-			nameTestString += clientName;
-		}
-		else
-		{
-			nameTestString += "\\w+";
-		}
-		
-		Pattern nameTest = Pattern.compile(nameTestString);
-		Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
-		
-		for( ; bookshelfIt.hasNext() ; )
-		{
-			String diaryNameI = bookshelfIt.next(); 
-			if(nameTest.matcher(diaryNameI).matches())
+			if(nullTPF)
 			{
-				retVal.add(diaryNameI);
+				nameTestArray[LOC_TOPO_FILE_PATH] = "\\w+";
+			}
+			else
+			{
+				nameTestArray[LOC_TOPO_FILE_PATH] = (String) requestedTPF.get(iTPF);
+			}
+			
+			for(int iDFV = 0 ; iDFV < numDFV ; iDFV++)
+			{
+				if(nullDFV)
+				{
+					nameTestArray[LOC_DISTRIBUTED_FLAG] = "\\w+";
+				}
+				else
+				{
+					nameTestArray[LOC_DISTRIBUTED_FLAG] = ((DistributedFlagValue) requestedDFV.get(iDFV)).toString();
+				}
+				
+				for(int iP = 0 ; iP < numP ; iP++)
+				{
+					if(nullP)
+					{
+						nameTestArray[LOC_PROTOCOL] = "\\w+";
+					}
+					else
+					{
+						nameTestArray[LOC_PROTOCOL] = ((NetworkProtocol) requestedP.get(iP)).toString();
+					}
+					
+					for(int iRL = 0 ; iRL < numRL ; iRL++)
+					{
+						if(nullRL)
+						{
+							nameTestArray[LOC_RUN_LENGTH] = "\\w+";
+						}
+						else
+						{
+							nameTestArray[LOC_RUN_LENGTH] = ((Long) requestedRL.get(iRL)).toString();
+						}
+						
+						for(int iRN = 0 ; iRN < numRN ; iRN++)
+						{
+							if(nullRN)
+							{
+								nameTestArray[LOC_RUN_NUMBER] = "\\w+";
+							}
+							else
+							{
+								nameTestArray[LOC_RUN_NUMBER] = ((Long) requestedRN.get(iRN)).toString();
+							}
+							
+							for(int iCN = 0 ; iCN < numCN ; iCN++)
+							{
+								if(nullCN)
+								{
+									nameTestArray[LOC_CLIENT_NAME] = "\\w+";
+								}
+								else
+								{
+									nameTestArray[LOC_CLIENT_NAME] = (String) requestedCN.get(iCN);
+								}
+								
+								String nameTestString = String.join("-", nameTestArray);
+								
+								Pattern nameTest = Pattern.compile(nameTestString);
+								Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
+								
+								for( ; bookshelfIt.hasNext() ; )
+								{
+									String diaryNameI = bookshelfIt.next(); 
+									if(nameTest.matcher(diaryNameI).matches())
+									{
+										retVal.add(diaryNameI);
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 		
