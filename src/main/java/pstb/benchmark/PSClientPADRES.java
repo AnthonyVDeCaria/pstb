@@ -18,10 +18,10 @@ import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
 import pstb.util.ClientDiary;
+import pstb.util.ClientRole;
 import pstb.util.DiaryEntry;
 import pstb.util.DistributedFlagValue;
 import pstb.util.NetworkProtocol;
-import pstb.util.NodeRole;
 import pstb.util.PSAction;
 import pstb.util.Workload;
 
@@ -40,7 +40,7 @@ public class PSClientPADRES implements java.io.Serializable
 {	
 	private static final long serialVersionUID = 1L;
 	private String clientName;
-	private ArrayList<NodeRole> clientRoles;
+	private ArrayList<ClientRole> clientRoles;
 	private ArrayList<String> brokerURIs;
 	
 	private Workload clientWorkload;
@@ -80,7 +80,7 @@ public class PSClientPADRES implements java.io.Serializable
 	public PSClientPADRES()
 	{
 		clientName = new String();
-		clientRoles = new ArrayList<NodeRole>();
+		clientRoles = new ArrayList<ClientRole>();
 		brokerURIs = new ArrayList<String>();
 		
 		clientWorkload = new Workload();
@@ -104,28 +104,13 @@ public class PSClientPADRES implements java.io.Serializable
 	}
 	
 	/**
-	 * Adds a new NodeRole to clientRoles
-	 * Only if it's not a B(roker) Role
-	 * And it's not already there
+	 * Sets the ClientRoles
 	 * 
-	 * @param newNodeRole - the new Role
-	 * @return false on failure; true otherwise
+	 * @param roles - the new ClientRoles
 	 */
-	public boolean addNewClientRole(NodeRole newNodeRole)
+	public void setClientRoles(ArrayList<ClientRole> roles)
 	{
-		/*
-		 * Only add newNodeRole if:
-		 * 	- we don't have this role
-		 * 	- it's not the broker role
-		 */
-		
-		boolean successfulAdd = false;
-		if(!newNodeRole.equals(NodeRole.B) && !clientRoles.contains(newNodeRole))
-		{
-			clientRoles.add(newNodeRole);
-			successfulAdd = true;
-		}
-		return successfulAdd;
+		clientRoles = roles;
 	}
 	
 	/**
@@ -224,7 +209,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 * 
 	 * @return a list of its roles
 	 */
-	public ArrayList<NodeRole> getClientRoles()
+	public ArrayList<ClientRole> getClientRoles()
 	{
 		return clientRoles;
 	}
@@ -525,21 +510,13 @@ public class PSClientPADRES implements java.io.Serializable
 		Random activeAdIGenerator = new Random(SEED_AD);
 		
 		// Determine how many Ads and Subs to send
-		for(int i = 0; i < clientRoles.size() ; i++)
+		if(clientRoles.contains(ClientRole.P))
 		{
-			if(clientRoles.get(i) == NodeRole.P)
-			{
-				numAdsToSend = givenAdWorkload.size();
-			}
-			else if(clientRoles.get(i) == NodeRole.S)
-			{
-				numSubsToSend = givenSubWorkload.size();
-			}
-			else
-			{
-				logger.error(logHeader + "illegal NodeRole added to client " + clientName);
-				return false;
-			}
+			numAdsToSend = givenAdWorkload.size();
+		}
+		if(clientRoles.contains(ClientRole.S))
+		{
+			numSubsToSend = givenSubWorkload.size();
 		}
 		
 		Long currentTime = System.nanoTime();
@@ -607,7 +584,7 @@ public class PSClientPADRES implements java.io.Serializable
 						return false;
 					}
 					
-					if(clientRoles.contains(NodeRole.P))
+					if(clientRoles.contains(ClientRole.P))
 					{
 						checkUpdate = updateActiveList(activeAdsList);
 						if(!checkUpdate)

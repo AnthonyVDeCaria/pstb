@@ -41,7 +41,7 @@ public class AnalysisFileParser {
 	private final int LOC_RUN_NUMBER = 7;
 	private final int LOC_CLIENT_NAME = 8;
 	
-	String logHeader = "AnalysisParser: ";
+	String logHeader = "Analysis Parser: ";
 	Logger log = LogManager.getRootLogger();
 	
 	/**
@@ -104,7 +104,7 @@ public class AnalysisFileParser {
 					if(splitLine.length == NUM_SEGMENTS)
 					{
 						HashMap<AnalysisInput, ArrayList<Object>> requested = developRequestMatrix(splitLine);
-						if(!requested.equals(null))
+						if(requested != null)
 						{
 							DiaryHeader requestedDH = (DiaryHeader) requested.get(AnalysisInput.DiaryHeader).get(0);
 							PSActionType requestedPSAT = (PSActionType) requested.get(AnalysisInput.PSActionType).get(0);
@@ -347,7 +347,7 @@ public class AnalysisFileParser {
 		
 		// RunLengths
 		int numRunLengths = splitRunLengths.length;
-		if(numRunLengths == 1 && splitRunLengths[0].equals("null!"))
+		if(numRunLengths == 1 && splitRunLengths[0].equals("null"))
 		{
 			retVal.put(AnalysisInput.RunLength, null);
 		}
@@ -355,9 +355,11 @@ public class AnalysisFileParser {
 		{
 			for(int i = 0 ; i < numRunLengths ; i++)
 			{
-				try
+				String runLengthI = splitRunLengths[i];
+				
+				tempObject = PSTBUtil.checkIfLong(runLengthI, true, log);
+				if(tempObject != null)
 				{
-					tempObject = Long.valueOf(splitRunLengths[i]);
 					Long test = (Long) tempObject;
 					
 					if(test.compareTo(0L) > 0)
@@ -367,14 +369,14 @@ public class AnalysisFileParser {
 					// Should also be compared to BenchmarkConfig
 					else
 					{
-						log.error(logHeader + "Given string " + i + " is a Long less than 1!");
+						log.error(logHeader + "Given string " + runLengthI + " is a Long less than 1!");
 						listRunLength.clear();
 						error = true;
 					}
 				}
-				catch(Exception e)
+				else
 				{
-					log.error(logHeader + "Given string isn't a Long, or is null with other Run Lengths!");
+					log.error(logHeader + "Given string " + runLengthI + " isn't a Long, or is null with other Run Lengths!");
 					listRunLength.clear();
 					error = true;
 				}
@@ -396,9 +398,12 @@ public class AnalysisFileParser {
 		{
 			for(int i = 0 ; i < numRunNumbers ; i++)
 			{
-				try
+				String runNumberI = splitRunNumbers[i];
+				
+				tempObject = PSTBUtil.checkIfLong(runNumberI, false, null);
+				
+				if(tempObject != null)
 				{
-					tempObject = Long.valueOf(splitRunNumbers[i]);
 					Long test = (Long) tempObject;
 					
 					if(test.compareTo(0L) > -1)
@@ -407,14 +412,14 @@ public class AnalysisFileParser {
 					}
 					else
 					{
-						log.error(logHeader + "Given string " + i + " is a Long less than 0!");
+						log.error(logHeader + "Given string " + runNumberI + " is a Long less than 0!");
 						listRunNumber.clear();
 						error = true;
 					}
 				}
-				catch(Exception e)
+				else
 				{
-					log.error(logHeader + "Given string " + i + " isn't a Long, or is null with other Run Numbers!");
+					log.error(logHeader + "Given string " + runNumberI + " isn't a Long, or is null with other Run Numbers!");
 					listRunNumber.clear();
 					error = true;
 				}

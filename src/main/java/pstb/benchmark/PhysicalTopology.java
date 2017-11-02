@@ -2,9 +2,8 @@ package pstb.benchmark;
 
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
-import pstb.util.NodeRole;
 import pstb.util.PSTBUtil;
-import pstb.util.PubSubGroup;
+import pstb.util.ClientNotes;
 import pstb.util.Workload;
 
 import java.io.IOException;
@@ -38,27 +37,30 @@ public class PhysicalTopology {
 								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true "
 								+ "pstb.benchmark.PhysicalBroker ";
 	
+	private LogicalTopology startingTopology;
+	
 	private NetworkProtocol protocol;
 	private Boolean distributed;
 	private String topologyFilePath;
 	
-	private PubSubGroup brokerList; 
-	private PubSubGroup publisherList;
-	private PubSubGroup subscriberList;
-	
 	private Integer runNumber;
 	private final Integer INIT_RUN_NUMBER = -1;
 	
-	private static final Integer PORTSTART = 1100;
-	private Integer portNum = PORTSTART;
+	private final Integer LOCAL_START_PORT = 1100;
+	private Integer localPortNum = LOCAL_START_PORT;
+	private final String LOCAL = "localhost";
+	private HashMap<String, ArrayList<Integer>> hostsAndTheirPorts;
+	private ArrayList<String> freeHosts;
+	private int freeHostI = -1;
+	private HashMap<String, Integer> jForHost;
 	
 	private final String logHeader = "Physical Topology: ";
 	private Logger logger = null;
 	
-	private static final int INIT_TERMINATION_VALUE = 9999;
+	private final int INIT_TERMINATION_VALUE = 9999;
 	
-	private static final Long MILLI_SEC_NEEDED_TO_START_BROKER = new Long(2000L);
-	private static final Long MILLI_SEC_NEEDED_TO_START_CLIENT = new Long(2000L); 
+	private final Long MILLI_SEC_NEEDED_TO_START_BROKER = new Long(2000L);
+	private final Long MILLI_SEC_NEEDED_TO_START_CLIENT = new Long(2000L); 
 	
 	/**
 	 * Empty Constructor
@@ -72,9 +74,7 @@ public class PhysicalTopology {
 		activeBrokers = new ArrayList<Process>();
 		activeClients = new ArrayList<Process>();
 		
-		brokerList = new PubSubGroup();
-		publisherList = new PubSubGroup();
-		subscriberList = new PubSubGroup();
+		startingTopology = new LogicalTopology(log);
 		
 		runNumber = INIT_RUN_NUMBER;
 		protocol = null;
@@ -155,13 +155,13 @@ public class PhysicalTopology {
 	}
 	
 	/**
-	 * Returns the current number of brokers stated in the Logical Topology
+	 * Returns the current number of brokers in the Logical Topology
 	 * 
 	 * @return the number of Broker Objects
 	 */
 	public Integer numberOfLogicalBrokers()
 	{
-		return brokerList.size();
+		return startingTopology.getBrokers().size();
 	}
 	
 	/**
@@ -172,18 +172,24 @@ public class PhysicalTopology {
 	 * @param givenDistributed - the distributed flag
 	 * @param givenTopo - the LogicalTopology that we must make physical
 	 * @param givenProtocol - the messaging protocol
+	 * @param disHostsAndPorts 
 	 * @return false if an error occurs, true otherwise
 	 */
 	public boolean developPhysicalTopology(boolean givenDistributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol,
-											String givenTFP)
+												String givenTFP, HashMap<String, ArrayList<Integer>> disHostsAndPorts)
 	{
-		brokerList = givenTopo.getGroup(NodeRole.B);
-		publisherList = givenTopo.getGroup(NodeRole.P);
-		subscriberList = givenTopo.getGroup(NodeRole.S);
+		startingTopology = givenTopo;
 		
 		protocol = givenProtocol;
 		distributed = givenDistributed;
 		topologyFilePath = PSTBUtil.cleanTPF(givenTFP);
+		
+		hostsAndTheirPorts = disHostsAndPorts;
+		freeHosts = new ArrayList<String>(disHostsAndPorts.keySet());
+		jForHost = new HashMap<String, Integer>();
+		freeHosts.forEach((host)->{
+			jForHost.put(host, 0);
+		});
 		
 		boolean checkGB = developBrokers(givenDistributed);
 		if(!checkGB)
@@ -191,6 +197,10 @@ public class PhysicalTopology {
 			logger.error(logHeader + "Error generating physical Brokers");
 			return false;
 		}
+		
+//		brokerObjects.forEach((brokerName, brokerObject)->{
+//			System.out.println(brokerName + " " + brokerObject.getBrokerURI());
+//		});
 		
 		boolean checkGC = developClients();
 		if(!checkGC)
@@ -213,13 +223,15 @@ public class PhysicalTopology {
 	{
 		logger.debug(logHeader + "Attempting to develop broker objects");
 		
+		HashMap<String, ArrayList<String>> brokerList = startingTopology.getBrokers();
+		
 		// Loop through the brokerList -> that way we can create a bunch of unconnected brokerObjects
 		Iterator<String> iteratorBL = brokerList.keySet().iterator();
 		for( ; iteratorBL.hasNext() ; )
 		{
 			String brokerI = iteratorBL.next();
 			String hostName = getHost(givenDis);
-			Integer port = getPort();
+			Integer port = getPort(hostName);
 			
 			PSBrokerPADRES actBrokerI = new PSBrokerPADRES(hostName, port, protocol, brokerI);
 			
@@ -234,7 +246,7 @@ public class PhysicalTopology {
 			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			ArrayList<String> neededURIs = new ArrayList<String>();
 			
-			ArrayList<String> bIConnectedNodes = brokerList.getNodeConnections(brokerIName);
+			ArrayList<String> bIConnectedNodes = brokerList.get(brokerIName);
 			for(int j = 0 ; j < bIConnectedNodes.size() ; j++)
 			{
 				String brokerJName = bIConnectedNodes.get(j);
@@ -271,7 +283,14 @@ public class PhysicalTopology {
 		
 		if(distributed)
 		{
-			// TODO: handle distributed systems
+			freeHostI++;
+			
+			if(freeHostI >= freeHosts.size())
+			{
+				freeHostI = 0;
+			}
+			
+			hostName = freeHosts.get(freeHostI);
 		}
 		
 		return hostName;
@@ -280,14 +299,35 @@ public class PhysicalTopology {
 	/**
 	 * Gets a port for broker development 
 	 * 
+	 * @param givenHost - the 
 	 * @return the port number 
 	 */
-	private Integer getPort()
+	private Integer getPort(String givenHost)
 	{
-		// TODO: handle distributed systems
+		Integer retVal = localPortNum;
 		
-		Integer retVal = portNum;
-		portNum++;
+		if(givenHost.equals(LOCAL))
+		{
+			localPortNum++;
+		}
+		else
+		{
+			Integer j = jForHost.get(givenHost);
+			ArrayList<Integer> portsForGivenHost = hostsAndTheirPorts.get(givenHost);
+			retVal = portsForGivenHost.get(j);
+			
+			j++;
+			if(j >= portsForGivenHost.size())
+			{
+				jForHost.remove(givenHost);
+				freeHosts.remove(givenHost);
+			}
+			else
+			{
+				jForHost.put(givenHost, j);
+			}
+		}
+		
 		return retVal;
 	}
 	
@@ -301,96 +341,56 @@ public class PhysicalTopology {
 	 */
 	private boolean developClients()
 	{
-		Iterator<String> pubIterator = publisherList.keySet().iterator();
-		Iterator<String> subIterator = subscriberList.keySet().iterator();
+		HashMap<String, ClientNotes> clientList = startingTopology.getClients();
+		Iterator<String> cliIterator = clientList.keySet().iterator();
 		
 		// Loop through the publisherList, creating every client that's there
-		for( ; pubIterator.hasNext() ; )
+		for( ; cliIterator.hasNext() ; )
 		{
-			String publisherNameI = pubIterator.next();
-			boolean addPubCheck = developAndStoreNewClientObject(publisherNameI, publisherList, NodeRole.P);
-			if(!addPubCheck)
+			PSClientPADRES clientI = new PSClientPADRES();
+			
+			String clientIName = cliIterator.next();
+			ClientNotes clientINotes = clientList.get(clientIName);
+			
+			ArrayList<String> clientIConnections = clientINotes.getConnections();
+			
+			ArrayList<String> clientIBrokerURIs = new ArrayList<String>();
+			int numClientIConnections = clientIConnections.size();
+			
+			if(numClientIConnections <= 0)
 			{
+				logger.error(logHeader + "Client " + clientIName + " has no connections");
 				return false;
 			}
-		}
-		
-		/*
-		 * Now loop through the subscriberList
-		 * 
-		 * If a given client already exists, give it a Sub node role
-		 * Otherwise, create it
-		 */
-		for( ; subIterator.hasNext() ; )
-		{
-			String subscriberNameI = subIterator.next();
 			
-			if(clientObjects.containsKey(subscriberNameI))
+			for(int j = 0; j < numClientIConnections ; j++)
 			{
-				clientObjects.get(subscriberNameI).addNewClientRole(NodeRole.S);
-			}
-			else
-			{
-				boolean addSubCheck = developAndStoreNewClientObject(subscriberNameI, subscriberList, NodeRole.S);
-				if(!addSubCheck)
+				String brokerJName = clientIConnections.get(j);
+				
+				boolean doesBrokerJExist = brokerObjects.containsKey(brokerJName);
+				
+				if(!doesBrokerJExist)
 				{
+					logger.error(logHeader + "Client " + clientIName + " references a broker " 
+									+ brokerJName + " that doesn't exist");
 					return false;
 				}
+				
+				String brokerJURI = brokerObjects.get(brokerJName).getBrokerURI();
+				clientIBrokerURIs.add(brokerJURI);
 			}
+			
+			clientI.setClientName(clientIName);
+			clientI.addConnectedBrokers(clientIBrokerURIs);
+			clientI.setClientRoles(clientINotes.getRoles());
+			clientI.setDistributed(distributed);
+			clientI.setNetworkProtocol(protocol);
+			clientI.setTopologyFilePath(topologyFilePath);
+							
+			clientObjects.put(clientIName, clientI);
 		}
 		
 		logger.debug(logHeader + "All clients developed");
-		return true;
-	}
-	
-	/**
-	 * Creates a new Client object and adds it to devClients 
-	 * 
-	 * @param clientIName - the name of the Client
-	 * @param clientList - the PubSubGroup this Client belongs to
-	 * @param givenNR - the role this client has to perform
-	 * @return false on error, true otherwise
-	 */
-	private boolean developAndStoreNewClientObject(String clientIName, PubSubGroup clientList, NodeRole givenNR)
-	{
-		PSClientPADRES clientI = new PSClientPADRES();
-		
-		ArrayList<String> clientIConnections = clientList.getNodeConnections(clientIName);
-		ArrayList<String> clientIBrokerURIs = new ArrayList<String>();
-		
-		int numClientIConnections = clientIConnections.size();
-		
-		if(numClientIConnections <= 0)
-		{
-			logger.error(logHeader + "Client " + clientIName + " has no connections");
-			return false;
-		}
-		
-		// Make sure each broker stated in the PubSubGroup actually exists
-		for(int j = 0; j < numClientIConnections ; j++)
-		{
-			String brokerJName = clientIConnections.get(j);
-			
-			boolean doesBrokerJExist = brokerObjects.containsKey(brokerJName);
-			
-			if(!doesBrokerJExist)
-			{
-				logger.error(logHeader + "Client " + clientIName + " references a broker " + brokerJName + " that doesn't exist");
-				return false;
-			}
-			
-			String brokerJURI = brokerObjects.get(brokerJName).getBrokerURI();
-			clientIBrokerURIs.add(brokerJURI);
-		}
-		
-		clientI.setClientName(clientIName);
-		clientI.addConnectedBrokers(clientIBrokerURIs);
-		clientI.addNewClientRole(givenNR);
-		clientI.setDistributed(distributed);
-		clientI.setNetworkProtocol(protocol);
-		clientI.setTopologyFilePath(topologyFilePath);
-						
-		clientObjects.put(clientIName, clientI);
 		return true;
 	}
 	

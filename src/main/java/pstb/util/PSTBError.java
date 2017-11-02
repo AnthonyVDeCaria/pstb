@@ -9,8 +9,9 @@ public class PSTBError {
 	public static final int ERROR_WORKLOAD = 2;
 	public static final int ERROR_TOPO_LOG = 3;
 	public static final int ERROR_TOPO_PHY = 4;
-	public static final int ERROR_EXPERIMENT = 5;
-	public static final int ERROR_ANALYSIS = 6;
+	public static final int ERROR_DISTRIBUTED = 5;
+	public static final int ERROR_EXPERIMENT = 6;
+	public static final int ERROR_ANALYSIS = 7;
 	
 	public static final int ERROR_ARGS_B = 11;
 	public static final int ERROR_FILE_B = 12;

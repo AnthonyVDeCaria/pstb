@@ -18,17 +18,21 @@ import pstb.util.DistributedState;
 import pstb.util.NetworkProtocol;
 
 public class BenchmarkConfig {
+	private ArrayList<String> topologyFilesStrings;
+	
+	private HashMap<String, DistributedState> distributed;
+	private boolean wantDistributed;
+	private String distributedFileString;
+	
+	private ArrayList<NetworkProtocol> protocols;
+	private ArrayList<Long> runLengths; // Milliseconds
 	private Integer numRunsPerExperiment;
+	
 	private ArrayList<String> pubWorkloadFilesStrings;
 	private String subWorkloadFileString;
 	
-	private ArrayList<Long> runLengths; // Milliseconds
-	
-	private ArrayList<NetworkProtocol> protocols;
-	private ArrayList<String> topologyFilesStrings;
-	private HashMap<String, DistributedState> distributed;
-	
 	private Logger logger = null;
+	private final String logHeader = "Properties: ";
 	
 	/**
 	 * Constructor
@@ -40,13 +44,15 @@ public class BenchmarkConfig {
 	{
 		logger = log;
 		
+		topologyFilesStrings = new ArrayList<String>();
+		distributed = new HashMap<String, DistributedState>();
+		wantDistributed = false;
+		distributedFileString = new String();
+		protocols = new ArrayList<NetworkProtocol>();
+		runLengths = new ArrayList<Long>();
 		numRunsPerExperiment = new Integer(0);
 		pubWorkloadFilesStrings = new ArrayList<String>();
 		subWorkloadFileString = new String();
-		runLengths = new ArrayList<Long>();
-		protocols = new ArrayList<NetworkProtocol>();
-		topologyFilesStrings = new ArrayList<String>();
-		distributed = new HashMap<String, DistributedState>();
 	}
 	
 	/**
@@ -64,32 +70,66 @@ public class BenchmarkConfig {
 	{
 		boolean everythingisProper = true;
 		
-		// numRunsPerExperiment
-		String givenNRPE = givenProperty.getProperty("startup.numRunsPerExperiment");
-		try
+		// TopologyFilesStrings
+		String unsplitTFS = givenProperty.getProperty("startup.topologyFilesStrings");
+		String[] splitTFS = unsplitTFS.split(PSTBUtil.COMMA);
+		setTopologyFilesStrings(PSTBUtil.turnStringArrayIntoArrayListString(splitTFS));
+		
+		// Distributed
+		String unsplitDis = givenProperty.getProperty("startup.distributed");
+		HashMap<String, DistributedState> propDis = new HashMap<String, DistributedState>();
+		if(unsplitDis != null)
 		{
-			Integer intNRPE = Integer.parseInt(givenNRPE);
-			setNumRunsPerExperiment(intNRPE);
+			String[] splitDis = unsplitDis.split(PSTBUtil.COMMA);
+			int numGivenDis = splitDis.length;
+			if(numGivenDis == splitTFS.length)
+			{
+				for(int i = 0 ; i < numGivenDis ; i++ )
+				{
+					try
+					{
+						DistributedState sDI = DistributedState.valueOf(splitDis[i]);
+						
+						if(sDI.equals(DistributedState.Yes) || sDI.equals(DistributedState.Both))
+						{
+							wantDistributed = true;
+						}
+						
+						propDis.put(topologyFilesStrings.get(i), sDI);
+					}
+					catch(IllegalArgumentException e)
+					{
+						everythingisProper = false;
+						propDis.clear();
+						logger.error(logHeader + splitDis[i] + " is not a valid Distributed value: ", e);
+					}
+				}
+			}
+			else
+			{
+				everythingisProper = false;
+			}
 		}
-		catch(IllegalArgumentException e)
+		else
 		{
-			logger.error("Properties: " + givenNRPE + " is not a valid Integer.", e);
 			everythingisProper = false;
 		}
+		setDistributed(propDis);
 		
-		// pubWorkloadFilesStrings
-		String unsplitPWFP = givenProperty.getProperty("startup.pubWorkloadFilesStrings");
-		ArrayList<String> propPWFP = new ArrayList<String>();
-		if(unsplitPWFP != null)
+		// DistributedFileString
+		if(wantDistributed)
 		{
-			String[] splitPWFP = unsplitPWFP.split(PSTBUtil.COMMA);
-			propPWFP = PSTBUtil.turnStringArrayIntoArrayListString(splitPWFP);
+			String propDFS = givenProperty.getProperty("startup.distributedFileString");
+			if(propDFS == null || propDFS.equals("null"))
+			{
+				logger.error(logHeader + "No valid Distributed File given!");
+				everythingisProper = false;
+			}
+			else
+			{
+				setDistributedFileString(propDFS);
+			}
 		}
-		setPubWorkloadFilesStrings(propPWFP);
-		
-		// subWorkloadFileString
-		String propSWFP = givenProperty.getProperty("startup.subWorkloadFileString");
-		setSubWorkloadFileString(propSWFP);
 		
 		// runLengths
 		String unsplitRL = givenProperty.getProperty("startup.runLengths");
@@ -108,7 +148,7 @@ public class BenchmarkConfig {
 				{
 					everythingisProper = false;
 					propRL.clear();
-					logger.error("Properties: " + splitRL[i] + " is not a valid Integer.", e);
+					logger.error(logHeader + splitRL[i] + " is not a valid Integer: ", e);
 					break;
 				}
 			}
@@ -139,7 +179,7 @@ public class BenchmarkConfig {
 					{
 						everythingisProper = false;
 						propProto.clear();
-						logger.error("Properties: " + splitProtocols[i] + " is not a valid Protocol.", e);
+						logger.error(logHeader + splitProtocols[i] + " is not a valid Protocol: ", e);
 						break;
 					}
 				}
@@ -155,116 +195,90 @@ public class BenchmarkConfig {
 		}
 		setProtocols(propProto);
 		
-		// topologyFilesStrings
-		String unsplitTFP = givenProperty.getProperty("startup.topologyFilesStrings");
-		String[] splitTFP = unsplitTFP.split(PSTBUtil.COMMA);
-		setTopologyFilesStrings(PSTBUtil.turnStringArrayIntoArrayListString(splitTFP));
-		
-		// distributed
-		String unsplitDis = givenProperty.getProperty("startup.distributed");
-		HashMap<String, DistributedState> propDis = new HashMap<String, DistributedState>();
-		if(unsplitDis != null)
+		// numRunsPerExperiment
+		String givenNRPE = givenProperty.getProperty("startup.numRunsPerExperiment");
+		try
 		{
-			String[] splitDis = unsplitDis.split(PSTBUtil.COMMA);
-			int numGivenDis = splitDis.length;
-			if(numGivenDis == splitTFP.length)
-			{
-				for(int i = 0 ; i < numGivenDis ; i++ )
-				{
-					try
-					{
-						DistributedState sDI = DistributedState.valueOf(splitDis[i]);
-						propDis.put(topologyFilesStrings.get(i), sDI);
-					}
-					catch(IllegalArgumentException e)
-					{
-						everythingisProper = false;
-						propDis.clear();
-						logger.error("Properties: " + splitDis[i] + " is not a valid Distributed value.", e);
-					}
-				}
-			}
-			else
-			{
-				everythingisProper = false;
-			}
+			Integer intNRPE = Integer.parseInt(givenNRPE);
+			setNumRunsPerExperiment(intNRPE);
 		}
-		else
+		catch(IllegalArgumentException e)
 		{
+			logger.error(logHeader + givenNRPE + " is not a valid Integer: ", e);
 			everythingisProper = false;
 		}
-		setDistributed(propDis);
+		
+		// pubWorkloadFilesStrings
+		String unsplitPWFS = givenProperty.getProperty("startup.pubWorkloadFilesStrings");
+		ArrayList<String> propPWFS = new ArrayList<String>();
+		if(unsplitPWFS != null)
+		{
+			String[] splitPWFS = unsplitPWFS.split(PSTBUtil.COMMA);
+			propPWFS = PSTBUtil.turnStringArrayIntoArrayListString(splitPWFS);
+		}
+		setPubWorkloadFilesStrings(propPWFS);
+		
+		// subWorkloadFileString
+		String propSWFS = givenProperty.getProperty("startup.subWorkloadFileString");
+		setSubWorkloadFileString(propSWFS);
 		
 		return everythingisProper;
-	}
-	
-	/**
-	 * Prints all of the Benchmark Variables
-	 */
-	public void printAllFields()
-	{
-		logger.info("Properties: numRunsPerExperiment = " + numRunsPerExperiment);
-		logger.info("Properties: pubWorkloadFilesStrings = " + Arrays.toString(pubWorkloadFilesStrings.toArray()));
-		logger.info("Properties: subWorkloadFileString = " + subWorkloadFileString);
-		logger.info("Properties: runLength = " + Arrays.toString(runLengths.toArray()));
-		logger.info("Properties: protocols = " + Arrays.toString(protocols.toArray()));
-		logger.info("Properties: topologyFilesStrings = " + Arrays.toString(topologyFilesStrings.toArray()));
-		logger.info("Properties: distributed = " + distributed.toString());
-	}
-	
-	/**
-	 * Checks if any of the fields are "null"
-	 * I.e. Not been set
-	 * 
-	 * @return false if no field is "null", true if one is
-	 */
-	public boolean checkForNullFields()
-	{
-		boolean anyFieldNull = false;
-		
-		if(numRunsPerExperiment.equals(0))
-		{
-			logger.error("Properties: No Number of Experiment Runs was given!");
-			anyFieldNull = true;
-		}
-		if(pubWorkloadFilesStrings.isEmpty())
-		{
-			logger.error("Properties: No Publisher Workload Strings were given!");
-			anyFieldNull = true;
-		}
-		if(subWorkloadFileString.isEmpty())
-		{
-			logger.error("Properties: No Subscriber Workload String was given!");
-			anyFieldNull = true;
-		}
-		if(runLengths.isEmpty())
-		{
-			logger.error("Properties: No Run Length(s) were given!");
-			anyFieldNull = true;
-		}
-		if(protocols.isEmpty())
-		{
-			logger.error("Properties: No Protocol(s) were given!");
-			anyFieldNull = true;
-		}
-		if(topologyFilesStrings.isEmpty())
-		{
-			logger.error("Properties: No Topology File String(s) were given!");
-			anyFieldNull = true;
-		}
-		if(distributed.isEmpty())
-		{
-			logger.error("Properties: No Distributed information was given!");
-			anyFieldNull = true;
-		}
-		
-		return anyFieldNull;
 	}
 	
 	/**
 	 * NOTE: All the setter functions are private 
 	 * as the only "setter" that should be accessed is setBenchmarkConfig
 	 */
+	
+	/**
+	 * Sets the topologyFilesStrings
+	 * 
+	 * @param tFS - the new topologyFilesStrings
+	 */
+	private void setTopologyFilesStrings(ArrayList<String> tFS)
+	{
+		topologyFilesStrings = tFS;
+	}
+	
+	/**
+	 * Sets the distributed array
+	 * 
+	 * @param dis - the new distributed
+	 */
+	private void setDistributed(HashMap<String, DistributedState> dis)
+	{
+		distributed = dis;
+	}
+	
+	/**
+	 * Sets the distributed array
+	 * 
+	 * @param dFS - the new distributed File String
+	 */
+	private void setDistributedFileString(String dFS) 
+	{
+		distributedFileString = dFS;
+	}
+	
+	/**
+	 * Sets the protocols
+	 * 
+	 * @param proto - the new protocols
+	 */
+	private void setProtocols(ArrayList<NetworkProtocol> proto)
+	{
+		protocols = proto;
+	}
+	
+	/**
+	 * Sets the runLength
+	 * 
+	 * @param proto - the new protocols
+	 */
+	private void setRunLengths(ArrayList<Long> rL)
+	{
+		runLengths = rL;
+	}
 	
 	/**
 	 * Sets the numRunsPerExperiment
@@ -297,83 +311,13 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Sets the runLength
-	 * 
-	 * @param proto - the new protocols
-	 */
-	private void setRunLengths(ArrayList<Long> rL)
-	{
-		runLengths = rL;
-	}
-	
-	/**
-	 * Sets the protocols
-	 * 
-	 * @param proto - the new protocols
-	 */
-	private void setProtocols(ArrayList<NetworkProtocol> proto)
-	{
-		protocols = proto;
-	}
-	
-	/**
-	 * Sets the topologyFilesStrings
-	 * 
-	 * @param tFS - the new topologyFilesStrings
-	 */
-	private void setTopologyFilesStrings(ArrayList<String> tFS)
-	{
-		topologyFilesStrings = tFS;
-	}
-	
-	/**
-	 * Sets the distributed array
-	 * 
-	 * @param dis - the new distributed
-	 */
-	private void setDistributed(HashMap<String, DistributedState> dis)
-	{
-		distributed = dis;
-	}
-	
-	/**
-	 * Gets the numRunsPerExperiment
-	 * 
-	 * @return numRunsPerExperiment - the number of runs an experiment has to complete
-	 */
-	public Integer getNumRunsPerExperiment()
-	{
-		return this.numRunsPerExperiment;
-	}
-	
-	/**
-	 * Gets the runLength
-	 * 
-	 * @return  runLength - the list of minutes each experiment's run's will take
-	 */
-	public ArrayList<Long> getRunLengths()
-	{
-		return this.runLengths;
-	}
-	
-	/**
-	 * Gets the protocols
-	 * 
-	 * @return protocols - the list of protocols to be use in different runs
-	 */
-	public ArrayList<NetworkProtocol> getProtocols()
-	{
-		return this.protocols;
-	}
-	
-	/**
 	 * Gets the topologyFilesStrings
 	 * 
 	 * @return topologyFilesStrings - the paths to all the Topology Files
 	 */
 	public ArrayList<String> getTopologyFilesStrings()
 	{
-		return this.topologyFilesStrings;
+		return topologyFilesStrings;
 	}
 	
 	/**
@@ -383,7 +327,57 @@ public class BenchmarkConfig {
 	 */
 	public HashMap<String, DistributedState> getDistributed()
 	{
-		return this.distributed;
+		return distributed;
+	}
+	
+	/**
+	 * Gets the wantDistributed value
+	 * 
+	 * @return wantDistributed - NOTE: this value is false if setBenchmarkConfig isn't run
+	 */
+	public boolean distributedRequested()
+	{
+		return wantDistributed;
+	}
+	
+	/**
+	 * Gets the distributedFileString
+	 * 
+	 * @return the distributedFileString
+	 */
+	public String getDistributedFileString()
+	{
+		return distributedFileString;
+	}
+	
+	/**
+	 * Gets the protocols
+	 * 
+	 * @return protocols - the list of protocols to be use in different runs
+	 */
+	public ArrayList<NetworkProtocol> getProtocols()
+	{
+		return protocols;
+	}
+	
+	/**
+	 * Gets the runLength
+	 * 
+	 * @return  runLength - the list of minutes each experiment's run's will take
+	 */
+	public ArrayList<Long> getRunLengths()
+	{
+		return runLengths;
+	}
+	
+	/**
+	 * Gets the numRunsPerExperiment
+	 * 
+	 * @return numRunsPerExperiment - the number of runs an experiment has to complete
+	 */
+	public Integer getNumRunsPerExperiment()
+	{
+		return numRunsPerExperiment;
 	}
 	
 	/**
@@ -393,7 +387,7 @@ public class BenchmarkConfig {
 	 */
 	public ArrayList<String> getPubWorkloadFilesStrings()
 	{
-		return this.pubWorkloadFilesStrings;
+		return pubWorkloadFilesStrings;
 	}
 	
 	/**
@@ -403,6 +397,83 @@ public class BenchmarkConfig {
 	 */
 	public String getSubWorkloadFileString()
 	{
-		return this.subWorkloadFileString;
+		return subWorkloadFileString;
+	}
+	
+	/**
+	 * Prints all of the Benchmark Variables
+	 */
+	public void printAllFields()
+	{
+		logger.info(logHeader + "numRunsPerExperiment = " + numRunsPerExperiment + ".");
+		logger.info(logHeader + "pubWorkloadFilesStrings = " + Arrays.toString(pubWorkloadFilesStrings.toArray()) + ".");
+		logger.info(logHeader + "subWorkloadFileString = " + subWorkloadFileString + ".");
+		logger.info(logHeader + "runLength = " + Arrays.toString(runLengths.toArray()) + ".");
+		logger.info(logHeader + "protocols = " + Arrays.toString(protocols.toArray()) + ".");
+		logger.info(logHeader + "topologyFilesStrings = " + Arrays.toString(topologyFilesStrings.toArray()) + ".");
+		logger.info(logHeader + "distributed = " + distributed.toString() + ".");
+		if(wantDistributed)
+		{
+			logger.info(logHeader + "Distributed systems requested.");
+			logger.info(logHeader + "distributedFileString = " + distributedFileString + ".");
+		}
+		else
+		{
+			logger.info(logHeader + "Distributed systems not requested.");
+		}
+	}
+	
+	/**
+	 * Checks if any of the fields are "null"
+	 * I.e. Not been set
+	 * 
+	 * @return false if no field is "null", true if one is
+	 */
+	public boolean checkForNullFields()
+	{
+		boolean anyFieldNull = false;
+		
+		if(numRunsPerExperiment.equals(0))
+		{
+			logger.error(logHeader + "No Number of Experiment Runs was given!");
+			anyFieldNull = true;
+		}
+		if(pubWorkloadFilesStrings.isEmpty())
+		{
+			logger.error(logHeader + "No Publisher Workload File String(s) were given!");
+			anyFieldNull = true;
+		}
+		if(subWorkloadFileString.isEmpty())
+		{
+			logger.error(logHeader + "No Subscriber Workload File String was given!");
+			anyFieldNull = true;
+		}
+		if(runLengths.isEmpty())
+		{
+			logger.error(logHeader + "No Run Length(s) were given!");
+			anyFieldNull = true;
+		}
+		if(protocols.isEmpty())
+		{
+			logger.error(logHeader + "No Protocol(s) were given!");
+			anyFieldNull = true;
+		}
+		if(topologyFilesStrings.isEmpty())
+		{
+			logger.error(logHeader + "No Topology File String(s) were given!");
+			anyFieldNull = true;
+		}
+		if(distributed.isEmpty())
+		{
+			logger.error(logHeader + "No Distributed information was given!");
+			anyFieldNull = true;
+		}
+		if(wantDistributed && distributedFileString.isEmpty())
+		{
+			logger.error(logHeader + " No Distributed File String was given!");
+			anyFieldNull = true;
+		}
+		
+		return anyFieldNull;
 	}
 }

@@ -1,0 +1,4 @@
+sometimes	1100,1101,1102,1103
+youBreaka	1200,1201,1202
+fingerOnT	1300,1301
+otherHand	1400

@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 
@@ -26,9 +25,9 @@ public class TopologyFileParser {
 	private String topoFileString;
 	
 	private final int SEGMENTSNUM = 3;
-	private final int NODE_NAME_LOCATION = 0;
-	private final int NODE_ROLE_LOCATION = 1;
-	private final int NODE_CONN_LOCATION = 2;
+	private final int LOC_NAME = 0;
+	private final int LOC_ROLE = 1;
+	private final int LOC_CONN = 2;
 	
 	private final String logHeader = "Topology Parser: ";
 	private Logger logger = null;
@@ -36,14 +35,14 @@ public class TopologyFileParser {
 	/**
 	 * FilePath Constructor
 	 * 
-	 * @param givenTPS - the Topology File String to parse
+	 * @param givenTFS - the Topology File String to parse
 	 * @param log - the Logger we have to use
 	 */
-	public TopologyFileParser(String givenTPS, Logger log)
+	public TopologyFileParser(String givenTFS, Logger log)
     {
 		logger = log;
 		logicalTopo = new LogicalTopology(log);
-		topoFileString = givenTPS;
+		topoFileString = givenTFS;
     }
 	
 	/**
@@ -74,32 +73,41 @@ public class TopologyFileParser {
 				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
 					String[] splitLine = line.split(PSTBUtil.SPACE);
+					String name = splitLine[LOC_NAME];
+					String roles = splitLine[LOC_ROLE];
+					String connections = splitLine[LOC_CONN];
 					
 					if(checkProperSpacing(splitLine))
 					{
-						if(checkProperRoles(splitLine[NODE_ROLE_LOCATION]))
+						ArrayList<NodeRole> lineIsRoles = checkProperRoles(roles);
+						if(lineIsRoles != null)
 						{
-							if(checkUniqueName(splitLine[NODE_NAME_LOCATION]))
+							if(checkUniqueName(name))
 							{
 								logger.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
-								addLineToTopo(splitLine);
+								
+								ArrayList<String> splitConnections = PSTBUtil.turnStringArrayIntoArrayListString(
+																			connections.split(",")
+																		);
+								
+								logicalTopo.addNewNodeToTopo(lineIsRoles, name, splitConnections);
 							}
 							else
 							{
 								isParseSuccessful = false;
-								logger.error(logHeader + "Error in Line " + linesRead + " - Duplicate names");
+								logger.error(logHeader + "Error in Line " + linesRead + " - Duplicate names!");
 							}
 						}
 						else
 						{
 							isParseSuccessful = false;
-							logger.error(logHeader + "Error in Line " + linesRead + " - Error with Types");
+							logger.error(logHeader + "Error in Line " + linesRead + " - Error with Types!");
 						}
 					}
 					else
 					{
 						isParseSuccessful = false;
-						logger.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct");
+						logger.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct!");
 					}
 				}
 			}
@@ -108,7 +116,7 @@ public class TopologyFileParser {
 		catch (IOException e) 
 		{
 			isParseSuccessful = false;
-			logger.error(logHeader + "Cannot find file", e);
+			logger.error(logHeader + "Cannot find file: ", e);
 		}
 		return isParseSuccessful;
 	}
@@ -137,48 +145,47 @@ public class TopologyFileParser {
 	 * @param roles - the unsplit String of roles from the file
 	 * @return true if they are; false if they aren't
 	 */
-	private boolean checkProperRoles(String roles)
+	private ArrayList<NodeRole> checkProperRoles(String roles)
 	{		
-		String[] brokenTypes = roles.split(PSTBUtil.COMMA);
-		List<NodeRole> nodeTypeLedger = new ArrayList<NodeRole>();
+		String[] brokenRoles = roles.split(PSTBUtil.COMMA);
+		ArrayList<NodeRole> roleLedger = new ArrayList<NodeRole>();
 		
-		for(int i = 0 ; i < brokenTypes.length ; i++)
+		for(int i = 0 ; i < brokenRoles.length ; i++)
 		{
-			NodeRole brokenTypesI = null;
+			String brokenRoleI = brokenRoles[i];
+			NodeRole roleI = null;
 			try
 			{
-				brokenTypesI = NodeRole.valueOf(brokenTypes[i]);
+				roleI = NodeRole.valueOf(brokenRoleI);
 			}
 			catch(IllegalArgumentException e)
 			{
-				logger.error(logHeader + brokenTypes[i] + " is not a valid type.", e);
-				return false;
+				logger.error(logHeader + brokenRoleI + " is not a valid type!", e);
+				return null;
 			}
 			
-			if(nodeTypeLedger.contains(brokenTypesI))
+			if(roleLedger.contains(roleI))
 			{
-				logger.error(logHeader + "More than one of the same type, " + brokenTypesI + ", requested.");
-				return false;
+				logger.error(logHeader + "More than one of the same type, " + roleI + ", requested!");
+				return null;
 			}
 			
-			if( (brokenTypesI.equals(NodeRole.P) || brokenTypesI.equals(NodeRole.S)) 
-					&& nodeTypeLedger.contains(NodeRole.B))
+			if( (roleI.equals(NodeRole.P) || roleI.equals(NodeRole.S)) && roleLedger.contains(NodeRole.B))
 			{
-				logger.error("Parser: A broker cannot be a client.");
-				return false;
+				logger.error(logHeader + "A broker cannot be a client!");
+				return null;
 			}
 			
-			if ( (brokenTypesI.equals(NodeRole.B)) 
-					&& (nodeTypeLedger.contains(NodeRole.P) || nodeTypeLedger.contains(NodeRole.S) ) )
+			if ( (roleI.equals(NodeRole.B)) && (roleLedger.contains(NodeRole.P) || roleLedger.contains(NodeRole.S) ) )
 			{
-				logger.error("Parser: A client cannot be a broker.");
-				return false;
+				logger.error(logHeader + "A client cannot be a broker!");
+				return null;
 			}
 			
-			nodeTypeLedger.add(brokenTypesI);
+			roleLedger.add(roleI);
 		}
 		
-		return true;
+		return roleLedger;
 	}
 	
 	/**
@@ -190,36 +197,6 @@ public class TopologyFileParser {
 	 */
 	private boolean checkUniqueName(String name)
 	{	
-		try
-		{
-			logicalTopo.forEach((role, group)->{
-				if(group.checkNodeIsPresent(name))
-				{
-					throw new IllegalArgumentException();
-				}
-			});
-		}
-		catch(IllegalArgumentException e)
-		{
-			logger.error("Parser: Node " + name + " already exists!");
-			return false;
-		}
-		
-		return true;
-	}
-	
-	/**
-	 * Adds the line from the file to the topology
-	 * 
-	 * @param the line from the file
-	 */
-	private void addLineToTopo(String[] splitLine)
-	{
-		String[] nodeRoles = splitLine[NODE_ROLE_LOCATION].split(PSTBUtil.COMMA);
-		String name = splitLine[NODE_NAME_LOCATION];
-		String[] connections = splitLine[NODE_CONN_LOCATION].split(PSTBUtil.COMMA);
-		ArrayList<String> aLConnections = PSTBUtil.turnStringArrayIntoArrayListString(connections);
-		
-		logicalTopo.addNewNodeToTopo(nodeRoles, name, aLConnections);
+		return !logicalTopo.getBrokers().containsKey(name) && !logicalTopo.getClients().containsKey(name) ;
 	}
 }

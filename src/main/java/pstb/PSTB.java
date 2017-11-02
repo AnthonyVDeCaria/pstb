@@ -16,6 +16,7 @@ import pstb.analysis.Analyzer;
 import pstb.benchmark.PhysicalTopology;
 import pstb.benchmark.PhysicalTopology.ActiveProcessRetVal;
 import pstb.startup.BenchmarkConfig;
+import pstb.startup.DistributedFileParser;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
 import pstb.startup.WorkloadFileParser.WorkloadFileType;
@@ -126,9 +127,10 @@ public class PSTB {
 		boolean allToposOk = true;
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesStrings();
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
+		int numNodesLargestTopo = 0;
 		
 		logger.info("Starting to parse Topology Files...");
-		for(int i = 0 ; i < allTopoFiles.size(); i++)
+		for(int i = 0 ; i < allTopoFiles.size() ; i++)
 		{
 			String topoI = allTopoFiles.get(i);
 			TopologyFileParser parseTopo = new TopologyFileParser(topoI, logger);
@@ -138,6 +140,7 @@ public class PSTB {
 			if(!parseCheck)
 			{
 				allToposOk = false;
+				numNodesLargestTopo = 0;
 				logger.error("Parse Failed for file " + topoI + "!");
 			}
 			else
@@ -147,8 +150,13 @@ public class PSTB {
 				LogicalTopology network = parseTopo.getLogicalTopo();
 				
 				logger.debug("Starting Topology Testing with topology " + topoI + "...");
-				boolean mCCheck = network.confirmBrokerMutualConnectivity();
-				if(!mCCheck)
+				Boolean mCCheck = network.confirmBrokerMutualConnectivity();
+				if(mCCheck == null)
+				{
+					logger.error("Error with topology " + topoI + "!");
+					endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
+				}
+				else if(!mCCheck.booleanValue())
 				{
 					logger.warn("Topology File " + topoI + " has one way connections.");
 					
@@ -164,11 +172,6 @@ public class PSTB {
 					else
 					{
 						network.forceMutualConnectivity();
-//						if(!checkFMC)
-//						{
-//							logger.error("Problem forcing mutual connectivity for topology " + topoI + "!");
-//							endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
-//						}
 					}
 				}
 				
@@ -181,6 +184,12 @@ public class PSTB {
 				}
 				else
 				{
+					int numNodesTopoI = network.size();
+					if(numNodesTopoI > numNodesLargestTopo)
+					{
+						numNodesLargestTopo = numNodesTopoI;
+					}
+					
 					allLTs.put(topoI, network);
 					logger.debug("Topology Check Complete for topology " + topoI + ".");
 				}
@@ -191,10 +200,29 @@ public class PSTB {
 		{
 			logger.error("Error with topology files!");
 			allLTs.clear();
+			numNodesLargestTopo = 0;
 			endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
 		}
 		
 		logger.info("All topologies valid!!");
+		
+		HashMap<String, ArrayList<Integer>> disHostsAndPorts = new HashMap<String, ArrayList<Integer>>();
+		
+		if(benchmarkRules.distributedRequested())
+		{
+			logger.info("Attempting to parse distributed ...");
+			
+			DistributedFileParser dfp = new DistributedFileParser(benchmarkRules.getDistributedFileString());
+			
+			boolean dfpCheck = dfp.parse(numNodesLargestTopo);
+			if(!dfpCheck)
+			{
+				logger.error("Error with distributed file!");
+				endProgram(PSTBError.ERROR_DISTRIBUTED, userInput);
+			}
+			
+			disHostsAndPorts = dfp.getHostsAndPorts();
+		}
 		
 		// Benchmark
 		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
@@ -206,9 +234,10 @@ public class PSTB {
 		
 		for( ; iteratorLT.hasNext() ; )
 		{
+			String topologyI = iteratorLT.next();
+			
 			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
-				String topologyI = iteratorLT.next();
 				DistributedState givenDS = askedDistributed.get(topologyI);
 				PhysicalTopology localPT = new PhysicalTopology(logger);
 				PhysicalTopology disPT = new PhysicalTopology(logger);
@@ -218,12 +247,12 @@ public class PSTB {
 				if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
 				{
 					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), askedProtocols.get(protocolI),
-																		topologyI);
+																		topologyI, disHostsAndPorts);
 				}
 				if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
 				{
 					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI), 
-																	topologyI);
+																	topologyI, disHostsAndPorts);
 				}
 				
 				if(!checkDisPT || !checkLocalPT)
@@ -253,6 +282,8 @@ public class PSTB {
 				}
 			}
 		}
+		
+		endProgram(0, userInput);
 		
 		// Analysis
 		logger.info("Printing all diaries to file...");
