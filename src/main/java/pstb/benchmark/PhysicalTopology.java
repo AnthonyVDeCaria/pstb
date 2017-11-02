@@ -74,7 +74,7 @@ public class PhysicalTopology {
 		activeBrokers = new ArrayList<Process>();
 		activeClients = new ArrayList<Process>();
 		
-		startingTopology = new LogicalTopology(log);
+		startingTopology = new LogicalTopology();
 		
 		runNumber = INIT_RUN_NUMBER;
 		protocol = null;

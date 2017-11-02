@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.startup.NonMutuallyConnectedNodes;
@@ -25,14 +26,13 @@ public class LogicalTopology {
 	private ArrayList<NonMutuallyConnectedNodes> problemNodes;
 	
 	private final String logHeader = "Logical Topology: "; 
-	private Logger logger = null;
+	private Logger logger = LogManager.getRootLogger();
 	
 	/**
 	 * Empty constructor
 	 */
-	public LogicalTopology(Logger log)
+	public LogicalTopology()
     {
-		logger = log;
 		brokers = new HashMap<String, ArrayList<String>>();
 		clients = new HashMap<String, ClientNotes>();
 		problemNodes = new ArrayList<NonMutuallyConnectedNodes>();

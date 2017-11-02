@@ -8,6 +8,11 @@ import java.util.ArrayList;
 
 import org.apache.logging.log4j.Logger;
 
+/**
+ * @author padres-dev-4187
+ * 
+ * Allows the Client to record data during a run.
+ */
 public class ClientDiary implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;

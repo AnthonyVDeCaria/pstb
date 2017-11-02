@@ -133,7 +133,7 @@ public class PSTB {
 		for(int i = 0 ; i < allTopoFiles.size() ; i++)
 		{
 			String topoI = allTopoFiles.get(i);
-			TopologyFileParser parseTopo = new TopologyFileParser(topoI, logger);
+			TopologyFileParser parseTopo = new TopologyFileParser(topoI);
 			
 			logger.debug("Parsing Topology File " + topoI + "...");
 			boolean parseCheck = parseTopo.parse();

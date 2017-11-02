@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.LogicalTopology;
@@ -24,13 +25,13 @@ public class TopologyFileParser {
 	private LogicalTopology logicalTopo;
 	private String topoFileString;
 	
-	private final int SEGMENTSNUM = 3;
+	private final int NUM_SEGMENTS = 3;
 	private final int LOC_NAME = 0;
 	private final int LOC_ROLE = 1;
 	private final int LOC_CONN = 2;
 	
 	private final String logHeader = "Topology Parser: ";
-	private Logger logger = null;
+	private Logger logger = LogManager.getRootLogger();
 	
 	/**
 	 * FilePath Constructor
@@ -38,10 +39,9 @@ public class TopologyFileParser {
 	 * @param givenTFS - the Topology File String to parse
 	 * @param log - the Logger we have to use
 	 */
-	public TopologyFileParser(String givenTFS, Logger log)
+	public TopologyFileParser(String givenTFS)
     {
-		logger = log;
-		logicalTopo = new LogicalTopology(log);
+		logicalTopo = new LogicalTopology();
 		topoFileString = givenTFS;
     }
 	
@@ -77,7 +77,7 @@ public class TopologyFileParser {
 					String roles = splitLine[LOC_ROLE];
 					String connections = splitLine[LOC_CONN];
 					
-					if(checkProperSpacing(splitLine))
+					if(splitLine.length == NUM_SEGMENTS)
 					{
 						ArrayList<NodeRole> lineIsRoles = checkProperRoles(roles);
 						if(lineIsRoles != null)
@@ -101,7 +101,7 @@ public class TopologyFileParser {
 						else
 						{
 							isParseSuccessful = false;
-							logger.error(logHeader + "Error in Line " + linesRead + " - Error with Types!");
+							logger.error(logHeader + "Error in Line " + linesRead + " - Roles are improper!");
 						}
 					}
 					else
@@ -119,24 +119,6 @@ public class TopologyFileParser {
 			logger.error(logHeader + "Cannot find file: ", e);
 		}
 		return isParseSuccessful;
-	}
-	
-	/**
-	 * Determines if the given line has been properly written
-	 * - i.e. contains a node name, node types and node connections - 
-	 * by seeing if the split line has the right number of segments
-	 * 
-	 * @param splitFileline - the line from the file that has already be properly split
-	 * @return true if it is; false if it isn't
-	 */
-	private boolean checkProperSpacing(String[] splitFileline)
-	{
-		boolean isLengthProper = true;
-		if(splitFileline.length != SEGMENTSNUM)
-		{
-			isLengthProper = false;
-		}
-		return isLengthProper;
 	}
 	
 	/**
