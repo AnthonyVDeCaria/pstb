@@ -39,18 +39,32 @@ public class LogicalTopology {
     }
 	
 	/**
-	 * Adds a new node to the topology
+	 * Adds a new node to the topology, assuming that all the roles make sense.
+	 * I.e. if its a broker node, there is only the Broker role.
 	 * 
 	 * @param roles - a list of all of this node's roles
 	 * @param name - the name of this node
-	 * @param connections - what brokers connected to
+	 * @param connections - what brokers this node is connected to
 	 */
 	public boolean addNewNodeToTopo(ArrayList<NodeRole> roles, String name, ArrayList<String> connections)
 	{
+		if(roles == null || connections == null || name == null)
+		{
+			logger.error(logHeader + "An input was given as null!");
+			return false;
+		}
+		
+		if(roles.isEmpty() || connections.isEmpty() || name.isEmpty())
+		{
+			logger.error(logHeader + "An input was empty!");
+			return false;
+		}
+		
 		if(roles.contains(NodeRole.B))
 		{
 			if(roles.size() > 1)
 			{
+				logger.error(logHeader + "Multiple roles given when a broker only has one!");
 				return false;
 			}
 			else
@@ -117,9 +131,10 @@ public class LogicalTopology {
 	}
 	
 	/**
-	 * Looks at all of the nodes in the Broker ("B") group and their connections.
-	 * If one node lists another in its connections, but it is not reciprocated
-	 * this function makes a note of it.
+	 * Looks at all of the brokers and their connections.
+	 * If broker A lists broker B in its connections, but it is not reciprocated, this function makes a note of it.
+	 * If broker A lists broker C in its connections, but broker C doesn't exist in the broker space, 
+	 * this function returns an error.
 	 * 
 	 * @returns true if everything is mutually connected; false if not; null if there is an error
 	 */
@@ -153,12 +168,11 @@ public class LogicalTopology {
 	}
 	
 	/**
-	 * Forces all non-mutually connected nodes to become mutually connected
-	 * If none exist, it throws an exception
-	 * (Expects confirmBrokerMutualConnectivity() to be run first)
-	 * Once the fix is complete - the non-mutually connected list is lost
+	 * Forces all non-mutually connected nodes to become mutually connected.
+	 * Once it does so, it destroys the non-mutually connected list.
+	 * If no mutually connected nodes exist, it returns false. 
 	 * 
-	 * @return false on failure; true otherwise
+	 * @return false if there all nodes are mutually connected; true otherwise
 	 */
 	public boolean forceMutualConnectivity()
 	{
@@ -178,14 +192,14 @@ public class LogicalTopology {
 		});
 		
 		problemNodes.clear();
-		logger.info("All nodes mutually connected.");
+		logger.info(logHeader + "All nodes mutually connected.");
 		return true;
 	}
 	
 	/**
-	 * Sees if the Logical Topology is connected
-	 * It does so by first seeing if all the brokers are connected to each other
-	 * and then by seeing if the other roles are attached to existing brokers
+	 * Sees if the Logical Topology is connected.
+	 * First, by seeing if all the brokers are connected.
+	 * Second, by seeing if the clients connect to existing brokers.
 	 * 
 	 * @return true if yes; false if no
 	 */
@@ -197,26 +211,26 @@ public class LogicalTopology {
 		
 		brokers.forEach((name, connections)->visitedBrokerNodes.put(name, VisitedState.NOTVISITED));
 		
-		logger.info("Topology: Beginning to check broker connectivity.");
+		logger.info(logHeader + "Beginning to check broker connectivity.");
 		boolean attemptFinishedProperly = attemptToReachAllBrokerNodes(visitedBrokerNodes);
 		
         if(!attemptFinishedProperly)
 		{
-        	logger.error("Topology: Found a node missing connections.");
+        	logger.error(logHeader + "Found a node missing connections!");
         	topoConnected = false;
 		}
         else
         {
         	if(visitedBrokerNodes.containsValue(VisitedState.NOTVISITED))
         	{
-        		logger.error("Topology: Not all nodes were reached.");
+        		logger.error(logHeader + "Not all nodes were reached!");
             	topoConnected = false;
         	}
         	else
         	{
-        		logger.info("Topology: All brokers are connected.");
+        		logger.info(logHeader + "All brokers are connected.");
         		
-        		logger.debug("Topology: Looking at client connections...");
+        		logger.debug(logHeader + "Looking at client connections...");
         		try
         		{
         			clients.forEach((clientI, clientIsNotes) -> {
@@ -228,18 +242,18 @@ public class LogicalTopology {
         					if(!brokers.containsKey(brokerJ))
         					{
         						throw new IllegalArgumentException("Broker " + brokerJ
-    																	+ " doesn't exist for client " + clientI + ".");
+    																	+ " doesn't exist for client " + clientI + "!");
         					}
         				}
             		});
         		}
         		catch (IllegalArgumentException e)
         		{
-        			logger.error("Topology: Not all brokers exist for some clients", e);
+        			logger.error("Topology: Not all brokers exist for some clients: ", e);
         			topoConnected = false;
         		}
         		
-        		logger.info("Topology: All clients are connected to existing brokers");
+        		logger.info("Topology: All clients are connected to existing brokers.");
         	}
         }
 		return topoConnected;
@@ -265,7 +279,7 @@ public class LogicalTopology {
 		Queue<String> queue = new LinkedList<String>();
 		
 		String startingNode = randomlySelectBrokerNode();
-		logger.debug("Starting at node: " + startingNode);		
+		logger.debug(logHeader + "Starting at node: " + startingNode +".");		
 		brokerVisitedList.put(startingNode, VisitedState.VISITED);
 		queue.add(startingNode);
 		
