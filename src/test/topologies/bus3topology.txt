@@ -1,11 +1,11 @@
 #Brokers
-B0 B B1
-B1 B B2
-B2 B B3
-B3 B B2
+B0	B	B1
+B1	B	B2
+B2	B	B3
+B3	B	B2
 
 #Clients
-P0 P B0
-S0 S B1
-S1 S B2
-S2 S B3
+P0	P	B0
+S0	S	B1
+S1	S	B2
+S2	S	B3

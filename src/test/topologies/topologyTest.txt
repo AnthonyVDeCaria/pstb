@@ -1,12 +1,12 @@
 #Brokers
-B0 B B1,B2,B3
-B1 B B0,B2
-B2 B B0,B4
-B3 B B0
-B4 B B0
+B0	B	B1,B2,B3
+B1	B	B0,B2
+B2	B	B0,B4
+B3	B	B0
+B4	B	B0
 
 #Clients
-Trip A,P B0
+Trip	A,P	B0
 #Poop
-Trip S,B,P B3
-Shut S,C,P B5
+Trip	S,B,P	B3
+Shut	S,C,P	B5

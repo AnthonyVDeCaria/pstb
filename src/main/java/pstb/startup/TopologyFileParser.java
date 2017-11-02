@@ -72,7 +72,7 @@ public class TopologyFileParser {
 				linesRead++;
 				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
-					String[] splitLine = line.split(PSTBUtil.SPACE);
+					String[] splitLine = line.split("	");
 					String name = splitLine[LOC_NAME];
 					String roles = splitLine[LOC_ROLE];
 					String connections = splitLine[LOC_CONN];
