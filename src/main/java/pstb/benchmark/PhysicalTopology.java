@@ -3,10 +3,18 @@ package pstb.benchmark;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
 import pstb.util.PSTBUtil;
+import pstb.util.ClientDiary;
 import pstb.util.ClientNotes;
 import pstb.util.Workload;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -30,12 +38,14 @@ public class PhysicalTopology {
 	
 	private int CLIENT_MEMORY = 256;
 	private int BROKER_MEMORY = 256;
-	private String CLIENT_INT = "java -Xmx" + CLIENT_MEMORY + "M -Xverify:none "
-								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
-								+ "pstb.benchmark.PhysicalClient ";
-	private String BROKER_INT = "java -Xmx" + BROKER_MEMORY + "M "
-								+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true "
-								+ "pstb.benchmark.PhysicalBroker ";
+	private final String DISTRIBUTED_INIT_P1 = "ssh -t -t ";
+	private final String DISTRIBUTED_INIT_P2 = "<<-EOF\n" + "cd ~/PSTB"; 
+	private final String CLIENT_INT = "java -Xmx" + CLIENT_MEMORY + "M -Xverify:none "
+										+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
+										+ "pstb.benchmark.PhysicalClient ";
+	private final String BROKER_INT = "java -Xmx" + BROKER_MEMORY + "M "
+										+ "-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar -Djava.awt.headless=true "
+										+ "pstb.benchmark.PhysicalBroker ";
 	
 	private LogicalTopology startingTopology;
 	
@@ -49,10 +59,18 @@ public class PhysicalTopology {
 	private final Integer LOCAL_START_PORT = 1100;
 	private Integer localPortNum = LOCAL_START_PORT;
 	private final String LOCAL = "localhost";
-	private HashMap<String, ArrayList<Integer>> hostsAndTheirPorts;
-	private ArrayList<String> freeHosts;
-	private int freeHostI = -1;
-	private HashMap<String, Integer> jForHost;
+	private HashMap<String, ArrayList<Integer>> brokerPorts;
+	private ArrayList<String> freeBrokerHosts;
+	private int freeBrokerHostI = -1;
+	private HashMap<String, Integer> jForBrokerPorts;
+	
+	private ArrayList<String> clientMachines;
+	private int clientMachineI = -1;
+	private HashMap<String, String> nodeLocation;
+	private HashMap<String, Integer> nodeObjectPort;
+	private HashMap<String, Socket> nodeSocket;
+	private HashMap<String, Integer> currentObjectPort;
+	private final Integer STARTING_OBJECT_PORT = 100000;
 	
 	private final String logHeader = "Physical Topology: ";
 	private Logger logger = null;
@@ -80,6 +98,16 @@ public class PhysicalTopology {
 		protocol = null;
 		distributed = null;
 		topologyFilePath = new String();
+		
+		brokerPorts = new HashMap<String, ArrayList<Integer>>();
+		freeBrokerHosts = new ArrayList<String>();
+		jForBrokerPorts = new HashMap<String, Integer>();
+		
+		clientMachines = new ArrayList<String>();
+		nodeLocation = new HashMap<String, String>();
+		nodeObjectPort = new HashMap<String, Integer>();
+		currentObjectPort = new HashMap<String, Integer>();
+		nodeSocket = new HashMap<String, Socket>();
 		
 		logger = log;
 	}
@@ -172,11 +200,11 @@ public class PhysicalTopology {
 	 * @param givenDistributed - the distributed flag
 	 * @param givenTopo - the LogicalTopology that we must make physical
 	 * @param givenProtocol - the messaging protocol
-	 * @param disHostsAndPorts 
+	 * @param disFileHostsAndPorts 
 	 * @return false if an error occurs, true otherwise
 	 */
 	public boolean developPhysicalTopology(boolean givenDistributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol,
-												String givenTFP, HashMap<String, ArrayList<Integer>> disHostsAndPorts)
+												String givenTFP, HashMap<String, ArrayList<Integer>> disFileHostsAndPorts)
 	{
 		startingTopology = givenTopo;
 		
@@ -184,23 +212,26 @@ public class PhysicalTopology {
 		distributed = givenDistributed;
 		topologyFilePath = PSTBUtil.cleanTPF(givenTFP);
 		
-		hostsAndTheirPorts = disHostsAndPorts;
-		freeHosts = new ArrayList<String>(disHostsAndPorts.keySet());
-		jForHost = new HashMap<String, Integer>();
-		freeHosts.forEach((host)->{
-			jForHost.put(host, 0);
+		brokerPorts = disFileHostsAndPorts;
+		freeBrokerHosts = new ArrayList<String>(disFileHostsAndPorts.keySet());
+		freeBrokerHosts.forEach((host)->{
+			jForBrokerPorts.put(host, 0);
+			
+			currentObjectPort.put(host, STARTING_OBJECT_PORT);
 		});
 		
-		boolean checkGB = developBrokers(givenDistributed);
+		clientMachines = new ArrayList<String>(disFileHostsAndPorts.keySet());
+		
+		boolean checkGB = developBrokers();
 		if(!checkGB)
 		{
 			logger.error(logHeader + "Error generating physical Brokers");
 			return false;
 		}
 		
-//		brokerObjects.forEach((brokerName, brokerObject)->{
-//			System.out.println(brokerName + " " + brokerObject.getBrokerURI());
-//		});
+		brokerObjects.forEach((brokerName, brokerObject)->{
+			System.out.println(brokerName + " " + brokerObject.getBrokerURI());
+		});
 		
 		boolean checkGC = developClients();
 		if(!checkGC)
@@ -216,10 +247,9 @@ public class PhysicalTopology {
 	/**
 	 * "Develops" (creates) the Broker Objects
 	 * 
-	 * @param givenDis - the distributed flag
 	 * @return false if there's an error, true otherwise
 	 */
-	private boolean developBrokers(boolean givenDis)
+	private boolean developBrokers()
 	{
 		logger.debug(logHeader + "Attempting to develop broker objects");
 		
@@ -230,12 +260,19 @@ public class PhysicalTopology {
 		for( ; iteratorBL.hasNext() ; )
 		{
 			String brokerI = iteratorBL.next();
-			String hostName = getHost(givenDis);
-			Integer port = getPort(hostName);
+			String hostName = getBrokerHost();
+			Integer port = getBrokerPort(hostName);
 			
 			PSBrokerPADRES actBrokerI = new PSBrokerPADRES(hostName, port, protocol, brokerI);
 			
 			brokerObjects.put(brokerI, actBrokerI);
+			
+			// Now that the new object is created, let's add it to the host map
+			boolean handleCheck = handleNodeLocationAndObjectPort(hostName, brokerI);
+			if(!handleCheck)
+			{
+				return false;
+			}
 		}
 		
 		// Now loop through the brokerObject, accessing the brokerList to find a given broker's connections
@@ -254,7 +291,8 @@ public class PhysicalTopology {
 				if(actBrokerJ == null)
 				{
 					logger.error(logHeader + "couldn't find " + brokerJName + " in genBrokers that " + brokerIName 
-									+ " is connected to.");
+									+ " is connected to!");
+					nodeLocation.clear();
 					return false;
 				}
 				neededURIs.add(actBrokerJ.getBrokerURI());
@@ -270,27 +308,27 @@ public class PhysicalTopology {
 		logger.debug(logHeader + "All broker objects developed");
 		return true;
 	}
-	
+
 	/**
 	 * Gets a host for broker development
 	 * 
 	 * @param distributed
 	 * @return the host's name
 	 */
-	private String getHost(boolean distributed)
+	private String getBrokerHost()
 	{
 		String hostName = "localhost";
 		
 		if(distributed)
 		{
-			freeHostI++;
+			freeBrokerHostI++;
 			
-			if(freeHostI >= freeHosts.size())
+			if(freeBrokerHostI >= freeBrokerHosts.size())
 			{
-				freeHostI = 0;
+				freeBrokerHostI = 0;
 			}
 			
-			hostName = freeHosts.get(freeHostI);
+			hostName = freeBrokerHosts.get(freeBrokerHostI);
 		}
 		
 		return hostName;
@@ -302,7 +340,7 @@ public class PhysicalTopology {
 	 * @param givenHost - the 
 	 * @return the port number 
 	 */
-	private Integer getPort(String givenHost)
+	private Integer getBrokerPort(String givenHost)
 	{
 		Integer retVal = localPortNum;
 		
@@ -312,19 +350,19 @@ public class PhysicalTopology {
 		}
 		else
 		{
-			Integer j = jForHost.get(givenHost);
-			ArrayList<Integer> portsForGivenHost = hostsAndTheirPorts.get(givenHost);
+			Integer j = jForBrokerPorts.get(givenHost);
+			ArrayList<Integer> portsForGivenHost = brokerPorts.get(givenHost);
 			retVal = portsForGivenHost.get(j);
 			
 			j++;
 			if(j >= portsForGivenHost.size())
 			{
-				jForHost.remove(givenHost);
-				freeHosts.remove(givenHost);
+				jForBrokerPorts.remove(givenHost);
+				freeBrokerHosts.remove(givenHost);
 			}
 			else
 			{
-				jForHost.put(givenHost, j);
+				jForBrokerPorts.put(givenHost, j);
 			}
 		}
 		
@@ -371,8 +409,7 @@ public class PhysicalTopology {
 				
 				if(!doesBrokerJExist)
 				{
-					logger.error(logHeader + "Client " + clientIName + " references a broker " 
-									+ brokerJName + " that doesn't exist");
+					logger.error(logHeader + "Client " + clientIName + " references a broker " + brokerJName + " that doesn't exist");
 					return false;
 				}
 				
@@ -388,6 +425,13 @@ public class PhysicalTopology {
 			clientI.setTopologyFilePath(topologyFilePath);
 							
 			clientObjects.put(clientIName, clientI);
+			
+			String clientIMachine = getClientMachine();
+			boolean clientHandleCheck = handleNodeLocationAndObjectPort(clientIMachine, clientIName);
+			if(!clientHandleCheck)
+			{
+				return false;
+			}
 		}
 		
 		logger.debug(logHeader + "All clients developed");
@@ -466,6 +510,67 @@ public class PhysicalTopology {
 		return new ArrayList<String>(clientObjects.keySet());
 	}
 	
+	private String getClientMachine()
+	{
+		String machineName = "localhost";
+		
+		if(distributed)
+		{
+			clientMachineI++;
+			
+			if(clientMachineI >= clientMachines.size())
+			{
+				clientMachineI = 0;
+			}
+			
+			machineName = clientMachines.get(clientMachineI);
+		}
+		
+		return machineName;
+	}
+	
+	private boolean handleNodeLocationAndObjectPort(String hostName, String objectName)
+	{
+		nodeLocation.put(objectName, hostName);
+		
+		Integer objectSocketPort = getObjectPort(hostName);
+		if(distributed && objectSocketPort == null)
+		{
+			logger.error(logHeader + "Error storing node " + objectName + "!");
+			nodeLocation.clear();
+			return false;
+		}
+		else
+		{
+			nodeObjectPort.put(objectName, objectSocketPort);
+		}
+		
+		return true;
+	}
+	
+	private Integer getObjectPort(String hostName) 
+	{
+		Integer retVal = null;
+		Integer newVal = null;
+		
+		if(!hostName.equals(LOCAL))
+		{
+			retVal = currentObjectPort.get(hostName);
+			
+			if(retVal != null)
+			{
+				newVal = retVal++;
+				currentObjectPort.put(hostName, newVal);
+			}
+			else
+			{
+				logger.error(logHeader + "Couldn't find host " + hostName + " in port matrix!");
+			}
+		}
+		
+		return retVal;
+	}
+	
 	/**
 	 * Generates processes using the Broker and Client objects 
 	 * created in developPhysicalTopology()
@@ -502,16 +607,85 @@ public class PhysicalTopology {
 			String brokerIName = iteratorBO.next();
 			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			
-			String brokerCommand = BROKER_INT + " -n " + brokerIName + " -r " + runNumber.toString();
+			String brokerCommand = new String();
 			
-			boolean objectFileCheck = PSTBUtil.createObjectFile(brokerI, brokerIName, ".bro", logger, logHeader);
+			boolean objectFileSentCheck = false;
 			
-			if(!objectFileCheck)
+			if(!distributed)
+			{
+				FileOutputStream fileOut = null;
+				try 
+				{
+					fileOut = new FileOutputStream("/tmp/" + brokerIName + ".bro");
+				} 
+				catch (FileNotFoundException e) 
+				{
+					logger.error(logHeader + "Couldn't create output file for broker object " + brokerIName + ": ", e);
+					return false;
+				}
+				
+				objectFileSentCheck = PSTBUtil.sendObject(brokerI, brokerIName, fileOut, logger, logHeader);
+				try 
+				{
+					fileOut.close();
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "error closing FileOutputStream: ", e);
+					return false;
+				}
+				
+				brokerCommand = BROKER_INT + " -n " + brokerIName + " -r " + runNumber.toString() + " -p " + "null";
+			}
+			else
+			{
+				String host = nodeLocation.get(brokerIName);
+				Integer port = nodeObjectPort.get(brokerIName);
+				Socket socketConnection = null;
+				
+				try 
+				{
+					socketConnection = new Socket(host, port);
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "Cannot create socket for broker " + brokerIName + ": ", e);
+					return false;
+				}
+				nodeSocket.put(brokerIName, socketConnection);
+				
+				OutputStream socketOut = null;
+				try 
+				{
+					socketOut = socketConnection.getOutputStream();
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "Couldn't create socket for broker object " + brokerIName + ": ", e);
+					return false;
+				}
+				
+				objectFileSentCheck = PSTBUtil.sendObject(brokerI, brokerIName, socketOut, logger, logHeader);
+				try 
+				{
+					socketOut.close();
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "error closing socket OutputStream: ", e);
+					return false;
+				}
+				
+				brokerCommand = DISTRIBUTED_INIT_P1 + host + DISTRIBUTED_INIT_P2 + BROKER_INT + " -n " + brokerIName 
+									+ " -r " + runNumber.toString() + " -p " + port.toString();
+			}
+			
+			if(!objectFileSentCheck)
 			{
 				return false;
 			}
 			
-			ProcessBuilder actualBrokerI = new ProcessBuilder(brokerCommand.split("\\s+")).inheritIO();
+			ProcessBuilder actualBrokerI = new ProcessBuilder(brokerCommand.split("\\s+"));
 			brokerPBs.add(actualBrokerI);
 		}
 		
@@ -521,16 +695,84 @@ public class PhysicalTopology {
 			String clientIName = iteratorCO.next();
 			PSClientPADRES clientI = clientObjects.get(clientIName);
 			
-			String clientCommand = CLIENT_INT + " -n " + clientIName + " -r " + runNumber.toString();
+			String clientCommand = new String();
 			
-			boolean objectFileCheck = PSTBUtil.createObjectFile(clientI, clientIName, ".cli", logger, logHeader);
+			boolean objectFileSentCheck = false;
 			
-			if(!objectFileCheck)
+			if(!distributed)
+			{
+				FileOutputStream fileOut = null;
+				try
+				{
+					fileOut = new FileOutputStream("/tmp/" + clientIName + ".cli");
+				}
+				catch (FileNotFoundException e) 
+				{
+					logger.error(logHeader + "Couldn't create output file for client object " + clientIName + ": ", e);
+					return false;
+				}
+				
+				objectFileSentCheck = PSTBUtil.sendObject(clientI, clientIName, fileOut, logger, logHeader);
+				try 
+				{
+					fileOut.close();
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "error closing FileOutputStream: ", e);
+					return false;
+				}
+				clientCommand = CLIENT_INT + " -n " + clientIName + " -r " + runNumber.toString() + " -p " + "null";
+			}
+			else
+			{
+				String host = nodeLocation.get(clientIName);
+				Integer port = nodeObjectPort.get(clientIName);
+				Socket socketConnection = null;
+				
+				try 
+				{
+					socketConnection = new Socket(host, port);
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "Cannot create socket for broker " + clientIName + ": ", e);
+					return false;
+				}
+				nodeSocket.put(clientIName, socketConnection);
+				
+				OutputStream socketOut = null;
+				try 
+				{
+					socketOut = socketConnection.getOutputStream();
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "Couldn't create socket for client object " + clientIName + ": ", e);
+					return false;
+				}
+				
+				objectFileSentCheck = PSTBUtil.sendObject(clientI, clientIName, socketOut, logger, logHeader);
+				try 
+				{
+					socketOut.close();
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "error closing socket OutputStream: ", e);
+					return false;
+				}
+				
+				clientCommand = DISTRIBUTED_INIT_P1 + host + DISTRIBUTED_INIT_P2 + CLIENT_INT + " -n " + clientIName 
+									+ " -r " + runNumber.toString() + " -p " + port.toString();
+			}
+			
+			if(!objectFileSentCheck)
 			{
 				return false;
 			}
 			
-			ProcessBuilder actualClientI = new ProcessBuilder(clientCommand.split("\\s+")).inheritIO();
+			ProcessBuilder actualClientI = new ProcessBuilder(clientCommand.split("\\s+"));
 			clientPBs.add(actualClientI);
 		}
 		
@@ -720,6 +962,113 @@ public class PhysicalTopology {
 		{
 			return ActiveProcessRetVal.StillRunning;
 		}
+	}
+	
+	/**
+	 * Gets a certain serialized diary object 
+	 * and adds it to the "bookshelf" 
+	 * - a collection of ClientDiaries
+	 * 
+	 * @param diaryName - the name associated the diary object
+	 * @see PSClientPADRES
+	 * @return an ArrayList of diaries if everything works properly; null otherwise
+	 */
+	public HashMap<String, ClientDiary> collectDiaries()
+	{		
+		HashMap<String, ClientDiary> retVal = new HashMap<String, ClientDiary>();
+		InputStream in = null;
+		
+		Iterator<String> clients = clientObjects.keySet().iterator(); 
+		
+		for( ; clients.hasNext() ; )
+		{
+			String clientI = clients.next();
+			String clientIDiaryName = clientObjects.get(clientI).generateDiaryName();
+			
+			if(!distributed)
+			{
+				try 
+				{
+					in = new FileInputStream("/tmp/" + clientIDiaryName + ".dia");
+				} 
+				catch (FileNotFoundException e) 
+				{
+					logger.error(logHeader + "Error creating new file input stream to read diary: ", e);
+					try 
+					{
+						in.close();
+					} 
+					catch (IOException e1) 
+					{
+						logger.error(logHeader + "Error closing FileInputStream: ", e1);
+					}
+					return null;
+				}
+			}
+			else
+			{
+				Socket clientISocket = nodeSocket.get(clientI);
+				try 
+				{
+					in = clientISocket.getInputStream();
+				} 
+				catch (IOException e) 
+				{
+					logger.error(logHeader + "Error creating new socket input stream to read diary: ", e);
+					try 
+					{
+						in.close();
+					} 
+					catch (IOException e1) 
+					{
+						logger.error(logHeader + "Error closing socket InputStream: ", e1);
+					}
+					return null;
+				}
+			}
+			
+			ClientDiary tiedDiary = readDiaryObject(in);
+			if(tiedDiary != null)
+			{
+				retVal.put(clientIDiaryName, tiedDiary);
+			}
+			else
+			{
+				logger.error(logHeader + "Error getting diary " + clientIDiaryName + "!");
+				return null;
+			}
+		}
+		
+		return retVal;
+	}
+	
+	/**
+	 * Deserializes a ClientDiary object
+	 * 
+	 * @param diaryName - the name of this diary
+	 * @return null on failure; the requested diary otherwise
+	 */
+	public ClientDiary readDiaryObject(InputStream givenIS)
+	{
+		ClientDiary diaryI = null;
+		try
+		{
+			ObjectInputStream oISIn = new ObjectInputStream(givenIS);
+			diaryI = (ClientDiary) oISIn.readObject();
+			oISIn.close();
+		}
+		catch (IOException e)
+		{
+			logger.error(logHeader + "error accessing ObjectInputStream ", e);
+			return null;
+		}
+		catch(ClassNotFoundException e)
+		{
+			logger.error(logHeader + "can't find class ", e);
+			return null;
+		}
+		
+		return diaryI;
 	}
 	
 	/**

@@ -20,7 +20,7 @@ import pstb.startup.DistributedFileParser;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
 import pstb.startup.WorkloadFileParser.WorkloadFileType;
-import pstb.util.DistributedFlagValue;
+import pstb.util.ClientDiary;
 import pstb.util.DistributedState;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
@@ -127,6 +127,7 @@ public class PSTB {
 		boolean allToposOk = true;
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesStrings();
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
+		int numBrokersLargestTopo = 0;
 		int numNodesLargestTopo = 0;
 		
 		logger.info("Starting to parse Topology Files...");
@@ -140,7 +141,7 @@ public class PSTB {
 			if(!parseCheck)
 			{
 				allToposOk = false;
-				numNodesLargestTopo = 0;
+				numBrokersLargestTopo = 0;
 				logger.error("Parse Failed for file " + topoI + "!");
 			}
 			else
@@ -184,7 +185,12 @@ public class PSTB {
 				}
 				else
 				{
-					int numNodesTopoI = network.size();
+					int numBrokersTopoI = network.numBrokers();
+					if(numBrokersTopoI > numBrokersLargestTopo)
+					{
+						numBrokersLargestTopo = numBrokersTopoI;
+					}
+					int numNodesTopoI = network.networkSize();
 					if(numNodesTopoI > numNodesLargestTopo)
 					{
 						numNodesLargestTopo = numNodesTopoI;
@@ -200,6 +206,7 @@ public class PSTB {
 		{
 			logger.error("Error with topology files!");
 			allLTs.clear();
+			numBrokersLargestTopo = 0;
 			numNodesLargestTopo = 0;
 			endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
 		}
@@ -214,7 +221,7 @@ public class PSTB {
 			
 			DistributedFileParser dfp = new DistributedFileParser(benchmarkRules.getDistributedFileString());
 			
-			boolean dfpCheck = dfp.parse(numNodesLargestTopo);
+			boolean dfpCheck = dfp.parse(numBrokersLargestTopo);
 			if(!dfpCheck)
 			{
 				logger.error("Error with distributed file!");
@@ -222,6 +229,11 @@ public class PSTB {
 			}
 			
 			disHostsAndPorts = dfp.getHostsAndPorts();
+			
+			if(numNodesLargestTopo > disHostsAndPorts.size())
+			{
+				logger.warn("Not enough hosts given for each node - there will be multiple nodes on a single machine.");
+			}
 		}
 		
 		// Benchmark
@@ -255,31 +267,31 @@ public class PSTB {
 																	topologyI, disHostsAndPorts);
 				}
 				
-				if(!checkDisPT || !checkLocalPT)
-				{
-					logger.error("Error creating physical topology!");
-					endProgram(PSTBError.ERROR_TOPO_PHY, userInput);
-				}
-				
-				logger.info("Beginning experiment...");
-				boolean successfulExperiment = true;
-				
-				if(localPT.doObjectsExist())
-				{
-					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(), 
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
-				}
-				else
-				{
-					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(), 
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
-				}
-				
-				if(!successfulExperiment)
-				{
-					logger.error("Error conducting the experiment!");
-					endProgram(PSTBError.ERROR_EXPERIMENT, userInput);
-				}
+//				if(!checkDisPT || !checkLocalPT)
+//				{
+//					logger.error("Error creating physical topology!");
+//					endProgram(PSTBError.ERROR_TOPO_PHY, userInput);
+//				}
+//				
+//				logger.info("Beginning experiment...");
+//				boolean successfulExperiment = true;
+//				
+//				if(localPT.doObjectsExist())
+//				{
+//					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(), 
+//															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
+//				}
+//				else
+//				{
+//					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(), 
+//															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
+//				}
+//				
+//				if(!successfulExperiment)
+//				{
+//					logger.error("Error conducting the experiment!");
+//					endProgram(PSTBError.ERROR_EXPERIMENT, userInput);
+//				}
 			}
 		}
 		
@@ -518,34 +530,17 @@ public class PSTB {
 				logger.info("Run " + runI + " complete.");
 				
 				logger.debug("Collecting diaries...");
-				ArrayList<String> clientNames = givenPT.getAllClientNames();
-				NetworkProtocol proto = givenPT.getProtocol();
-				String disFlag = null;
-				if(givenPTDis.booleanValue() == true)
+				HashMap<String, ClientDiary> temp = givenPT.collectDiaries();
+				if(temp == null)
 				{
-					disFlag = DistributedFlagValue.D.toString();
+					logger.error("Error Collecting diaries!");
+					return false;
 				}
 				else
 				{
-					disFlag = DistributedFlagValue.L.toString();
-				}
-				
-				boolean givenDiaryCollected = true;
-				for(int i = 0; i < clientNames.size() ; i++)
-				{
-					String diaryName = givenPT.getTopologyFilePath() + "-"
-										+ disFlag + "-"
-										+ proto.toString() + "-"
-										+ iTHRunLengthMilli + "-"
-										+ runI + "-"
-										+ clientNames.get(i);
-					givenDiaryCollected = givenAnalyzer.collectDiaryAndAddToBookshelf(diaryName);
-					if(!givenDiaryCollected)
-					{
-						logger.error("Error collecting diary " + diaryName + "!");
-						return false;
-					}
-					logger.trace("Collected diary " + diaryName + ".");
+					temp.forEach((diaryName, diary)->{
+						givenAnalyzer.addDiaryToBookshelf(diaryName, diary);
+					});
 				}
 				
 				logger.info("All diaries collected.");

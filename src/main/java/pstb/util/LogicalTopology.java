@@ -333,8 +333,28 @@ public class LogicalTopology {
 	 * 
 	 * @return the size of the network
 	 */
-	public int size() 
+	public int networkSize() 
 	{
 		return brokers.size() + clients.size();
+	}
+	
+	/**
+	 * Returns the number of brokers there are in the network
+	 * 
+	 * @return the number of brokers
+	 */
+	public int numBrokers()
+	{
+		return brokers.size();
+	}
+	
+	/**
+	 * Returns the number of clients there are in the network
+	 * 
+	 * @return the number of clients
+	 */
+	public int numClients()
+	{
+		return clients.size();
 	}
 }

@@ -1,9 +1,6 @@
 package pstb.analysis;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -75,66 +72,6 @@ public class Analyzer {
 		diariesFolderString = analysisFolderString + currFolderString + diariesStub;
 		histogramFolderString = analyzedFolderString + histogramStub;
 		avgDelayFolderString = analyzedFolderString + avgDelayStub; 
-	}
-	
-	/**
-	 * Gets a certain serialized diary object 
-	 * and adds it to the "bookshelf" 
-	 * - a collection of ClientDiaries
-	 * 
-	 * @param diaryName - the name associated the diary object
-	 * @see PSClientPADRES
-	 * @return true if the book has been added; false otherwise
-	 */
-	public boolean collectDiaryAndAddToBookshelf (String diaryName)
-	{
-		ClientDiary tiedDiary = readDiaryObject(diaryName);
-		
-		if(tiedDiary == null)
-		{
-			return false;
-		}
-		else
-		{
-			addDiaryToBookshelf(diaryName, tiedDiary);
-			return true;
-		}
-	}
-	
-	/**
-	 * Deserializes a ClientDiary object
-	 * 
-	 * @param diaryName - the name of this diary
-	 * @return null on failure; the requested diary otherwise
-	 */
-	public ClientDiary readDiaryObject(String diaryName)
-	{
-		ClientDiary diaryI = null;
-		try
-		{
-			FileInputStream fileIn = new FileInputStream("/tmp/" + diaryName + ".dia");
-			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
-			diaryI = (ClientDiary) oISIn.readObject();
-			oISIn.close();
-			fileIn.close();
-		} 
-		catch (FileNotFoundException e) 
-		{
-			log.error(logHeader + "couldn't find serialized diary object ", e);
-			return null;
-		}
-		catch (IOException e)
-		{
-			log.error(logHeader + "error accessing ObjectInputStream ", e);
-			return null;
-		}
-		catch(ClassNotFoundException e)
-		{
-			log.error(logHeader + "can't find class ", e);
-			return null;
-		}
-		
-		return diaryI;
 	}
 	
 	/**

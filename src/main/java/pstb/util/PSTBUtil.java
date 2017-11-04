@@ -5,10 +5,8 @@
  */
 package pstb.util;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -118,32 +116,20 @@ public class PSTBUtil {
 	 * 
 	 * @param givenObject - the Object to be stored in a file
 	 * @param givenObjectName - the name of said Object
+	 * @param out - the OutputStream to write the object to
+	 * @param logger - the Logger to record errors
+	 * @param logHeader - the header to put when logging
 	 * @return false on error; true if successful
 	 */
-	public static boolean createObjectFile(Object givenObject, String givenObjectName, String fileExtension, 
-												Logger logger, String logHeader)
+	public static boolean sendObject(Object givenObject, String givenObjectName, OutputStream out, Logger logger, String logHeader)
 	{
-		boolean check = checkFileExtension(fileExtension, logger, logHeader);
-		
-		if(!check)
-		{
-			return false;
-		}
-		
 		try 
 		{
-			FileOutputStream fileOut = new FileOutputStream("/tmp/" + givenObjectName + fileExtension);
-			ObjectOutputStream out = new ObjectOutputStream(fileOut);
-			out.writeObject(givenObject);
-			out.close();
-			fileOut.close();
-		} 
-		catch (FileNotFoundException e) 
-		{
-			logger.error(logHeader + "couldn't generate serialized client file ", e);
-			return false;
-		} 
-		catch (IOException e) 
+			ObjectOutputStream oOut = new ObjectOutputStream(out);
+			oOut.writeObject(givenObject);
+			oOut.close();
+		}
+		catch (Exception e) 
 		{
 			logger.error(logHeader + "error with ObjectOutputStream ", e);
 			return false;

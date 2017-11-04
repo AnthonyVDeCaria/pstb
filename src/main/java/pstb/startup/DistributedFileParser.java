@@ -65,38 +65,89 @@ public class DistributedFileParser {
 				{
 					String[] splitLine = line.split("	");
 					
-					if(splitLine.length == NUM_ELEMENTS)
+					if(splitLine.length != NUM_ELEMENTS)
+					{
+						isParseSuccessful = false;
+						log.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct!");
+					}
+					else
 					{
 						String[] splitPorts = splitLine[LOC_PORTS].split(PSTBUtil.COMMA);
-						int numPorts = splitPorts.length;
+						int numSegments = splitPorts.length;
 						
-						for(int i = 0 ; i < numPorts ; i++)
+						for(int i = 0 ; i < numSegments ; i++)
 						{
-							Integer portI = PSTBUtil.checkIfInteger(splitPorts[i], false, null);
-							if(portI != null)
+							String portIString = splitPorts[i];
+							
+							if(portIString.contains("-"))
 							{
-								lineIsPorts.add(portI);
+								String[] rangeI = portIString.split("-");
+								
+								if(rangeI.length != 2)
+								{
+									isParseSuccessful = false;
+									log.error(logHeader + "Error in Line " + linesRead + " - Port range " + portIString + " is improper!");
+								}
+								else
+								{
+									Integer lowerBound = PSTBUtil.checkIfInteger(rangeI[0], false, null);
+									Integer upperBound = PSTBUtil.checkIfInteger(rangeI[1], false, null);
+									
+									if(lowerBound == null || upperBound == null)
+									{
+										isParseSuccessful = false;
+										log.error(logHeader + "Error in Line " + linesRead + " - Port range " + portIString 
+													+ " contains a port that isn't an Integer!");
+									}
+									else
+									{
+										if(lowerBound > upperBound)
+										{
+											log.warn(logHeader + "Line " + linesRead + " has a port bound that goes from upper to lower, "
+														+ "instead of lower to upper.");
+											for(int j = upperBound.intValue() ; j < lowerBound.intValue(); j++)
+											{
+												lineIsPorts.add(j);
+												numPortsRead++;
+											}
+										}
+										else if(lowerBound == upperBound)
+										{
+											log.warn(logHeader + "Line " + linesRead + " has a port range that only contains one number.");
+											lineIsPorts.add(lowerBound);
+											numPortsRead++;
+										}
+										else
+										{
+											for(int j = lowerBound.intValue() ; j < upperBound.intValue(); j++)
+											{
+												lineIsPorts.add(j);
+												numPortsRead++;
+											}
+										}
+									}
+								}
 							}
 							else
 							{
-								isParseSuccessful = false;
-								hostsAndPorts.clear();
-								numPortsRead = 0;
-								log.error(logHeader + "Error in Line " + linesRead + " - Port " + i + " is not an Integer!");
+								Integer portI = PSTBUtil.checkIfInteger(portIString, false, null);
+								if(portI != null)
+								{
+									lineIsPorts.add(portI);
+									numPortsRead++;
+								}
+								else
+								{
+									isParseSuccessful = false;
+									log.error(logHeader + "Error in Line " + linesRead + " - Port " + i + " is not an Integer!");
+								}
 							}
 						}
 						
 						if(isParseSuccessful)
 						{
 							hostsAndPorts.put(splitLine[LOC_HOST], lineIsPorts);
-							numPortsRead += numPorts;
 						}
-						
-					}
-					else
-					{
-						isParseSuccessful = false;
-						log.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct!");
 					}
 				}
 			}
@@ -108,14 +159,15 @@ public class DistributedFileParser {
 			log.error(logHeader + "Cannot find file: ", e);
 		}
 		
-		if(isParseSuccessful)
+		if(!isParseSuccessful)
 		{
-			if(numPortsRead < numPortsNeeded)
-			{
-				log.error(logHeader + "Not enough ports were found!");
-				hostsAndPorts.clear();
-				isParseSuccessful = false;
-			}
+			hostsAndPorts.clear();
+		}
+		else if(numPortsRead < numPortsNeeded)
+		{
+			hostsAndPorts.clear();
+			log.error(logHeader + "Not enough ports were found!");
+			isParseSuccessful = false;
 		}
 		
 		return isParseSuccessful;
