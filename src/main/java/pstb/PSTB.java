@@ -214,6 +214,7 @@ public class PSTB {
 		logger.info("All topologies valid!!");
 		
 		HashMap<String, ArrayList<Integer>> disHostsAndPorts = new HashMap<String, ArrayList<Integer>>();
+		String username = new String();
 		
 		if(benchmarkRules.distributedRequested())
 		{
@@ -234,6 +235,26 @@ public class PSTB {
 			{
 				logger.warn("Not enough hosts given for each node - there will be multiple nodes on a single machine.");
 			}
+			
+			String distributeJarPrompt = "Please input the associated username:";
+			username = UI.getInputFromUser(distributeJarPrompt, userInput);
+			
+			distributeJarPrompt = "Would you like to distribute the PSTB jar to all nodes Y/n?";
+			boolean distributeJar = UI.getYNAnswerFromUser(distributeJarPrompt, userInput);
+			if(distributeJar)
+			{
+				String [] command = {"scripts/addPSTBToMachines.sh", username};
+				
+				Boolean addToNodesCheck = PSTBUtil.createANewProcess(command, logger, 
+																			"Couldn't launch process to give all nodes PSTB: ", 
+																			"Added PSTB to all nodes!", 
+																			"Failed adding PSTB to all nodes!");
+				
+				if(addToNodesCheck == null || !addToNodesCheck.booleanValue())
+				{
+					endProgram(PSTBError.ERROR_DISTRIBUTED, userInput);
+				}
+			}
 		}
 		
 		// Benchmark
@@ -251,8 +272,8 @@ public class PSTB {
 			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
 				DistributedState givenDS = askedDistributed.get(topologyI);
-				PhysicalTopology localPT = new PhysicalTopology(logger);
-				PhysicalTopology disPT = new PhysicalTopology(logger);
+				PhysicalTopology localPT = new PhysicalTopology(username);
+				PhysicalTopology disPT = new PhysicalTopology(username);
 				boolean checkLocalPT = true;
 				boolean checkDisPT = true;
 				
@@ -267,35 +288,33 @@ public class PSTB {
 																	topologyI, disHostsAndPorts);
 				}
 				
-//				if(!checkDisPT || !checkLocalPT)
-//				{
-//					logger.error("Error creating physical topology!");
-//					endProgram(PSTBError.ERROR_TOPO_PHY, userInput);
-//				}
-//				
-//				logger.info("Beginning experiment...");
-//				boolean successfulExperiment = true;
-//				
-//				if(localPT.doObjectsExist())
-//				{
-//					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(), 
-//															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
-//				}
-//				else
-//				{
-//					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(), 
-//															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
-//				}
-//				
-//				if(!successfulExperiment)
-//				{
-//					logger.error("Error conducting the experiment!");
-//					endProgram(PSTBError.ERROR_EXPERIMENT, userInput);
-//				}
+				if(!checkDisPT || !checkLocalPT)
+				{
+					logger.error("Error creating physical topology!");
+					endProgram(PSTBError.ERROR_TOPO_PHY, userInput);
+				}
+				
+				logger.info("Beginning experiment...");
+				boolean successfulExperiment = true;
+				
+				if(localPT.doObjectsExist())
+				{
+					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(), 
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
+				}
+				if (disPT.doObjectsExist())
+				{
+					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(), 
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
+				}
+				
+				if(!successfulExperiment)
+				{
+					logger.error("Error conducting the experiment!");
+					endProgram(PSTBError.ERROR_EXPERIMENT, userInput);
+				}
 			}
 		}
-		
-		endProgram(0, userInput);
 		
 		// Analysis
 		logger.info("Printing all diaries to file...");
@@ -411,7 +430,7 @@ public class PSTB {
 			Long iTHRunLengthNano = iTHRunLengthMilli * PSTBUtil.MILLISEC_TO_NANOSEC;
 			Long sleepLength = null;
 			
-			boolean functionCheck = givenPT.addRunLengthToClients(iTHRunLengthNano);
+			boolean functionCheck = givenPT.addRunLengthToAll(iTHRunLengthNano);
 			if(!functionCheck)
 			{
 				logger.error("Error setting Run Length!");
@@ -458,14 +477,14 @@ public class PSTB {
 					if(valueCAP.equals(ActiveProcessRetVal.Error))
 					{
 						logger.error("Run " + runI + " ran into an error!");
-						givenPT.killAllProcesses();
+						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 						return false;
 					}
 					// If all of our processes have finished, we have an error - brokers should never self-terminate
 					else if(valueCAP.equals(ActiveProcessRetVal.AllOff))
 					{
 						logger.error("Run " + runI + " has no more client or broker processes!");
-						givenPT.killAllProcesses();
+						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 						return false;
 					}
 					// If there are brokers with no clients, has the experiment already finished?
@@ -475,6 +494,7 @@ public class PSTB {
 						if((currentTime - startTime) < iTHRunLengthNano)
 						{
 							logger.error("Run " + runI + " finished early!");
+							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 							return false;
 						}
 						else
@@ -483,7 +503,7 @@ public class PSTB {
 						}
 					}
 					
-					// So that we don't continuously check, let's put this thread to sleep
+					// So that we don't continuously check, let's put this thread to sleep for a tenth of the run
 					try 
 					{				
 						logger.trace("Pausing main.");
@@ -492,7 +512,7 @@ public class PSTB {
 					catch (InterruptedException e) 
 					{
 						logger.error("Error sleeping in main:", e);
-						givenPT.killAllProcesses();
+						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 						return false;
 					}
 					
@@ -509,7 +529,7 @@ public class PSTB {
 					if(valueCAP.equals(ActiveProcessRetVal.Error))
 					{
 						logger.error("Error waiting for run to finish!");
-						givenPT.killAllProcesses();
+						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 						return false;
 					}
 					
@@ -521,12 +541,19 @@ public class PSTB {
 					catch (InterruptedException e) 
 					{
 						logger.error("Error sleeping in main", e);
-						givenPT.killAllProcesses();
+						givenPT.destroyAllProcesses();
 						return false;
 					}
 				}
 				
-				givenPT.killAllProcesses();
+				Boolean resetCheck = killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+				if(resetCheck == null || resetCheck.booleanValue() == false)
+				{
+					logger.error("Error reseting run " + runI + "!");
+					return false;
+				}
+				
+				givenPT.destroyAllProcesses();
 				logger.info("Run " + runI + " complete.");
 				
 				logger.debug("Collecting diaries...");
@@ -544,12 +571,32 @@ public class PSTB {
 				}
 				
 				logger.info("All diaries collected.");
+				
 				givenPT.clearProcessBuilders();
 			}
 		}
 		
 		logger.info("Experiment successful.");
 		return true;
+	}
+	
+	private static Boolean killAllProcesses(boolean distributed, String username)
+	{
+		ArrayList<String> command = new ArrayList<String>();
+		
+		if(distributed)
+		{
+			command.add("scripts/killAllNodes.sh");
+			command.add(username);
+		}
+		else
+		{
+			command.add("scripts/killAllNodesOnThisMachine.sh");
+		}
+		
+		String[] kill = command.toArray(new String[0]);
+		
+		return PSTBUtil.createANewProcess(kill, logger, "Couldn't run kill process :", "Kill process successfull.", "Kill process failed!");
 	}
 }
 

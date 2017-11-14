@@ -251,7 +251,7 @@ public class AnalysisFileParser {
 				{
 					if(new File(topologyI).isFile()) // This should be changed to seeing if it's in the BenchmarkConfig
 					{
-						listTopology.add(PSTBUtil.cleanTPF(splitTopologies[i]));
+						listTopology.add(PSTBUtil.cleanTFS(splitTopologies[i]));
 					}
 					else
 					{

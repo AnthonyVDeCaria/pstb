@@ -19,6 +19,7 @@ public class PSTBError {
 	public static final int ERROR_CNF_B = 14;
 	public static final int ERROR_CREATE_B = 15;
 	public static final int ERROR_START_B = 16;
+	public static final int ERROR_END_B = 17;
 	
 	public static final int ERROR_ARGS_C = 21;
 	public static final int ERROR_FILE_C = 22;

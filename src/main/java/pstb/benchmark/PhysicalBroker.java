@@ -3,17 +3,13 @@ package pstb.benchmark;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import pstb.util.PSTBError;
-import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -24,7 +20,6 @@ import pstb.util.PSTBUtil;
  * 
  * Algorithm
  * Search the args for the name flag
- * If it's not there
  * 	Exit with error
  * Else
  * 	Try to find associated broker object file
@@ -46,8 +41,8 @@ public class PhysicalBroker {
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException
 	{
 		String givenBrokerName = null;
-		String givenRunNumber = null;
-		String givenObjectPort = null;
+		String givenContext = null;
+		String masterMachineName = null;
 		
 		for (int i = 0; i < args.length; i++) 
 		{
@@ -55,111 +50,64 @@ public class PhysicalBroker {
 			{
 				givenBrokerName = args[i + 1];
 			}
-			if (args[i].equals("-r")) 
+			if (args[i].equals("-c")) 
 			{
-				givenRunNumber = args[i + 1];
+				givenContext = args[i + 1];
 			}
-			if (args[i].equals("-p")) 
+			if (args[i].equals("-m")) 
 			{
-				givenObjectPort = args[i + 1];
+				masterMachineName = args[i + 1];
 			}
 		}
 		
 		if(givenBrokerName == null)
 		{
-			logger.error(logHeader + "no name was given");
+			logger.error(logHeader + "no name was given!");
 			System.exit(PSTBError.ERROR_ARGS_B);
 		}
-		if(givenRunNumber == null)
+		if(givenContext == null)
 		{
-			logger.error(logHeader + "no Run Number was given");
+			logger.error(logHeader + "no context was given!");
 			System.exit(PSTBError.ERROR_ARGS_B);
 		}
-		if(givenObjectPort == null)
+		if(masterMachineName == null)
 		{
-			logger.error(logHeader + "no Object Port was given");
+			logger.error(logHeader + "no masterMachineName was given!");
 			System.exit(PSTBError.ERROR_ARGS_B);
 		}
 		
-		String context = givenRunNumber + "-" + givenBrokerName;
-		ThreadContext.put("broker", context);
-		Thread.currentThread().setName(context);
+		ThreadContext.put("broker", givenContext);
+		Thread.currentThread().setName(givenContext);
 		
-		boolean local = givenObjectPort.equals("null");
-		ServerSocket socketConnection = null;
-		Socket pipe = null;
-		
+		// Now let's get the Broker Object
 		PSBrokerPADRES givenBroker = null;
-		
-		InputStream in = null;
-		if(local)
+		try 
 		{
-			try
-			{
-				in = new FileInputStream("/tmp/" + givenBrokerName + ".cli");
-			}
-			catch (FileNotFoundException e) 
-			{
-				logger.error(logHeader + "Couldn't create input file for client object " + givenBrokerName + ": ", e);
-				System.exit(PSTBError.ERROR_FILE_B);
-			}
+			FileInputStream fileIn = new FileInputStream(givenBrokerName + ".bro");
+			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
+			givenBroker = (PSBrokerPADRES) oISIn.readObject();
+			oISIn.close();
+			fileIn.close();
 		}
-		else
+		catch (FileNotFoundException e) 
 		{
-			Integer objectPort = PSTBUtil.checkIfInteger(givenObjectPort, true, logger);
-			
-			if(objectPort == null)
-			{
-				logger.error(logHeader + "given Object port is not an Integer!");
-				System.exit(PSTBError.ERROR_ARGS_B);
-			}
-			else
-			{
-				try
-				{
-					socketConnection = new ServerSocket(objectPort);
-					pipe = socketConnection.accept();
-					
-					in = pipe.getInputStream();
-				}
-				catch (IOException e)
-				{
-					logger.error(logHeader + "error generating socket InputStream: ", e);
-					System.exit(PSTBError.ERROR_IO_B);
-				}
-			}
+			logger.error(logHeader + "Couldn't find " + givenBrokerName + "broker object file: ", e);
+			System.exit(PSTBError.ERROR_FILE_B);
 		}
-		
-		if(in == null)
+		catch (IOException e)
 		{
-			logger.error(logHeader + "Input error!");
-			System.exit(PSTBError.ERROR_IO_C);
+			logger.error(logHeader + "error accessing ObjectInputStream: ", e);
+			System.exit(PSTBError.ERROR_IO_B);
 		}
-		else
+		catch(ClassNotFoundException e)
 		{
-			try 
-			{
-				ObjectInputStream oISIn = new ObjectInputStream(in);
-				givenBroker = (PSBrokerPADRES) oISIn.readObject();
-				oISIn.close();
-				in.close();
-			}
-			catch (IOException e)
-			{
-				logger.error(logHeader + "error accessing ObjectInputStream ", e);
-				System.exit(PSTBError.ERROR_IO_B);
-			}
-			catch(ClassNotFoundException e)
-			{
-				logger.error(logHeader + "can't find class ", e);
-				System.exit(PSTBError.ERROR_CNF_B);
-			}
+			logger.error(logHeader + "can't find class: ", e);
+			System.exit(PSTBError.ERROR_CNF_B);
 		}
 		
 		givenBroker.setBrokerLogger(logger);
 		
 		boolean functionSuccessful = givenBroker.createBroker();
-		
 		if(!functionSuccessful)
 		{
 			logger.error(logHeader + "error creating broker");
@@ -167,13 +115,13 @@ public class PhysicalBroker {
 		}
 		
 		functionSuccessful = givenBroker.startBroker();
-		
 		if(!functionSuccessful)
 		{
 			logger.error(logHeader + "error starting broker");
 			System.exit(PSTBError.ERROR_START_B);
 		}
 		
-		logger.info(logHeader + "broker " + givenBroker.getName() + " started");
+		logger.info(logHeader + "broker " + givenBroker.getName() + " started!");
 	}
 }
+

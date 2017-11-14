@@ -5,6 +5,9 @@
  */
 package pstb.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
@@ -403,8 +406,104 @@ public class PSTBUtil {
 		return retVal;
 	}
 	
-	public static String cleanTPF(String givenTPF)
+	/**
+	 * Cleans a given TopologyFileString
+	 * by replacing / and \ with _.
+	 * 
+	 * @param givenTFS - the Topology File String to clean
+	 * @return the cleaned topology file string
+	 */
+	public static String cleanTFS(String givenTFS)
 	{
-		return givenTPF.replace('/', '_').replace('\\', '_');
+		return givenTFS.replace('/', '_').replace('\\', '_');
+	}
+	
+	/**
+	 * Breaks a space filled string into multiple components and adds it to an ArrayList<String>
+	 * 
+	 * @param input - the string to break up
+	 * @param finalArray - the ArrayList<String> to add everything to
+	 * @param startLocation - the location in the array to add this broker string to 
+	 * If it's longer than the ArrayList, the broken strings will be added to the end of the ArrayList
+	 * @return the array location ended on
+	 */
+	public static int breakStringAndAddToArrayList(String input, ArrayList<String> finalArray, int startLocation)
+	{
+		int i = 0;
+		String[] temp = input.split("\\s+");
+		
+		if(startLocation >= finalArray.size())
+		{
+			for( ; i < temp.length ; i++)
+			{
+				finalArray.add(temp[i]);
+			}
+		}
+		else
+		{
+			for( ; i < temp.length ; i++)
+			{
+				finalArray.add(startLocation + i, temp[i]);
+			}
+		}
+		
+		return i;
+	}
+	
+	public static Boolean createANewProcess(String[] command, Logger logger, String newProcessException, String processSuccessful, 
+											String processFailure)
+	{
+		ProcessBuilder newProcess = new ProcessBuilder(command);
+		
+		newProcess.redirectErrorStream(true);
+		
+		Process pNewProcess = null;
+		try 
+		{
+			pNewProcess = newProcess.start();
+		} 
+		catch (IOException e) 
+		{
+			logger.error(newProcessException, e);
+			return null;
+		}
+		
+		BufferedReader pSendNodeIObjectReader = new BufferedReader(new InputStreamReader(pNewProcess.getInputStream()));
+		String line = null;
+		try
+		{
+			while( (line = pSendNodeIObjectReader.readLine()) != null)
+			{
+				logger.debug(line);
+			}
+		}
+		catch (IOException e)
+		{
+			logger.error("Couldn't read output from new Process: ", e);
+			return false;
+		}
+		
+		try 
+		{
+			pNewProcess.waitFor();
+		} 
+		catch (InterruptedException e)
+		{
+			logger.error("Couldn't end new process: ", e);
+			return false;
+		}
+		
+		int exitValue = pNewProcess.exitValue();
+		
+		if(exitValue != 0)
+		{
+			logger.error(processFailure + " | Error = " + exitValue);
+			return false;
+		}
+		else
+		{
+			logger.info(processSuccessful);
+			return true;
+		}
 	}
 }
