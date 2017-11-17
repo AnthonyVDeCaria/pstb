@@ -11,7 +11,7 @@ public class PSAction implements java.io.Serializable
 	private PSActionType actionType;
 	private Long actionDelay;	// nanoseconds
 	private String attributes;
-	private Long payloadSize;	// bytes
+	private Integer payloadSize;	// bytes
 	private Long timeActive;	// nanoseconds
 	
 	/**
@@ -22,7 +22,7 @@ public class PSAction implements java.io.Serializable
 		actionType = null;
 		actionDelay = new Long(-1);
 		attributes = new String();
-		payloadSize = new Long(-1);
+		payloadSize = new Integer(-1);
 		timeActive = new Long(0);
 	}
 	
@@ -34,7 +34,7 @@ public class PSAction implements java.io.Serializable
 		actionType = givenAT;
 		actionDelay = new Long(-1);
 		attributes = new String();
-		payloadSize = new Long(-1);
+		payloadSize = new Integer(-1);
 		timeActive = new Long(0);
 	}
 	
@@ -70,7 +70,7 @@ public class PSAction implements java.io.Serializable
 	 * Gets the payload size (bytes)
 	 * @return the payload size
 	 */
-	public Long getPayloadSize() 
+	public Integer getPayloadSize() 
 	{
 		return payloadSize;
 	}
@@ -115,7 +115,7 @@ public class PSAction implements java.io.Serializable
 	 * Sets the payload size
 	 * @param nPS - the new payload size
 	 */
-	public void setPayloadSize(Long nPS) 
+	public void setPayloadSize(Integer nPS) 
 	{
 		this.payloadSize = nPS;
 	}

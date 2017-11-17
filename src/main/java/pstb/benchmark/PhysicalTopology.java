@@ -880,7 +880,7 @@ public class PhysicalTopology {
 			command.add(user + "@" + machineName + ":~/PSTB");
 			
 			String[] finalCommand = command.toArray(new String [0]);
-			boolean sendNodeIObjectCheck = PSTBUtil.createANewProcess(finalCommand, logger, 
+			boolean sendNodeIObjectCheck = PSTBUtil.createANewProcess(finalCommand, logger, false,
 														logHeader + "Couldn't create a new process to send " + nodeName + " its object: ", 
 														logHeader + "Sent " + nodeName + " its object.", 
 														logHeader + "Couldn't send " + nodeName + " its object.");
@@ -1020,7 +1020,7 @@ public class PhysicalTopology {
 		logger.debug("Command is " + command.toString());
 		
 		String[] finalCommand = command.toArray(new String [0]);
-		Boolean doesProcessExist = PSTBUtil.createANewProcess(finalCommand, logger, 
+		Boolean doesProcessExist = PSTBUtil.createANewProcess(finalCommand, logger, false,
 											logHeader + "Couldn't create a new process to see if " + nodeIName + " was still running: ",
 											logHeader + "Process " + nodeIName + " is still running.", 
 											logHeader + "Process " + nodeIName + " is no longer running.");

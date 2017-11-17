@@ -31,6 +31,8 @@ public class WorkloadFileParser {
 	private final int LOC_ATTRIBUTES = 2;
 	private final int LOC_PAYLOAD_TIME_ACTIVE = 3;
 	
+	private final int NO_PAYLOAD = 0;
+	
 	private final String logHeader = "Workload Parser: ";
 	private  Logger logger = null;
 	
@@ -168,63 +170,77 @@ public class WorkloadFileParser {
 			{
 				linesRead++;
 				String[] splitLine = line.split("	");
-				if(checkProperLength(splitLine))
+				if(!checkProperLength(splitLine))
+				{
+					isParseSuccessful = false;
+					logger.error(logHeader + "line " + linesRead + " is not the proper length");
+				}
+				else
 				{
 					Long actionDelay = PSTBUtil.checkIfLong(splitLine[LOC_ACTION_DELAY], false, null);
 					
-					if(actionDelay != null)
+					if(actionDelay == null)
 					{
-						PSActionType linesCA = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), requestedWF);
-						if(linesCA != null)
+						isParseSuccessful = false;
+						logger.error(logHeader + "line " + linesRead + " has an incorrect action delay");
+					}
+					else
+					{
+						PSActionType lineIsActionType = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), requestedWF);
+						if(lineIsActionType == null)
 						{
-							if(splitLine.length == MAXSEGMENTSNUM)
+							isParseSuccessful = false;
+							logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action");
+						}
+						else
+						{
+							if(splitLine.length != MAXSEGMENTSNUM)
 							{
-								Long payloadOrTA = checkValidPayloadOrTimeActive(splitLine[LOC_PAYLOAD_TIME_ACTIVE], linesCA);
-								
-								if(payloadOrTA != null)
-								{
-									boolean addCheck = addActionToWorkload(actionDelay, linesCA, 
-																			splitLine[LOC_ATTRIBUTES], payloadOrTA);
-									if(!addCheck)
-									{
-										isParseSuccessful = false;
-										logger.error(logHeader + "error adding " + linesRead + " to the workload");
-									}
-								}
-								else
-								{
-									isParseSuccessful = false;
-									logger.error(logHeader + "line " + linesRead + " has an incorrect payload "
-											+ "or time active value");
-								}
-							}
-							else
-							{
-								boolean addCheck = addActionToWorkload(actionDelay, linesCA, 
-																		splitLine[LOC_ATTRIBUTES], Long.MAX_VALUE);
+								boolean addCheck = addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
+																			Long.MAX_VALUE, NO_PAYLOAD);
 								if(!addCheck)
 								{
 									isParseSuccessful = false;
 									logger.error(logHeader + "error adding " + linesRead + " to the workload");
 								}
 							}
-						}
-						else
-						{
-							isParseSuccessful = false;
-							logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action");
+							else
+							{
+								Long timeActive = null; 
+								Integer payloadSize = null;
+								
+								if(lineIsActionType.equals(PSActionType.P))
+								{
+									payloadSize = PSTBUtil.checkIfInteger(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
+									if(payloadSize == null)
+									{
+										isParseSuccessful = false;
+										logger.error(logHeader + "line " + linesRead + " has an incorrect payload size!");
+									}
+								}
+								else
+								{
+									timeActive = PSTBUtil.checkIfLong(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
+									if(timeActive == null)
+									{
+										isParseSuccessful = false;
+										logger.error(logHeader + "line " + linesRead + " has an incorrect time active value!");
+									}
+								}
+								
+								if(payloadSize != null || timeActive != null)
+								{
+									boolean addCheck = addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
+																				timeActive, payloadSize);
+									if(!addCheck)
+									{
+										isParseSuccessful = false;
+										logger.error(logHeader + "error adding " + linesRead + " to the workload!");
+									}
+								}
+							}
 						}
 					}
-					else
-					{
-						isParseSuccessful = false;
-						logger.error(logHeader + "line " + linesRead + " has an incorrect action delay");
-					}
-				}
-				else
-				{
-					isParseSuccessful = false;
-					logger.error(logHeader + "line " + linesRead + " is not the proper length");
 				}
 			}
 			givenFile.close();
@@ -298,24 +314,6 @@ public class WorkloadFileParser {
 	}
 	
 	/**
-	 * Determines is a Payload/TimeActive value is valid
-	 * 
-	 * @param sPOrTA - the Payload/TimeActive string
-	 * @param givenAction - the action tied to this Payload/TimeActive
-	 * @return null on an error; the value otherwise
-	 */
-	private Long checkValidPayloadOrTimeActive(String sPOrTA, PSActionType givenAction)
-	{
-		if(givenAction == PSActionType.R || givenAction == PSActionType.U || givenAction == PSActionType.V)
-		{
-			logger.error(logHeader + " action " + givenAction + " shouldn't have a payload size or time active value");
-			return null;
-		}
-		
-		return PSTBUtil.checkIfLong(sPOrTA, false, null);
-	}
-	
-	/**
 	 * Attempts to access all the PubWorkloadFiles
 	 * 
 	 * @return null if a file cannot be read; an ArrayList of FileReaders if successful
@@ -351,7 +349,7 @@ public class WorkloadFileParser {
 	 * @param payloadOrTA - the desired Payload/TimeActive
 	 * @return false on error; true otherwise
 	 */
-	private boolean addActionToWorkload(Long actionDelay, PSActionType actionType, String attributes, Long payloadOrTA)
+	private boolean addActionToWorkload(Long actionDelay, PSActionType actionType, String attributes, Long timeActive, Integer payloadSize)
 	{
 		PSAction newAction = new PSAction();
 		newAction.setActionDelay(actionDelay);
@@ -364,21 +362,27 @@ public class WorkloadFileParser {
 			{
 				if(fileAd != null)
 				{
-					logger.error(logHeader + "an advertiser already exists");
+					logger.error(logHeader + "an advertiser already exists!");
 					return false;
 				}
 				else
 				{
-					if(payloadOrTA != null)
+					if(timeActive != null)
 					{
-						if(payloadOrTA < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
+						if(timeActive < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
 						{
-							payloadOrTA *= PSTBUtil.MILLISEC_TO_NANOSEC;
+							timeActive *= PSTBUtil.MILLISEC_TO_NANOSEC;
 						}
-						newAction.setTimeActive(payloadOrTA);
+						newAction.setTimeActive(timeActive);
+						wload.updateAdvertisementWorkload(newAction);
+						fileAd = newAction;
 					}
-					wload.updateAdvertisementWorkload(newAction);
-					fileAd = newAction;
+					else
+					{
+						logger.error(logHeader + "given Time Active value is null when it shouldn't be!");
+						return false;
+					}
+					
 					break;
 				}
 			}
@@ -391,25 +395,36 @@ public class WorkloadFileParser {
 				}
 				else
 				{
-					if(payloadOrTA != null)
+					if(payloadSize != null)
 					{
-						newAction.setPayloadSize(payloadOrTA);
+						newAction.setPayloadSize(payloadSize);
+						wload.updatePublicationWorkload(fileAd, newAction);
 					}
-					wload.updatePublicationWorkload(fileAd, newAction);
+					else
+					{
+						logger.error(logHeader + "given payload size is null when it shouldn't be!");
+						return false;
+					}
+					
 					break;
 				}
 			}
 			case S:
 			{
-				if(payloadOrTA != null)
+				if(timeActive != null)
 				{
-					if(payloadOrTA < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
+					if(timeActive < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
 					{
-						payloadOrTA *= PSTBUtil.MILLISEC_TO_NANOSEC;
+						timeActive *= PSTBUtil.MILLISEC_TO_NANOSEC;
 					}
-					newAction.setTimeActive(payloadOrTA);
+					newAction.setTimeActive(timeActive);
+					wload.updateSubscriptionWorkload(newAction);
 				}
-				wload.updateSubscriptionWorkload(newAction);
+				else
+				{
+					logger.error(logHeader + "given Time Active value is null when it shouldn't be!");
+					return false;
+				}
 				break;
 			}
 			default:

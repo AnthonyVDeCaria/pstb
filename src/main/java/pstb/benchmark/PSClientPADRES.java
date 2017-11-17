@@ -1,6 +1,10 @@
 package pstb.benchmark;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
@@ -14,6 +18,7 @@ import ca.utoronto.msrg.padres.client.ClientException;
 import ca.utoronto.msrg.padres.common.message.Message;
 import ca.utoronto.msrg.padres.common.message.Publication;
 import ca.utoronto.msrg.padres.common.message.PublicationMessage;
+import ca.utoronto.msrg.padres.common.message.parser.MessageFactory;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
@@ -519,7 +524,7 @@ public class PSClientPADRES implements java.io.Serializable
 			numSubsToSend = givenSubWorkload.size();
 		}
 		
-		Long currentTime = System.nanoTime();
+		PSTBUtil.synchonizeRun(logger);
 		
 		/*
 		 * Run Pseudocode
@@ -543,6 +548,7 @@ public class PSClientPADRES implements java.io.Serializable
 		 * 
 		 * Note that if a Client is only a sub, or only a pub, the number of ads/subs it has to send is 0
 		 */
+		Long currentTime = System.nanoTime();
 		while( (currentTime - runStart) < runLength)
 		{
 			Long delayValue = new Long(DEFAULT_DELAY);
@@ -1122,13 +1128,48 @@ public class PSClientPADRES implements java.io.Serializable
 					
 					DiaryEntry temp = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, attri);
 					String mID = temp.getMessageID();
-					result = actualClient.unAdvertise(mID); // For now
+					result = actualClient.unAdvertise(mID);
 					break;
 				}
 				case P:
 				{
 					logger.debug(logHeader + generalLog + "publish " + givenAction.getAttributes());
-					result = actualClient.publish(givenAction.getAttributes(), brokerURIs.get(0));
+					
+					int payloadSize = givenAction.getPayloadSize();
+					
+					if(payloadSize < 0)
+					{
+						logger.error(logHeader + "Payload size is less than 0!");
+						return null;
+					}
+					else if(payloadSize == 0)
+					{
+						result = actualClient.publish(givenAction.getAttributes(), brokerURIs.get(0));
+					}
+					else
+					{
+						Publication pubI = MessageFactory.createPublicationFromString(givenAction.getAttributes());
+						
+						byte[] payload = new byte[payloadSize];
+						String payloadString = new String();
+						try 
+						{
+							ByteArrayOutputStream bo = new ByteArrayOutputStream();
+							ObjectOutputStream oo = new ObjectOutputStream(bo);
+							oo.writeObject(payload);
+							oo.flush();
+							payloadString = Base64.getEncoder().encodeToString(bo.toByteArray());
+						} 
+						catch (IOException e) 
+						{
+							logger.error(logHeader + "Error creating payload: ", e);
+							return null;
+						}
+						pubI.setPayload(payloadString);
+						
+						result = actualClient.publish(pubI, brokerURIs.get(0));
+					}
+
 					break;
 				}
 				case S:
@@ -1145,7 +1186,7 @@ public class PSClientPADRES implements java.io.Serializable
 					
 					DiaryEntry temp = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, attri);
 					String mID = temp.getMessageID();
-					result = actualClient.unSubscribe(mID); // For now
+					result = actualClient.unSubscribe(mID);
 					break;
 				}
 				default:
@@ -1154,16 +1195,16 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		catch(ClientException e)
 		{
-			logger.error(logHeader + "Client Error", e);
+			logger.error(logHeader + "Client Error: ", e);
 			return null;
 		}
 		catch (ParseException e)
 		{
-			logger.error(logHeader + "Error Parsing", e);
+			logger.error(logHeader + "Error Parsing: ", e);
 			return null;
 		}
 		
-		logger.debug(logHeader + "Action successful");
+		logger.debug(logHeader + "Action successful.");
 		return result;
 	}
 }

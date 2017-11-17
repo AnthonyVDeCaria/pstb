@@ -245,7 +245,7 @@ public class PSTB {
 			{
 				String [] command = {"scripts/addPSTBToMachines.sh", username};
 				
-				Boolean addToNodesCheck = PSTBUtil.createANewProcess(command, logger, 
+				Boolean addToNodesCheck = PSTBUtil.createANewProcess(command, logger, false,
 																			"Couldn't launch process to give all nodes PSTB: ", 
 																			"Added PSTB to all nodes!", 
 																			"Failed adding PSTB to all nodes!");
@@ -465,6 +465,8 @@ public class PSTB {
 				
 				logger.debug("Run starting...");
 				
+				PSTBUtil.synchonizeRun(logger);
+				
 				Long startTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
 				sleepLength = (long) (iTHRunLengthNano / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
@@ -540,7 +542,7 @@ public class PSTB {
 					} 
 					catch (InterruptedException e) 
 					{
-						logger.error("Error sleeping in main", e);
+						logger.error("Error sleeping in main: ", e);
 						givenPT.destroyAllProcesses();
 						return false;
 					}
@@ -596,7 +598,11 @@ public class PSTB {
 		
 		String[] kill = command.toArray(new String[0]);
 		
-		return PSTBUtil.createANewProcess(kill, logger, "Couldn't run kill process :", "Kill process successfull.", "Kill process failed!");
+		return PSTBUtil.createANewProcess(kill, logger, false,
+												"Couldn't run kill process :", 
+												"Kill process successfull.", 
+												"Kill process failed!"
+											);
 	}
 }
 

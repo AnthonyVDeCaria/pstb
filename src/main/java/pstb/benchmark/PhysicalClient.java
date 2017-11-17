@@ -183,7 +183,7 @@ public class PhysicalClient {
 		if(!masterMachineName.equals(localhost))
 		{
 			String[] command = {"scripts/nodeSendUpstream.sh", "adecaria", masterMachineName, "dia"};
-			boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, logger, 
+			boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, logger, false,
 																	"Error creating process to send " + givenClientName + "'s diary: ", 
 																	"Sent " + givenClientName + "'s diary upstream.", 
 																	"Couldn't send " + givenClientName + "'s diary upstream.");

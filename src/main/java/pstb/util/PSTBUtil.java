@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -26,7 +27,7 @@ public class PSTBUtil {
 	public static final Long SEC_TO_NANOSEC = new Long(1000000000L);
 	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
 	
-	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd HH:mm:ss.SSS");    
+	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd HH:mm:ss.SSS");
 	
 	public static final String SPACE = " ";
 	public static final String COMMA = ",";
@@ -450,8 +451,8 @@ public class PSTBUtil {
 		return i;
 	}
 	
-	public static Boolean createANewProcess(String[] command, Logger logger, String newProcessException, String processSuccessful, 
-											String processFailure)
+	public static Boolean createANewProcess(String[] command, Logger logger, boolean seeProcess, String newProcessException, 
+												String processSuccessful, String processFailure)
 	{
 		ProcessBuilder newProcess = new ProcessBuilder(command);
 		
@@ -468,19 +469,22 @@ public class PSTBUtil {
 			return null;
 		}
 		
-		BufferedReader pSendNodeIObjectReader = new BufferedReader(new InputStreamReader(pNewProcess.getInputStream()));
-		String line = null;
-		try
+		if(seeProcess)
 		{
-			while( (line = pSendNodeIObjectReader.readLine()) != null)
+			BufferedReader pNewProcessReader = new BufferedReader(new InputStreamReader(pNewProcess.getInputStream()));
+			String line = null;
+			try
 			{
-				logger.debug(line);
+				while( (line = pNewProcessReader.readLine()) != null)
+				{
+					logger.debug(line);
+				}
 			}
-		}
-		catch (IOException e)
-		{
-			logger.error("Couldn't read output from new Process: ", e);
-			return false;
+			catch (IOException e)
+			{
+				logger.error("Couldn't read output from new Process: ", e);
+				return false;
+			}
 		}
 		
 		try 
@@ -504,6 +508,19 @@ public class PSTBUtil {
 		{
 			logger.info(processSuccessful);
 			return true;
+		}
+	}
+	
+	public static void synchonizeRun(Logger logger)
+	{
+		Calendar cal = Calendar.getInstance();
+		int seconds = -1;
+		
+		while(seconds != 00 && seconds != 30)
+		{
+			cal.setTimeInMillis(System.currentTimeMillis());
+			seconds = cal.get(Calendar.SECOND);
+			logger.trace("Syncro: Seconds is " + seconds + ".");
 		}
 	}
 }
