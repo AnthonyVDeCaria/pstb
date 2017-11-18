@@ -63,17 +63,17 @@ public class PhysicalBroker {
 		if(givenBrokerName == null)
 		{
 			logger.error(logHeader + "no name was given!");
-			System.exit(PSTBError.ERROR_ARGS_B);
+			System.exit(PSTBError.B_ARGS);
 		}
 		if(givenContext == null)
 		{
 			logger.error(logHeader + "no context was given!");
-			System.exit(PSTBError.ERROR_ARGS_B);
+			System.exit(PSTBError.B_ARGS);
 		}
 		if(masterMachineName == null)
 		{
 			logger.error(logHeader + "no masterMachineName was given!");
-			System.exit(PSTBError.ERROR_ARGS_B);
+			System.exit(PSTBError.B_ARGS);
 		}
 		
 		ThreadContext.put("broker", givenContext);
@@ -92,17 +92,17 @@ public class PhysicalBroker {
 		catch (FileNotFoundException e) 
 		{
 			logger.error(logHeader + "Couldn't find " + givenBrokerName + "broker object file: ", e);
-			System.exit(PSTBError.ERROR_FILE_B);
+			System.exit(PSTBError.B_FILE);
 		}
 		catch (IOException e)
 		{
 			logger.error(logHeader + "error accessing ObjectInputStream: ", e);
-			System.exit(PSTBError.ERROR_IO_B);
+			System.exit(PSTBError.B_IO);
 		}
 		catch(ClassNotFoundException e)
 		{
 			logger.error(logHeader + "can't find class: ", e);
-			System.exit(PSTBError.ERROR_CNF_B);
+			System.exit(PSTBError.B_CNF);
 		}
 		
 		givenBroker.setBrokerLogger(logger);
@@ -111,14 +111,14 @@ public class PhysicalBroker {
 		if(!functionSuccessful)
 		{
 			logger.error(logHeader + "error creating broker");
-			System.exit(PSTBError.ERROR_CREATE_B);
+			System.exit(PSTBError.B_CREATE);
 		}
 		
 		functionSuccessful = givenBroker.startBroker();
 		if(!functionSuccessful)
 		{
 			logger.error(logHeader + "error starting broker");
-			System.exit(PSTBError.ERROR_START_B);
+			System.exit(PSTBError.B_START);
 		}
 		
 		logger.info(logHeader + "broker " + givenBroker.getName() + " started!");

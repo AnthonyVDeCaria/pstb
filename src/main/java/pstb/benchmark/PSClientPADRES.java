@@ -489,11 +489,6 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		// We do
 		
-		logger.info(logHeader + "Starting run");
-		
-		// Get the start time
-		Long runStart = System.nanoTime();
-		
 		/*
 		 * Variable setting
 		 */
@@ -548,6 +543,8 @@ public class PSClientPADRES implements java.io.Serializable
 		 * 
 		 * Note that if a Client is only a sub, or only a pub, the number of ads/subs it has to send is 0
 		 */
+		logger.info(logHeader + "Starting run");
+		Long runStart = System.nanoTime();
 		Long currentTime = System.nanoTime();
 		while( (currentTime - runStart) < runLength)
 		{

@@ -7,7 +7,9 @@ package pstb.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
@@ -140,6 +142,35 @@ public class PSTBUtil {
 		}
 		
 		return true;
+	}
+	
+	/**
+	 * Deserializes a ClientDiary object
+	 * 
+	 * @param diaryName - the name of this diary
+	 * @return null on failure; the requested diary otherwise
+	 */
+	public static ClientDiary readDiaryObject(InputStream givenIS, Logger log, String logHeader)
+	{
+		ClientDiary diaryI = null;
+		try
+		{
+			ObjectInputStream oISIn = new ObjectInputStream(givenIS);
+			diaryI = (ClientDiary) oISIn.readObject();
+			oISIn.close();
+		}
+		catch (IOException e)
+		{
+			log.error(logHeader + "error accessing ObjectInputStream ", e);
+			return null;
+		}
+		catch(ClassNotFoundException e)
+		{
+			log.error(logHeader + "can't find class ", e);
+			return null;
+		}
+		
+		return diaryI;
 	}
 	
 	/**

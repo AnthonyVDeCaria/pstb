@@ -11,8 +11,6 @@ import java.util.Scanner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.analysis.AnalysisFileParser;
-import pstb.analysis.Analyzer;
 import pstb.benchmark.PhysicalTopology;
 import pstb.benchmark.PhysicalTopology.ActiveProcessRetVal;
 import pstb.startup.BenchmarkConfig;
@@ -20,7 +18,6 @@ import pstb.startup.DistributedFileParser;
 import pstb.startup.TopologyFileParser;
 import pstb.startup.WorkloadFileParser;
 import pstb.startup.WorkloadFileParser.WorkloadFileType;
-import pstb.util.ClientDiary;
 import pstb.util.DistributedState;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
@@ -62,7 +59,7 @@ public class PSTB {
 		catch (IOException e)
 		{
 			logger.error("Properties: Couldn't find default properties file", e);
-			endProgram(PSTBError.ERROR_BENCHMARK, userInput);
+			endProgram(PSTBError.M_BENCHMARK, userInput);
 		}
 				
 		BenchmarkConfig benchmarkRules = new BenchmarkConfig(logger);
@@ -86,14 +83,14 @@ public class PSTB {
 			catch (IOException e)
 			{
 				logger.error("Couldn't find user properties file", e);
-				endProgram(PSTBError.ERROR_BENCHMARK, userInput);
+				endProgram(PSTBError.M_BENCHMARK, userInput);
 			}
 		}
 		
 		if(benchmarkRules.checkForNullFields())
 		{
 			logger.error("Errors loading the properties file!");
-			endProgram(PSTBError.ERROR_BENCHMARK, userInput);
+			endProgram(PSTBError.M_BENCHMARK, userInput);
 		}
 		
 		logger.info("Properties file loaded successfully!!");
@@ -112,12 +109,12 @@ public class PSTB {
 		if(!pubCheck)
 		{
 			logger.error("Publisher Workload File failed parsing!");
-			endProgram(PSTBError.ERROR_WORKLOAD, userInput);
+			endProgram(PSTBError.M_WORKLOAD, userInput);
 		}
 		if(!subCheck)
 		{
 			logger.error("Subscriber Workload File failed parsing!");
-			endProgram(PSTBError.ERROR_WORKLOAD, userInput);
+			endProgram(PSTBError.M_WORKLOAD, userInput);
 		}
 		
 		logger.info("All workload files valid!!");
@@ -155,7 +152,7 @@ public class PSTB {
 				if(mCCheck == null)
 				{
 					logger.error("Error with topology " + topoI + "!");
-					endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
+					endProgram(PSTBError.M_TOPO_LOG, userInput);
 				}
 				else if(!mCCheck.booleanValue())
 				{
@@ -168,7 +165,7 @@ public class PSTB {
 					boolean fixBrokerAns = UI.getYNAnswerFromUser(fixBroker, userInput);
 					if (!fixBrokerAns)
 					{
-						endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
+						endProgram(PSTBError.M_TOPO_LOG, userInput);
 					}
 					else
 					{
@@ -208,7 +205,7 @@ public class PSTB {
 			allLTs.clear();
 			numBrokersLargestTopo = 0;
 			numNodesLargestTopo = 0;
-			endProgram(PSTBError.ERROR_TOPO_LOG, userInput);
+			endProgram(PSTBError.M_TOPO_LOG, userInput);
 		}
 		
 		logger.info("All topologies valid!!");
@@ -226,7 +223,7 @@ public class PSTB {
 			if(!dfpCheck)
 			{
 				logger.error("Error with distributed file!");
-				endProgram(PSTBError.ERROR_DISTRIBUTED, userInput);
+				endProgram(PSTBError.M_DISTRIBUTED, userInput);
 			}
 			
 			disHostsAndPorts = dfp.getHostsAndPorts();
@@ -252,7 +249,7 @@ public class PSTB {
 				
 				if(addToNodesCheck == null || !addToNodesCheck.booleanValue())
 				{
-					endProgram(PSTBError.ERROR_DISTRIBUTED, userInput);
+					endProgram(PSTBError.M_DISTRIBUTED, userInput);
 				}
 			}
 		}
@@ -261,7 +258,6 @@ public class PSTB {
 		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
-		Analyzer brain = new Analyzer(logger);
 		
 		logger.info("Beginning to create Physical Topology...");
 		
@@ -291,7 +287,7 @@ public class PSTB {
 				if(!checkDisPT || !checkLocalPT)
 				{
 					logger.error("Error creating physical topology!");
-					endProgram(PSTBError.ERROR_TOPO_PHY, userInput);
+					endProgram(PSTBError.M_TOPO_PHY, userInput);
 				}
 				
 				logger.info("Beginning experiment...");
@@ -300,27 +296,23 @@ public class PSTB {
 				if(localPT.doObjectsExist())
 				{
 					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(), 
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
 				}
 				if (disPT.doObjectsExist())
 				{
 					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(), 
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload, brain);
+															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
 				}
 				
 				if(!successfulExperiment)
 				{
 					logger.error("Error conducting the experiment!");
-					endProgram(PSTBError.ERROR_EXPERIMENT, userInput);
+					endProgram(PSTBError.M_EXPERIMENT, userInput);
 				}
 			}
 		}
 		
 		// Analysis
-		logger.info("Printing all diaries to file...");
-		brain.recordAllDiaries();
-		logger.info("All diaries now in files.");
-		
 		String analysisFileString = DEFAULT_ANALYSIS_FILE_STRING;
 		String customAnalysisFilePrompt = null;
 		boolean customAnalysisFileAns = customBenchPropAns;
@@ -337,31 +329,16 @@ public class PSTB {
 			analysisFileString = UI.getAndCheckFilePathFromUser(customAnalysisFilePrompt, userInput);
 		}
 		
-		logger.info("Parsing analysis file...");
-		AnalysisFileParser brainReader = new AnalysisFileParser();
-		brainReader.setAnalysisFileString(analysisFileString);
+		String[] kill = {"./analysis.sh", "256", analysisFileString};
 		
-		boolean analysisParseCheck = brainReader.parse();
-		if(!analysisParseCheck)
+		Boolean analyszeCheck = PSTBUtil.createANewProcess(kill, logger, false, "Couldn't run analysis :", "Analysis successfull.", 
+																"Analysis failed!");
+		if(analyszeCheck == null || !analyszeCheck.booleanValue())
 		{
-			logger.error("Error parsing the analysis file!");
-			endProgram(PSTBError.ERROR_ANALYSIS, userInput);
+			logger.error("Analysis failed!");
+			endProgram(PSTBError.M_ANALYSIS, userInput);
 		}
-		
-		logger.info("Got requested analysises.");
-		
-		logger.info("Beginning to execute these analysises...");
-		boolean analysisCheck = brain.executeAnalysis(brainReader.getRequestedAnalysis());
-		if(!analysisCheck)
-		{
-			logger.error("Analysis Failed!");
-			endProgram(PSTBError.ERROR_ANALYSIS, userInput);
-		}
-		
-		logger.info("Analysis complete.");
-		
-		logger.info("Storing this analysis into a file...");
-		brain.recordAllAnalyzedInformation();
+		logger.info("Analsys successfull!!");
 		
 		logger.info("Benchmark complete!!!");
 		endProgram(EXCEUTED_PROPERLY_VALUE, userInput);
@@ -411,8 +388,7 @@ public class PSTB {
 	 * @return false if there is a failure; true otherwise
 	 */
 	private static boolean conductExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
-												Integer givenNumberOfRunsPerExperiment, Workload givenWorkload, 
-												Analyzer givenAnalyzer)
+												Integer givenNumberOfRunsPerExperiment, Workload givenWorkload)
 	{
 		// We'll need this to collect the diaries latter, so...
 		Boolean givenPTDis = givenPT.getDistributed();
@@ -467,14 +443,11 @@ public class PSTB {
 				
 				PSTBUtil.synchonizeRun(logger);
 				
-				Long startTime = System.nanoTime();
-				PhysicalTopology.ActiveProcessRetVal valueCAP = null;
 				sleepLength = (long) (iTHRunLengthNano / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
-				Long currentTime = System.nanoTime();
 				
-				while( (currentTime - startTime) < iTHRunLengthNano)
+				PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
+				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
 				{
-					valueCAP = givenPT.checkActiveProcesses();
 					// If ActiveProcesses had an error... well...
 					if(valueCAP.equals(ActiveProcessRetVal.Error))
 					{
@@ -489,21 +462,21 @@ public class PSTB {
 						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 						return false;
 					}
-					// If there are brokers with no clients, has the experiment already finished?
-					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
-					{
-						currentTime = System.nanoTime();
-						if((currentTime - startTime) < iTHRunLengthNano)
-						{
-							logger.error("Run " + runI + " finished early!");
-							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-							return false;
-						}
-						else
-						{
-							break; // We finished already - there's no need to sleep again
-						}
-					}
+//					// If there are brokers with no clients, has the experiment already finished?
+//					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
+//					{
+//						Long currentTime = System.nanoTime();
+//						if((currentTime - startTime) < iTHRunLengthNano)
+//						{
+//							logger.error("Run " + runI + " finished early!");
+//							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+//							return false;
+//						}
+//						else
+//						{
+//							break; // We finished already - there's no need to sleep again
+//						}
+//					}
 					
 					// So that we don't continuously check, let's put this thread to sleep for a tenth of the run
 					try 
@@ -518,35 +491,10 @@ public class PSTB {
 						return false;
 					}
 					
-					currentTime = System.nanoTime();
+					valueCAP = givenPT.checkActiveProcesses();
 				}
 				
 				logger.info("Run ended.");
-				
-				logger.debug("Waiting for clients to finish...");
-				valueCAP = givenPT.checkActiveProcesses();
-				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) && !valueCAP.equals(ActiveProcessRetVal.AllOff))
-				{
-					valueCAP = givenPT.checkActiveProcesses();
-					if(valueCAP.equals(ActiveProcessRetVal.Error))
-					{
-						logger.error("Error waiting for run to finish!");
-						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-						return false;
-					}
-					
-					try
-					{				
-						logger.trace("Pausing main.");
-						Thread.sleep(sleepLength);
-					} 
-					catch (InterruptedException e) 
-					{
-						logger.error("Error sleeping in main: ", e);
-						givenPT.destroyAllProcesses();
-						return false;
-					}
-				}
 				
 				Boolean resetCheck = killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 				if(resetCheck == null || resetCheck.booleanValue() == false)
@@ -556,25 +504,8 @@ public class PSTB {
 				}
 				
 				givenPT.destroyAllProcesses();
-				logger.info("Run " + runI + " complete.");
-				
-				logger.debug("Collecting diaries...");
-				HashMap<String, ClientDiary> temp = givenPT.collectDiaries();
-				if(temp == null)
-				{
-					logger.error("Error Collecting diaries!");
-					return false;
-				}
-				else
-				{
-					temp.forEach((diaryName, diary)->{
-						givenAnalyzer.addDiaryToBookshelf(diaryName, diary);
-					});
-				}
-				
-				logger.info("All diaries collected.");
-				
 				givenPT.clearProcessBuilders();
+				logger.info("Run " + runI + " complete.");
 			}
 		}
 		

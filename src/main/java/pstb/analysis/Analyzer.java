@@ -1,5 +1,8 @@
 package pstb.analysis;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,14 +12,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.benchmark.PSClientPADRES;
 import pstb.util.ClientDiary;
 import pstb.util.DiaryEntry;
 import pstb.util.DiaryEntry.DiaryHeader;
 import pstb.util.DistributedFlagValue;
 import pstb.util.NetworkProtocol;
 import pstb.util.PSActionType;
+import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 
 /**
@@ -27,43 +33,51 @@ import pstb.util.PSTBUtil;
  * as well as key analysis functions.
  */
 public class Analyzer {
-	private HashMap<String, ClientDiary> bookshelf;
-	private ArrayList<Object> analyzedInformation;
-	private ArrayList<AnalysisType> analyzedCheck;
+	private static final Logger logger = LogManager.getRootLogger();
+	private static final String logHeader = "Analysis: ";
 	
-	private String analyzedFolderString;
-	private String diariesFolderString;
-	private String histogramFolderString;
-	private String avgDelayFolderString;
+	private static final int NUM_STRINGS = 6;
+	private static final int LOC_TOPO_FILE_PATH = 0;
+	private static final int LOC_DISTRIBUTED_FLAG = 1;
+	private static final int LOC_PROTOCOL = 2;
+	private static final int LOC_RUN_LENGTH = 3;
+	private static final int LOC_RUN_NUMBER = 4;
+	private static final int LOC_CLIENT_NAME = 5;
 	
-	private Logger log = null;
-	private String logHeader = "Analysis: ";
+	private static HashMap<String, ClientDiary> bookshelf = new HashMap<String, ClientDiary>();
+	private static ArrayList<Object> analyzedInformation = new ArrayList<Object>();
+	private static ArrayList<AnalysisType> analyzedCheck = new ArrayList<AnalysisType>();
 	
-	private final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
-	private final String diariesStub = "diaries/";
-	private final String analyzedStub = "analyzed/";
-	private final String histogramStub = "histogram/";
-	private final String avgDelayStub = "avgDelay/";
+	private static final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
+	private static final String diariesStub = "diaries/";
+	private static final String analyzedStub = "analyzed/";
+	private static final String histogramStub = "histogram/";
+	private static final String avgDelayStub = "avgDelay/";
 	
-	private final int NUM_STRINGS = 6;
-	private final int LOC_TOPO_FILE_PATH = 0;
-	private final int LOC_DISTRIBUTED_FLAG = 1;
-	private final int LOC_PROTOCOL = 2;
-	private final int LOC_RUN_LENGTH = 3;
-	private final int LOC_RUN_NUMBER = 4;
-	private final int LOC_CLIENT_NAME = 5;
+	private static String analyzedFolderString;
+	private static String diariesFolderString;
+	private static String histogramFolderString;
+	private static String avgDelayFolderString;
 	
-	/**
-	 * Constructor
-	 * 
-	 * @param logger - the Logger that should be utilized for logging 
-	 */
-	public Analyzer(Logger logger)
+	public static void main(String[] args)
 	{
-		log = logger;
-		bookshelf = new HashMap<String, ClientDiary>();
-		analyzedInformation = new ArrayList<Object>();
-		analyzedCheck = new ArrayList<AnalysisType>();
+		String analysisFileString = new String(); 
+		
+		for (int i = 0; i < args.length; i++) 
+		{
+			if (args[i].equals("-f")) 
+			{
+				analysisFileString = args[i + 1];
+			}
+		}
+		
+		if(analysisFileString.isEmpty())
+		{
+			logger.error(logHeader + "no analysis file was given!");
+			System.exit(PSTBError.A_ARGS);
+		}
+		
+		logger.info(logHeader + "Beginning analysis...");
 		
 		Long currTime = System.currentTimeMillis();
 		String currFolderString = PSTBUtil.DATE_FORMAT.format(currTime) + "/";
@@ -71,7 +85,113 @@ public class Analyzer {
 		analyzedFolderString = analysisFolderString + currFolderString + analyzedStub;
 		diariesFolderString = analysisFolderString + currFolderString + diariesStub;
 		histogramFolderString = analyzedFolderString + histogramStub;
-		avgDelayFolderString = analyzedFolderString + avgDelayStub; 
+		avgDelayFolderString = analyzedFolderString + avgDelayStub;
+		
+		logger.info("Collecting diaries...");
+		boolean collectCheck = collectDiaries();
+		if(!collectCheck)
+		{
+			logger.error(logHeader + "Couldn't collect all the diary files!"); 
+			System.exit(PSTBError.A_COLLECT);
+		}
+		logger.info("All diaries collected.");
+		
+		logger.info("Printing all diaries to file...");
+		boolean recordDiaryCheck = recordAllDiaries();
+		if(!recordDiaryCheck)
+		{
+			logger.error(logHeader + "Couldn't record the diary files!"); 
+			System.exit(PSTBError.A_RECORD_DIARY);
+		}
+		logger.info("All diaries now in files!");
+		
+		logger.info("Parsing analysis file...");
+		AnalysisFileParser brainReader = new AnalysisFileParser();
+		brainReader.setAnalysisFileString(analysisFileString);
+		boolean analysisParseCheck = brainReader.parse();
+		if(!analysisParseCheck)
+		{
+			logger.error("Error parsing the analysis file!");
+			System.exit(PSTBError.A_ANALYSIS_FILE_PARSE);
+		}
+		logger.info("Got requested analysises.");
+		
+		logger.info("Beginning to execute these analysises...");
+		boolean analysisCheck = executeAnalysis(brainReader.getRequestedAnalysis());
+		if(!analysisCheck)
+		{
+			logger.error("Analysis Failed!");
+			System.exit(PSTBError.A_ANALYSIS);
+		}
+		
+		logger.info("Analysis complete.");
+		
+		logger.info("Storing this analysis into a file...");
+		boolean recordAnalysisCheck = recordAllAnalyzedInformation();
+		if(!recordAnalysisCheck)
+		{
+			logger.error(logHeader + "Couldn't record the analysis to a file!"); 
+			System.exit(PSTBError.A_RECORD_ANALYSIS);
+		}
+		logger.info("All analsys in files.");
+	}
+	
+	/**
+	 * Gets a certain serialized diary object 
+	 * and adds it to the "bookshelf" 
+	 * - a collection of ClientDiaries
+	 * 
+	 * @param diaryName - the name associated the diary object
+	 * @see PSClientPADRES
+	 * @return an ArrayList of diaries if everything works properly; null otherwise
+	 */
+	private static boolean collectDiaries()
+	{
+		File diaryFolder = new File(System.getProperty("user.dir"));
+		File[] listFiles = diaryFolder.listFiles((d, s) -> {
+			return s.endsWith(".dia");
+		});
+		
+		for(int i = 0 ; i < listFiles.length ; i++)
+		{
+			File diaryI = listFiles[i];
+			String diaryIName = diaryI.toString().replace(".dia", "").replace(System.getProperty("user.dir"), "").replace("/", "");
+			
+			FileInputStream in = null;
+			try 
+			{
+				in = new FileInputStream(diaryI);
+			} 
+			catch (FileNotFoundException e) 
+			{
+				logger.error(logHeader + "Error creating new file input stream to read diary: ", e);
+				return false;
+			}
+			
+			ClientDiary tiedDiary = PSTBUtil.readDiaryObject(in, logger, logHeader);
+			if(tiedDiary != null)
+			{
+				bookshelf.put(diaryIName, tiedDiary);
+			}
+			else
+			{
+				logger.error(logHeader + "Error getting diary " + diaryIName + "!");
+				return false;
+			}
+			
+			try 
+			{
+				in.close();
+			} 
+			catch (IOException e) 
+			{
+				logger.error(logHeader + "Error closing FileInputStream: ", e);
+				return false;
+			}
+			
+		}
+		
+		return true;
 	}
 	
 	/**
@@ -81,17 +201,17 @@ public class Analyzer {
 	 * @param diaryName - the ClientDiary object's name
 	 * @param givenDiary - the ClientDiary object itself
 	 */
-	public void addDiaryToBookshelf(String diaryName, ClientDiary givenDiary)
-	{
-		bookshelf.put(diaryName, givenDiary);
-	}
+//	public void addDiaryToBookshelf(String diaryName, ClientDiary givenDiary)
+//	{
+//		bookshelf.put(diaryName, givenDiary);
+//	}
 	
 	/**
 	 * Prints all the diaries on the bookshelf into files
 	 * 
 	 * @return false on an error; true otherwise
 	 */
-	public boolean recordAllDiaries()
+	private static boolean recordAllDiaries()
 	{	
 		Path diaryFolderPath = Paths.get(diariesFolderString);
 		if(Files.notExists(diaryFolderPath))
@@ -102,7 +222,7 @@ public class Analyzer {
 			} 
 			catch (IOException e) 
 			{
-				log.error(logHeader + "error creating diaries folder", e);
+				logger.error(logHeader + "error creating diaries folder", e);
 				return false;
 			}
 		}
@@ -123,7 +243,7 @@ public class Analyzer {
 					throw new IllegalArgumentException("IO couldn't delete file " + diaryFileString);
 				}
 				
-				boolean check = diary.recordDiary(diaryFilePath, log);
+				boolean check = diary.recordDiary(diaryFilePath, logger);
 				if(!check)
 				{
 					throw new IllegalArgumentException();
@@ -132,7 +252,7 @@ public class Analyzer {
 		}
 		catch(IllegalArgumentException e)
 		{
-			log.error(logHeader + "error printing all diaries", e);
+			logger.error(logHeader + "error printing all diaries", e);
 			return false;
 		}
 		
@@ -146,7 +266,7 @@ public class Analyzer {
 	 * @param requestedAnalysis - the converted analysis file 
 	 * @return false on an error; true otherwise
 	 */
-	public boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis)
+	private static boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis)
 	{
 		for(int i = 0 ; i < requestedAnalysis.size(); i++)
 		{
@@ -158,17 +278,17 @@ public class Analyzer {
 			
 			if(requestedATList.size() != 1)
 			{
-				log.error(logHeader + "There are multiple requested AnalysisTypes!"); 
+				logger.error(logHeader + "There are multiple requested AnalysisTypes!"); 
 				return false;
 			}
 			if(requestedPSATList.size() != 1)
 			{
-				log.error(logHeader + "There are multiple requested PSActionTypes!"); 
+				logger.error(logHeader + "There are multiple requested PSActionTypes!"); 
 				return false;
 			}
 			if(requestedDHList.size() != 1)
 			{
-				log.error(logHeader + "There are multiple requested DiaryHeaders!"); 
+				logger.error(logHeader + "There are multiple requested DiaryHeaders!"); 
 				return false;
 			}
 			
@@ -200,7 +320,7 @@ public class Analyzer {
 					break;
 				}
 				default:
-					log.error(logHeader + "Invalid AnalysisType requested");
+					logger.error(logHeader + "Invalid AnalysisType requested");
 					analyzedInformation.clear();
 					return false;
 			}
@@ -217,7 +337,7 @@ public class Analyzer {
 	 * 
 	 * @return false on an error; true otherwise
 	 */
-	public boolean recordAllAnalyzedInformation()
+	private static boolean recordAllAnalyzedInformation()
 	{
 		int numHistograms = 0;
 		int numAvgDelays = 0;
@@ -233,7 +353,7 @@ public class Analyzer {
 			} 
 			catch (IOException e) 
 			{
-				log.error(logHeader + "error creating histogram folder", e);
+				logger.error(logHeader + "error creating histogram folder", e);
 				return false;
 			}
 		}
@@ -246,7 +366,7 @@ public class Analyzer {
 			} 
 			catch (IOException e) 
 			{
-				log.error(logHeader + "error creating average delay folder", e);
+				logger.error(logHeader + "error creating average delay folder", e);
 				return false;
 			}
 		}
@@ -259,14 +379,13 @@ public class Analyzer {
 				{
 					PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
 					
-					String histogramFileString = histogramFolderString + temp.getHistogramName()
-													+ "-" + numHistograms + ".txt";
+					String histogramFileString = histogramFolderString + temp.getHistogramName() + "-" + numHistograms + ".txt";
 					Path histogramFilePath = Paths.get(histogramFileString);
 					
-					boolean check = temp.recordPSTBHistogram(histogramFilePath, log);
+					boolean check = temp.recordPSTBHistogram(histogramFilePath, logger);
 					if(!check)
 					{
-						log.error(logHeader + "Error printing Histogram " + i);
+						logger.error(logHeader + "Error printing Histogram " + i);
 						return false;
 					}
 					
@@ -279,10 +398,10 @@ public class Analyzer {
 					String avgDelayFileString = avgDelayFolderString + temp.getName() +"-" + numAvgDelays + ".txt";
 					Path avgDelayFilePath = Paths.get(avgDelayFileString);
 					
-					boolean check = temp.recordAvgDelay(avgDelayFilePath, log);
+					boolean check = temp.recordAvgDelay(avgDelayFilePath, logger);
 					if(!check)
 					{
-						log.error(logHeader + "Error printing Average Delay " + i);
+						logger.error(logHeader + "Error printing Average Delay " + i);
 						return false;
 					}
 					
@@ -291,7 +410,7 @@ public class Analyzer {
 				}
 				default:
 				{
-					log.error(logHeader + "Invalid AnalysisType requested");
+					logger.error(logHeader + "Invalid AnalysisType requested");
 					return false;
 				}
 			}
@@ -314,7 +433,7 @@ public class Analyzer {
 	 * @param requestedCN - the ClientName associated with these Diaries
 	 * @return the list of matching diary names
 	 */
-	public ArrayList<String> getAffiliatedDiaryNames(ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
+	private static ArrayList<String> getAffiliatedDiaryNames(ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
 														ArrayList<Object> requestedP, ArrayList<Object> requestedRL, 
 														ArrayList<Object> requestedRN, ArrayList<Object> requestedCN)
 	{		
@@ -462,11 +581,11 @@ public class Analyzer {
 	 * @param delayType - the type of delay: Action or Message
 	 * @return the associated histogram
 	 */
-	public PSTBHistogram developDelayHistogram(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	private static PSTBHistogram developDelayHistogram(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
-			log.error(logHeader + "That DiaryHeader is not a delay value.");
+			logger.error(logHeader + "That DiaryHeader is not a delay value.");
 			return null;
 		}
 		
@@ -480,7 +599,7 @@ public class Analyzer {
 			
 			if(!bookshelf.containsKey(diaryPathI))
 			{
-				log.error(logHeader + "No diary exists from " + diaryPathI);
+				logger.error(logHeader + "No diary exists from " + diaryPathI);
 				return null;
 			}
 			
@@ -499,7 +618,7 @@ public class Analyzer {
 						}
 						else
 						{
-							log.error(logHeader + "There is a page where there is no " + delayType.toString()
+							logger.error(logHeader + "There is a page where there is no " + delayType.toString()
 										+ " data for Action Type " + typeToAnalyse.toString());
 							return null;
 						}
@@ -507,7 +626,7 @@ public class Analyzer {
 				}
 				else
 				{
-					log.error(logHeader + "Diary Page is missing an associated Action Type");
+					logger.error(logHeader + "Diary Page is missing an associated Action Type");
 					return null;
 				}
 			}
@@ -527,23 +646,23 @@ public class Analyzer {
 	 * @param delayType - the type of delay: Action or Message
 	 * @return the average delay
 	 */
-	public PSTBAvgDelay developAverageDelay(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	private static PSTBAvgDelay developAverageDelay(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
-			log.error(logHeader + "That DiaryHeader is not a delay value.");
+			logger.error(logHeader + "That DiaryHeader is not a delay value.");
 			return null;
 		}
 		
 		if(delayType.equals(DiaryHeader.ActionDelay) && typeToAnalyse.equals(PSActionType.R))
 		{
-			log.error(logHeader + "Type mismatch - R's don't have an ActionDelay");
+			logger.error(logHeader + "Type mismatch - R's don't have an ActionDelay");
 			return null;
 		}
 		
 		if(delayType.equals(DiaryHeader.MessageDelay) && !typeToAnalyse.equals(PSActionType.R))
 		{
-			log.error(logHeader + "Type mismatch - only R has a MessageDelay");
+			logger.error(logHeader + "Type mismatch - only R has a MessageDelay");
 			return null;
 		}
 		
@@ -559,7 +678,7 @@ public class Analyzer {
 			
 			if(!bookshelf.containsKey(diaryPathI))
 			{
-				log.error(logHeader + "No diary exists from " + diaryPathI);
+				logger.error(logHeader + "No diary exists from " + diaryPathI);
 				return null;
 			}
 			
@@ -579,7 +698,7 @@ public class Analyzer {
 						}
 						else
 						{
-							log.error(logHeader + "There is a page where there is no " + delayType.toString()
+							logger.error(logHeader + "There is a page where there is no " + delayType.toString()
 										+ " data for Action Type " + typeToAnalyse.toString());
 							return null;
 						}
@@ -587,7 +706,7 @@ public class Analyzer {
 				}
 				else
 				{
-					log.error(logHeader + "Diary Page is missing an associated Action Type");
+					logger.error(logHeader + "Diary Page is missing an associated Action Type");
 					return null;
 				}
 			}

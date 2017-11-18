@@ -3,16 +3,12 @@ package pstb.benchmark;
 import pstb.util.LogicalTopology;
 import pstb.util.NetworkProtocol;
 import pstb.util.PSTBUtil;
-import pstb.util.ClientDiary;
 import pstb.util.ClientNotes;
 import pstb.util.Workload;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -1051,92 +1047,6 @@ public class PhysicalTopology {
 		}
 		
 		return retVal;
-	}
-	
-	/**
-	 * Gets a certain serialized diary object 
-	 * and adds it to the "bookshelf" 
-	 * - a collection of ClientDiaries
-	 * 
-	 * @param diaryName - the name associated the diary object
-	 * @see PSClientPADRES
-	 * @return an ArrayList of diaries if everything works properly; null otherwise
-	 */
-	public HashMap<String, ClientDiary> collectDiaries()
-	{		
-		HashMap<String, ClientDiary> retVal = new HashMap<String, ClientDiary>();
-		
-		Iterator<String> clients = clientObjects.keySet().iterator(); 
-		
-		for( ; clients.hasNext() ; )
-		{
-			String clientI = clients.next();
-			String clientIDiaryName = clientObjects.get(clientI).generateDiaryName();
-			
-			FileInputStream in = null;
-			try 
-			{
-				in = new FileInputStream(clientIDiaryName + ".dia");
-			} 
-			catch (FileNotFoundException e) 
-			{
-				logger.error(logHeader + "Error creating new file input stream to read diary: ", e);
-				return null;
-			}
-			
-			ClientDiary tiedDiary = readDiaryObject(in);
-			if(tiedDiary != null)
-			{
-				retVal.put(clientIDiaryName, tiedDiary);
-			}
-			else
-			{
-				logger.error(logHeader + "Error getting diary " + clientIDiaryName + "!");
-				return null;
-			}
-			
-			try 
-			{
-				in.close();
-			} 
-			catch (IOException e) 
-			{
-				logger.error(logHeader + "Error closing FileInputStream: ", e);
-				return null;
-			}
-			
-		}
-		
-		return retVal;
-	}
-	
-	/**
-	 * Deserializes a ClientDiary object
-	 * 
-	 * @param diaryName - the name of this diary
-	 * @return null on failure; the requested diary otherwise
-	 */
-	public ClientDiary readDiaryObject(InputStream givenIS)
-	{
-		ClientDiary diaryI = null;
-		try
-		{
-			ObjectInputStream oISIn = new ObjectInputStream(givenIS);
-			diaryI = (ClientDiary) oISIn.readObject();
-			oISIn.close();
-		}
-		catch (IOException e)
-		{
-			logger.error(logHeader + "error accessing ObjectInputStream ", e);
-			return null;
-		}
-		catch(ClassNotFoundException e)
-		{
-			logger.error(logHeader + "can't find class ", e);
-			return null;
-		}
-		
-		return diaryI;
 	}
 	
 	/**

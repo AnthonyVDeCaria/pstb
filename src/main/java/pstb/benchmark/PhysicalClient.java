@@ -74,17 +74,17 @@ public class PhysicalClient {
 		if(givenClientName == null)
 		{
 			logger.error(logHeader + "no Client Name was given!");
-			System.exit(PSTBError.ERROR_ARGS_C);
+			System.exit(PSTBError.C_ARGS);
 		}
 		if(givenDiaryName == null)
 		{
 			logger.error(logHeader + "no Diary Name was given!");
-			System.exit(PSTBError.ERROR_ARGS_C);
+			System.exit(PSTBError.C_ARGS);
 		}
 		if(masterMachineName == null)
 		{
 			logger.error(logHeader + "no masterMachineName was given!");
-			System.exit(PSTBError.ERROR_ARGS_C);
+			System.exit(PSTBError.C_ARGS);
 		}
 		
 		ThreadContext.put("client", givenDiaryName);
@@ -103,17 +103,17 @@ public class PhysicalClient {
 		catch (FileNotFoundException e) 
 		{
 			logger.error(logHeader + "Couldn't find " + givenClientName + " client object file: ", e);
-			System.exit(PSTBError.ERROR_FILE_C);
+			System.exit(PSTBError.C_FILE);
 		}
 		catch (IOException e)
 		{
 			logger.error(logHeader + "error accessing ObjectInputStream: ", e);
-			System.exit(PSTBError.ERROR_IO_C);
+			System.exit(PSTBError.C_IO);
 		}
 		catch(ClassNotFoundException e)
 		{
 			logger.error(logHeader + "can't find class: ", e);
-			System.exit(PSTBError.ERROR_CNF_C);
+			System.exit(PSTBError.C_CNF);
 		}
 		
 		// Now that we have the client, let's set it's logger and get this show on the road
@@ -123,14 +123,14 @@ public class PhysicalClient {
 		if(!functionCheck)
 		{
 			logger.error(logHeader + "couldn't initialize client " + givenClientName);
-			System.exit(PSTBError.ERROR_INIT_C);
+			System.exit(PSTBError.C_INIT);
 		}
 		
 		functionCheck = givenClient.startRun();
 		if(!functionCheck)
 		{
 			logger.error(logHeader + "error running client " + givenClientName);
-			System.exit(PSTBError.ERROR_START_C);
+			System.exit(PSTBError.C_START);
 		}
 		
 		givenClient.disconnect();
@@ -139,7 +139,7 @@ public class PhysicalClient {
 		if(!functionCheck)
 		{
 			logger.error(logHeader + "error shutting down client " + givenClientName);
-			System.exit(PSTBError.ERROR_SHUT_C);
+			System.exit(PSTBError.C_SHUT);
 		}
 		
 		// Now that the experiment is over, let's send the diary back to master
@@ -148,7 +148,7 @@ public class PhysicalClient {
 		if(diaryName == null)
 		{
 			logger.error(logHeader + "error generating a diary name for client " + givenClientName);
-			System.exit(PSTBError.ERROR_DIARY);
+			System.exit(PSTBError.C_DIARY);
 		}
 		
 		logger.info(logHeader + "returning a diary object with name " + diaryName);
@@ -160,14 +160,14 @@ public class PhysicalClient {
 		catch (FileNotFoundException e) 
 		{
 			logger.error(logHeader + "Error creating FileOutputStream for diary: ", e);
-			System.exit(PSTBError.ERROR_FILE_C);
+			System.exit(PSTBError.C_FILE);
 		}
 		
 		functionCheck = PSTBUtil.sendObject(givenClient.getDiary(), diaryName, out, logger, logHeader);
 		if(!functionCheck)
 		{
 			logger.error(logHeader + "error sending a diary to master from client " + givenClientName);
-			System.exit(PSTBError.ERROR_DIARY);
+			System.exit(PSTBError.C_DIARY);
 		}
 		
 		try 
@@ -177,7 +177,7 @@ public class PhysicalClient {
 		catch (IOException e) 
 		{
 			logger.error(logHeader + "error closing diary OutputStream: ", e);
-			System.exit(PSTBError.ERROR_IO_C);
+			System.exit(PSTBError.C_IO);
 		}
 		
 		if(!masterMachineName.equals(localhost))
@@ -191,7 +191,7 @@ public class PhysicalClient {
 			if(!sendDiaryCheck)
 			{
 				logger.error(logHeader + "error sending diary!");
-				System.exit(PSTBError.ERROR_IO_C);
+				System.exit(PSTBError.C_IO);
 			}
 		}
 		
