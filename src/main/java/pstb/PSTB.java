@@ -2,17 +2,20 @@ package pstb;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.benchmark.PhysicalTopology;
 import pstb.benchmark.PhysicalTopology.ActiveProcessRetVal;
+import pstb.benchmark.PSTBServer;
 import pstb.startup.BenchmarkConfig;
 import pstb.startup.DistributedFileParser;
 import pstb.startup.TopologyFileParser;
@@ -211,7 +214,7 @@ public class PSTB {
 		logger.info("All topologies valid!!");
 		
 		HashMap<String, ArrayList<Integer>> disHostsAndPorts = new HashMap<String, ArrayList<Integer>>();
-		String username = new String();
+		String disUsername = new String();
 		
 		if(benchmarkRules.distributedRequested())
 		{
@@ -234,13 +237,13 @@ public class PSTB {
 			}
 			
 			String distributeJarPrompt = "Please input the associated username:";
-			username = UI.getInputFromUser(distributeJarPrompt, userInput);
+			disUsername = UI.getInputFromUser(distributeJarPrompt, userInput);
 			
 			distributeJarPrompt = "Would you like to distribute the PSTB jar to all nodes Y/n?";
 			boolean distributeJar = UI.getYNAnswerFromUser(distributeJarPrompt, userInput);
 			if(distributeJar)
 			{
-				String [] command = {"scripts/addPSTBToMachines.sh", username};
+				String [] command = {"scripts/addPSTBToMachines.sh", disUsername};
 				
 				Boolean addToNodesCheck = PSTBUtil.createANewProcess(command, logger, false,
 																			"Couldn't launch process to give all nodes PSTB: ", 
@@ -255,6 +258,11 @@ public class PSTB {
 		}
 		
 		// Benchmark
+		Long currTime = System.currentTimeMillis();
+		String currTimeString = PSTBUtil.DATE_FORMAT.format(currTime);
+		
+		String localUsername = System.getProperty("user.name");
+		
 		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
@@ -268,20 +276,30 @@ public class PSTB {
 			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
 				DistributedState givenDS = askedDistributed.get(topologyI);
-				PhysicalTopology localPT = new PhysicalTopology(username);
-				PhysicalTopology disPT = new PhysicalTopology(username);
+				PhysicalTopology localPT = null;
+				PhysicalTopology disPT = null;
+				try
+				{
+					localPT = new PhysicalTopology();
+					disPT = new PhysicalTopology();
+				}
+				catch (UnknownHostException e)
+				{
+					logger.error("Couldn't create PhysicalTopolgies: ", e);
+					endProgram(PSTBError.M_TOPO_PHY, userInput);
+				}
 				boolean checkLocalPT = true;
 				boolean checkDisPT = true;
 				
 				if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
 				{
 					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), askedProtocols.get(protocolI),
-																		topologyI, disHostsAndPorts);
+																		topologyI, disHostsAndPorts, currTimeString);
 				}
 				if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
 				{
 					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI), 
-																	topologyI, disHostsAndPorts);
+																	topologyI, disHostsAndPorts, currTimeString);
 				}
 				
 				if(!checkDisPT || !checkLocalPT)
@@ -295,12 +313,14 @@ public class PSTB {
 				
 				if(localPT.doObjectsExist())
 				{
-					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(), 
+					localPT.setUsername(localUsername);
+					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(),
 															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
 				}
 				if (disPT.doObjectsExist())
 				{
-					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(), 
+					disPT.setUsername(disUsername);
+					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(),
 															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
 				}
 				
@@ -313,32 +333,37 @@ public class PSTB {
 		}
 		
 		// Analysis
-		String analysisFileString = DEFAULT_ANALYSIS_FILE_STRING;
-		String customAnalysisFilePrompt = null;
-		boolean customAnalysisFileAns = customBenchPropAns;
-		
-		if(!customBenchPropAns)
+		String analysisPrompt = "Would you like to run an analysis on the data genertated Y/n?";
+		boolean analysis = UI.getYNAnswerFromUser(analysisPrompt, userInput);
+		if(analysis)
 		{
-			customAnalysisFilePrompt = "Would you like to use a custom analysis file Y/n?";
-			customAnalysisFileAns = UI.getYNAnswerFromUser(customAnalysisFilePrompt, userInput);
+			String analysisFileString = DEFAULT_ANALYSIS_FILE_STRING;
+			String customAnalysisFilePrompt = null;
+			boolean customAnalysisFileAns = customBenchPropAns;
+			
+			if(!customBenchPropAns)
+			{
+				customAnalysisFilePrompt = "Would you like to use a custom analysis file Y/n?";
+				customAnalysisFileAns = UI.getYNAnswerFromUser(customAnalysisFilePrompt, userInput);
+			}
+			
+			if(customAnalysisFileAns)
+			{
+				customAnalysisFilePrompt = "Please input the path to the new analysis file";
+				analysisFileString = UI.getAndCheckFilePathFromUser(customAnalysisFilePrompt, userInput);
+			}
+			
+			String[] kill = {"./analysis.sh", "256", analysisFileString};
+			
+			Boolean analyszeCheck = PSTBUtil.createANewProcess(kill, logger, false, "Couldn't run analysis :", "Analysis successfull.", 
+																	"Analysis failed!");
+			if(analyszeCheck == null || !analyszeCheck.booleanValue())
+			{
+				logger.error("Analysis failed!");
+				endProgram(PSTBError.M_ANALYSIS, userInput);
+			}
+			logger.info("Analysis successfull!!");
 		}
-		
-		if(customAnalysisFileAns)
-		{
-			customAnalysisFilePrompt = "Please input the path to the new analysis file";
-			analysisFileString = UI.getAndCheckFilePathFromUser(customAnalysisFilePrompt, userInput);
-		}
-		
-		String[] kill = {"./analysis.sh", "256", analysisFileString};
-		
-		Boolean analyszeCheck = PSTBUtil.createANewProcess(kill, logger, false, "Couldn't run analysis :", "Analysis successfull.", 
-																"Analysis failed!");
-		if(analyszeCheck == null || !analyszeCheck.booleanValue())
-		{
-			logger.error("Analysis failed!");
-			endProgram(PSTBError.M_ANALYSIS, userInput);
-		}
-		logger.info("Analsys successfull!!");
 		
 		logger.info("Benchmark complete!!!");
 		endProgram(EXCEUTED_PROPERLY_VALUE, userInput);
@@ -387,8 +412,8 @@ public class PSTB {
 	 * @param givenAnalyzer - the Benchmark's analyzer
 	 * @return false if there is a failure; true otherwise
 	 */
-	private static boolean conductExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, 
-												Integer givenNumberOfRunsPerExperiment, Workload givenWorkload)
+	private static boolean conductExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment,
+												Workload givenWorkload)
 	{
 		// We'll need this to collect the diaries latter, so...
 		Boolean givenPTDis = givenPT.getDistributed();
@@ -404,9 +429,10 @@ public class PSTB {
 		{
 			Long iTHRunLengthMilli = givenRLs.get(runLengthI);
 			Long iTHRunLengthNano = iTHRunLengthMilli * PSTBUtil.MILLISEC_TO_NANOSEC;
-			Long sleepLength = null;
+			Long sleepLengthMilli = iTHRunLengthMilli / 10;
+			Long bufferTimeNano = iTHRunLengthNano / 10;
 			
-			boolean functionCheck = givenPT.addRunLengthToAll(iTHRunLengthNano);
+			boolean functionCheck = givenPT.addRunLengthToAllNodes(iTHRunLengthNano);
 			if(!functionCheck)
 			{
 				logger.error("Error setting Run Length!");
@@ -424,7 +450,14 @@ public class PSTB {
 			for(int runI = 0 ; runI < givenNumberOfRunsPerExperiment ; runI++)
 			{
 				givenPT.setRunNumber(runI);
-								
+				
+				PSTBServer objectServer = new PSTBServer();
+				CountDownLatch start = new CountDownLatch(1);
+				objectServer.setStartSignal(start);
+				objectServer.generatePort();
+				objectServer.start();
+				givenPT.setPSTBServer(objectServer);
+																
 				functionCheck = givenPT.generateBrokerAndClientProcesses();
 				if(!functionCheck)
 				{
@@ -438,13 +471,19 @@ public class PSTB {
 					logger.error("Error starting run!");
 					return false;
 				}
-				
 				logger.debug("Run starting...");
 				
-				PSTBUtil.synchonizeRun(logger);
-				
-				sleepLength = (long) (iTHRunLengthNano / 10 / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
-				
+				try 
+				{
+					start.await();
+				} 
+				catch (InterruptedException e) 
+				{
+					logger.error("Interrupted waiting for start signal: ", e);
+				}
+				PSTBUtil.synchronizeRun(logger);
+	
+				Long startTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
 				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
 				{
@@ -462,27 +501,38 @@ public class PSTB {
 						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
 						return false;
 					}
-//					// If there are brokers with no clients, has the experiment already finished?
-//					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
-//					{
-//						Long currentTime = System.nanoTime();
-//						if((currentTime - startTime) < iTHRunLengthNano)
-//						{
-//							logger.error("Run " + runI + " finished early!");
-//							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-//							return false;
-//						}
-//						else
-//						{
-//							break; // We finished already - there's no need to sleep again
-//						}
-//					}
+					// If there are brokers with no clients, has the experiment already finished?
+					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
+					{
+						Long currentTime = System.nanoTime();
+						if((currentTime - startTime) < (iTHRunLengthNano - bufferTimeNano))
+						{
+							logger.error("Run " + runI + " finished early!");
+							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+							return false;
+						}
+						else
+						{
+							break; // We finished already - there's no need to sleep again
+						}
+					}
+					// Should the experiment be over already?
+					else
+					{
+						Long currentTime = System.nanoTime();
+						if((currentTime - startTime) > (iTHRunLengthNano + bufferTimeNano))
+						{
+							logger.error("Run " + runI + " hasn't finished within the experiment period!");
+							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+							return false;
+						}
+					}
 					
 					// So that we don't continuously check, let's put this thread to sleep for a tenth of the run
 					try 
 					{				
 						logger.trace("Pausing main.");
-						Thread.sleep(sleepLength);
+						Thread.sleep(sleepLengthMilli);
 					} 
 					catch (InterruptedException e) 
 					{

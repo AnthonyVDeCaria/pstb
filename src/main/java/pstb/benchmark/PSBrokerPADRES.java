@@ -30,6 +30,7 @@ public class PSBrokerPADRES implements java.io.Serializable {
 	private String brokerName;
 	private String[] neighbourURIs;
 	
+	private String benchmarkStartTime;
 	private String topologyFilePath;
 	private Boolean distributed;
 	private Long runLength;
@@ -59,6 +60,12 @@ public class PSBrokerPADRES implements java.io.Serializable {
 		port = newPort;
 		protocol = newProtocol;
 		brokerName = givenName;
+		
+		benchmarkStartTime = new String();
+		topologyFilePath = new String();
+		distributed = INIT_DISTRIBUTED;
+		runLength = INIT_RUN_LENGTH;
+		runNumber = INIT_RUN_NUMBER;
 	}
 	
 	/**
@@ -82,7 +89,17 @@ public class PSBrokerPADRES implements java.io.Serializable {
 	}
 	
 	/**
-	 * Sets a Topology file path (that the diary will need)
+	 * Sets a Benchmark Start Time (that the log will need)
+	 * 
+	 * @param givenBST - the benchmarkStartTime to set
+	 */
+	public void setBenchmarkStartTime(String givenBST) 
+	{
+		benchmarkStartTime = givenBST;
+	}
+	
+	/**
+	 * Sets a Topology file path (that the log will need)
 	 * 
 	 * @param givenTFP - the topologyFilePath to set
 	 */
@@ -92,7 +109,7 @@ public class PSBrokerPADRES implements java.io.Serializable {
 	}
 	
 	/**
-	 * Sets a distributed boolean (that the diary will need)
+	 * Sets a distributed boolean (that the log will need)
 	 * 
 	 * @param givenDis - the Distributed value to set
 	 */
@@ -225,7 +242,8 @@ public class PSBrokerPADRES implements java.io.Serializable {
 	public String generateContext()
 	{
 		//Check that we have everything
-		if(runLength.equals(INIT_RUN_LENGTH) 
+		if(benchmarkStartTime.isEmpty()
+				|| runLength.equals(INIT_RUN_LENGTH) 
 				|| runNumber.equals(INIT_RUN_NUMBER) 
 				|| topologyFilePath.isEmpty()
 				|| distributed.equals(INIT_DISTRIBUTED)
@@ -257,6 +275,14 @@ public class PSBrokerPADRES implements java.io.Serializable {
 		// Convert the nanosecond runLength into milliseconds
 		// WHY: neatness / it's what the user gave us->why confuse them?
 		Long milliRunLength = (long) (runLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
+		
+//		return benchmarkStartTime + "-"
+//				+ topologyFilePath + "-"
+//				+ distributedFlag.toString() + "-"
+//				+ protocol.toString() + "-"
+//				+ milliRunLength.toString() + "-"
+//				+ runNumber.toString() + "-"
+//				+ brokerName;
 		
 		return topologyFilePath + "-"
 				+ distributedFlag.toString() + "-"

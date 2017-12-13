@@ -1,15 +1,18 @@
 #!/bin/bash
 
-isBroker=$1
-memory=$2
-name=$3
-context=$4
-master=$5
+dis=$1
+isBroker=$2
+memory=$3
+name=$4
+context=$5
+master=$6
+port=$7
+user=$8
 
-if [ $# -ne 5 ]; 
+if [ $# -ne 8 ]; 
 then
-    echo "[Error] Not enough arguments provided! <isBroker> <memory> <name> <context/diary> <master>"
-    exit 1
+    echo "[Error] Not enough arguments provided! <isDistributed> <isBroker> <memory> <name> <context> <master> <port> <user>"
+    exit 10 #N_ARGS
 fi
 
 if [ $isBroker -eq 1 ];
@@ -17,25 +20,37 @@ then
 	echo "Starting broker $name"
 	
 	java -Xmx"$memory"M \
-			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar\
+			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
+			-Djava.rmi.server.codebase=file:lib/padres.jar \
+			-Djava.security.policy=etc/java.policy \
 			-Djava.awt.headless=true \
 			pstb.benchmark.PhysicalBroker \
 			-n $name \
 			-c $context \
-			-m $master
-			
-	echo "$?"
+			-m $master \
+			-p $port \
+			-d $dis \
+			-u $user
+	
+	exitVal=$?
+	echo "$exitVal"
+	exit $exitVal
 else
 	echo "Starting client $name"
 	
 	java -Xmx"$memory"M \
-			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar\
+			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
 			-Xverify:none \
 			pstb.benchmark.PhysicalClient \
 			-n $name \
-			-d $context \
-			-m $master
+			-c $context \
+			-m $master \
+			-p $port \
+			-d $dis \
+			-u $user
 			
-	echo "$?"
+	exitVal=$?
+	echo "$exitVal"
+	exit $exitVal
 fi
 

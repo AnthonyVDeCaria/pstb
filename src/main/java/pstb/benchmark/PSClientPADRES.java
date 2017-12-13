@@ -56,6 +56,7 @@ public class PSClientPADRES implements java.io.Serializable
 	private String topologyFilePath;
 	private NetworkProtocol protocol;
 	private Boolean distributed;
+	private String benchmarkStartTime;
 	
 	private PADRESClientExtension actualClient;
 	private ArrayList<BrokerState> connectedBrokers;
@@ -96,6 +97,7 @@ public class PSClientPADRES implements java.io.Serializable
 		topologyFilePath = new String();
 		protocol = INIT_PROTOCOL;
 		distributed = INIT_DISTRIBUTED;
+		benchmarkStartTime = new String();
 	}
 	
 	/**
@@ -187,6 +189,16 @@ public class PSClientPADRES implements java.io.Serializable
 	public void setDistributed(Boolean givenDis)
 	{
 		distributed = givenDis;
+	}
+	
+	/**
+	 * Sets the time the benchmark started (that the diary will need)
+	 * 
+	 * @param givenBST - a String version of the time the Benchmark started
+	 */
+	public void setBenchmarkStartTime(String givenBST)
+	{
+		benchmarkStartTime = givenBST;
 	}
 	
 	/**
@@ -303,11 +315,12 @@ public class PSClientPADRES implements java.io.Serializable
 	public String generateDiaryName()
 	{
 		//Check that we have everything
-		if(runLength.equals(INIT_RUN_LENGTH) 
-				|| runNumber.equals(INIT_RUN_NUMBER) 
+		if(benchmarkStartTime.isEmpty()
 				|| topologyFilePath.isEmpty()
 				|| protocol.equals(INIT_PROTOCOL)
 				|| distributed.equals(INIT_DISTRIBUTED)
+				|| runLength.equals(INIT_RUN_LENGTH) 
+				|| runNumber.equals(INIT_RUN_NUMBER) 
 				|| clientName.isEmpty()
 			)
 		{
@@ -337,6 +350,14 @@ public class PSClientPADRES implements java.io.Serializable
 		// Convert the nanosecond runLength into milliseconds
 		// WHY: neatness / it's what the user gave us->why confuse them?
 		Long milliRunLength = (long) (runLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
+		
+//		return benchmarkStartTime + "-"
+//				+ topologyFilePath + "-"
+//				+ distributedFlag.toString() + "-"
+//				+ protocol.toString() + "-"
+//				+ milliRunLength.toString() + "-"
+//				+ runNumber.toString() + "-"
+//				+ clientName;
 		
 		return topologyFilePath + "-"
 				+ distributedFlag.toString() + "-"
@@ -519,7 +540,12 @@ public class PSClientPADRES implements java.io.Serializable
 			numSubsToSend = givenSubWorkload.size();
 		}
 		
-		PSTBUtil.synchonizeRun(logger);
+		boolean synchroCheck = PSTBUtil.synchronizeRun(logger);
+		if(!synchroCheck)
+		{
+			logger.error(logHeader + "Couldn't synchronize properly!");
+			return false;
+		}
 		
 		/*
 		 * Run Pseudocode

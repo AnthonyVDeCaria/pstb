@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +34,12 @@ public class PSTBUtil {
 	
 	public static final String SPACE = " ";
 	public static final String COMMA = ",";
+	
+	public static final String LOCAL = "localhost";
+	
+	public static final String ACKNOWLEDGE = "ACK";
+	public static final String START = "start";
+	public static final String ERROR = "ERROR";
 	
 	/**
 	 * Sees if a given string is an Integer
@@ -103,15 +110,15 @@ public class PSTBUtil {
 	}
 	
 	/**
-	 * Sees if an int is within a certain bound
+	 * Sees if an int is within a certain range
+	 * @param testVariable - the integer being tested
 	 * @param lowerBound - the lower bound
 	 * @param upperBound - the upper bound
-	 * @param testVariable - the variable being testing
 	 * @return true if it is; false otherwise
 	 */
-	public static boolean isWithinInclusiveBound(int lowerBound, int upperBound, int testVariable)
+	public static boolean isWithinRangeInclusive(int testVariable, int lowerBound, int upperBound)
 	{
-		return (testVariable >= lowerBound) && (testVariable <= lowerBound);
+		return (testVariable >= lowerBound) && (testVariable <= upperBound);
 	}
 	
 	/**
@@ -133,7 +140,6 @@ public class PSTBUtil {
 		{
 			ObjectOutputStream oOut = new ObjectOutputStream(out);
 			oOut.writeObject(givenObject);
-			oOut.close();
 		}
 		catch (Exception e) 
 		{
@@ -171,6 +177,14 @@ public class PSTBUtil {
 		}
 		
 		return diaryI;
+	}
+	
+	public static boolean sendStringAcrossSocket(OutputStream givenOutputStream, String givenString, Logger log, String logHeader)
+	{
+		PrintWriter out = new PrintWriter(givenOutputStream, true);
+		out.println(givenString);
+		
+		return true;
 	}
 	
 	/**
@@ -542,16 +556,22 @@ public class PSTBUtil {
 		}
 	}
 	
-	public static void synchonizeRun(Logger logger)
+	public static boolean synchronizeRun(Logger logger)
 	{
 		Calendar cal = Calendar.getInstance();
 		int seconds = -1;
 		
-		while(seconds != 00 && seconds != 30)
+		while(!isWithinRangeInclusive(seconds, 00, 05) && !isWithinRangeInclusive(seconds, 30, 35))
 		{
+			if(isWithinRangeInclusive(seconds, 06, 10) || isWithinRangeInclusive(seconds, 36, 40))
+			{
+				// Failure to launch
+				return false;
+			}
 			cal.setTimeInMillis(System.currentTimeMillis());
 			seconds = cal.get(Calendar.SECOND);
-			logger.trace("Syncro: Seconds is " + seconds + ".");
 		}
+		
+		return true;
 	}
 }

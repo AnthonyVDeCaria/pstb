@@ -7,16 +7,17 @@ memory=$4
 name=$5
 context=$6
 master=$7
+port=$8
 
-if [ $# -ne 7 ]; 
+if [ $# -ne 8 ]; 
 then
-    echo "[Error] Not enough arguments provided! <user> <machine> <isBroker> <memory> <name> <context/diary> <master>"
-    exit 1
+    echo "[Error] Not enough arguments provided! <user> <machine> <isBroker> <memory> <name> <context> <master> <port>"
+    exit 10 #N_ARGS
 fi
 
 ssh -t -t $user@$machine <<-EOF
 	cd ~/PSTB
-	./startNode.sh $isBroker $memory $name $context $master
+	./startNode.sh "true" $isBroker $memory $name $context $master $port $user
 	exit
 EOF
 

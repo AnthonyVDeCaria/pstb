@@ -6,8 +6,6 @@ import pstb.util.PSTBUtil;
 import pstb.util.ClientNotes;
 import pstb.util.Workload;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -37,19 +35,21 @@ public class PhysicalTopology {
 	private final Integer MEM_BROKER = 256;
 	
 	private LogicalTopology startingTopology;
+	private PSTBServer masterServer;
 	
 	private NetworkProtocol protocol;
 	private Boolean distributed;
 	private String topologyFilePath;
+	private String benchmarkStartTime;
 	
 	private Integer runNumber;
 	private final Integer INIT_RUN_NUMBER = -1;
 	
 	private String user;
 	
+	private String ipAddress;
 	private final Integer LOCAL_START_PORT = 1100;
 	private Integer localPortNum = LOCAL_START_PORT;
-	private final String LOCAL = "localhost";
 	private HashMap<String, ArrayList<Integer>> hostsAndPorts;
 	private ArrayList<String> freeHosts;
 	private int freeHostI = -1;
@@ -67,7 +67,7 @@ public class PhysicalTopology {
 	/**
 	 * Empty Constructor
 	 */
-	public PhysicalTopology(String givenUser) 
+	public PhysicalTopology() throws UnknownHostException
 	{
 		brokerObjects = new HashMap<String, PSBrokerPADRES>();
 		clientObjects = new HashMap<String, PSClientPADRES>();
@@ -77,11 +77,13 @@ public class PhysicalTopology {
 		activeClients = new HashMap<String, Process>();
 		
 		startingTopology = new LogicalTopology();
+		masterServer = null;
 		
 		runNumber = INIT_RUN_NUMBER;
 		protocol = null;
 		distributed = null;
 		topologyFilePath = new String();
+		benchmarkStartTime = new String();
 		
 		hostsAndPorts = new HashMap<String, ArrayList<Integer>>();
 		freeHosts = new ArrayList<String>();
@@ -90,7 +92,8 @@ public class PhysicalTopology {
 		givenMachines = new ArrayList<String>();
 		nodeMachine = new HashMap<String, String>();
 		
-		user = givenUser;
+		InetAddress masterAddress = InetAddress.getLocalHost();
+		ipAddress = masterAddress.getHostAddress();
 	}
 	
 	/**
@@ -101,6 +104,16 @@ public class PhysicalTopology {
 	public void setRunNumber(Integer runNum)
 	{
 		runNumber = runNum;
+	}
+	
+	public void setUsername(String givenUsername) 
+	{
+		user = givenUsername;
+	}
+	
+	public void setPSTBServer(PSTBServer givenServer)
+	{
+		masterServer = givenServer;
 	}
 	
 	/**
@@ -178,6 +191,42 @@ public class PhysicalTopology {
 		return startingTopology.getBrokers().size();
 	}
 	
+	public boolean doesBrokerObjectExist(String brokerName)
+	{
+		return brokerObjects.containsKey(brokerName);
+	}
+	
+	public PSBrokerPADRES getParticularBroker(String brokerName)
+	{
+		return brokerObjects.get(brokerName);
+	}
+	
+	public boolean doesClientObjectExist(String clientName)
+	{
+		return clientObjects.containsKey(clientName);
+	}
+	
+	public PSClientPADRES getParticularClient(String clientName)
+	{
+		return clientObjects.get(clientName);
+	}
+	
+	public Process getParticularNodeProcess(String nodeName)
+	{
+		if(activeBrokers.containsKey(nodeName))
+		{
+			return activeBrokers.get(nodeName);
+		}
+		else if(activeClients.containsKey(nodeName))
+		{
+			return activeClients.get(nodeName);
+		}
+		else
+		{
+			return null;
+		}
+	}
+	
 	/**
 	 * This code develops the Physical Topology
 	 * I.e. creates all the Broker and Client Objects
@@ -190,13 +239,15 @@ public class PhysicalTopology {
 	 * @return false if an error occurs, true otherwise
 	 */
 	public boolean developPhysicalTopology(boolean givenDistributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol,
-												String givenTFP, HashMap<String, ArrayList<Integer>> givenHostsAndPorts)
+												String givenTFP, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
+												String givenBST)
 	{
 		startingTopology = givenTopo;
 		
 		protocol = givenProtocol;
 		distributed = givenDistributed;
 		topologyFilePath = PSTBUtil.cleanTFS(givenTFP);
+		benchmarkStartTime = givenBST;
 		
 		hostsAndPorts = givenHostsAndPorts;
 		freeHosts = new ArrayList<String>(givenHostsAndPorts.keySet());
@@ -208,22 +259,18 @@ public class PhysicalTopology {
 		boolean checkGB = developBrokers();
 		if(!checkGB)
 		{
-			logger.error(logHeader + "Error generating physical Brokers");
+			logger.error(logHeader + "Error generating physical Brokers!");
 			return false;
 		}
-		
-		brokerObjects.forEach((brokerName, brokerObject)->{
-			System.out.println(brokerName + " " + brokerObject.getBrokerURI());
-		});
 		
 		boolean checkGC = developClients();
 		if(!checkGC)
 		{
-			logger.error(logHeader + "Error generating physical Clients");
+			logger.error(logHeader + "Error generating physical Clients!");
 			return false;
 		}
 		
-		logger.info(logHeader + "Physical Topology developed successfully");
+		logger.info(logHeader + "Physical Topology developed successfully.");
 		return true;
 	}
 	
@@ -282,7 +329,8 @@ public class PhysicalTopology {
 			
 			brokerI.setDistributed(distributed);
 			brokerI.setTopologyFilePath(topologyFilePath);
-			
+			brokerI.setBenchmarkStartTime(benchmarkStartTime);
+						
 			brokerObjects.put(brokerIName, brokerI);
 		}
 		
@@ -325,7 +373,7 @@ public class PhysicalTopology {
 	{
 		Integer retVal = localPortNum;
 		
-		if(givenHost.equals(LOCAL))
+		if(givenHost.equals(PSTBUtil.LOCAL))
 		{
 			localPortNum++;
 		}
@@ -378,7 +426,7 @@ public class PhysicalTopology {
 			
 			if(numClientIConnections <= 0)
 			{
-				logger.error(logHeader + "Client " + clientIName + " has no connections");
+				logger.error(logHeader + "Client " + clientIName + " has no connections!");
 				return false;
 			}
 			
@@ -404,7 +452,8 @@ public class PhysicalTopology {
 			clientI.setDistributed(distributed);
 			clientI.setNetworkProtocol(protocol);
 			clientI.setTopologyFilePath(topologyFilePath);
-							
+			clientI.setBenchmarkStartTime(benchmarkStartTime);
+										
 			clientObjects.put(clientIName, clientI);
 			
 			String clientIMachine = getClientMachine();
@@ -422,7 +471,7 @@ public class PhysicalTopology {
 	 * @param givenRL - the runLength value to add
 	 * @return false if there's an error; true otherwise
 	 */
-	public boolean addRunLengthToAll(Long givenRL)
+	public boolean addRunLengthToAllNodes(Long givenRL)
 	{
 		if(clientObjects.isEmpty())
 		{
@@ -472,7 +521,7 @@ public class PhysicalTopology {
 		return true;
 	}
 	
-	private boolean addRunNumberToAll()
+	private boolean addRunNumberToAllNodes()
 	{
 		if(clientObjects.isEmpty())
 		{
@@ -539,24 +588,30 @@ public class PhysicalTopology {
 		if(brokerObjects.isEmpty())
 		{
 			logger.error(logHeader + "generateBrokerAndClientProcesses() needs brokers to be created first. " +
-							"Please run developPhysicalTopology() first.");
+							"Please run developPhysicalTopology() first!");
 			return false;
 		}
 		
 		if(clientObjects.isEmpty())
 		{
 			logger.error(logHeader + "generateBrokerAndClientProcesses() needs clients to be created first. " +
-							"Please run developPhysicalTopology().");
+							"Please run developPhysicalTopology()!");
 			return false;
 		}
 		
 		if(runNumber.compareTo(INIT_RUN_NUMBER) <= 0)
 		{
-			logger.error(logHeader + "generateBrokerAndClientProcesses() needs a runNumber. Please run setRunNumber().");
+			logger.error(logHeader + "generateBrokerAndClientProcesses() needs a runNumber. Please run setRunNumber()!");
 			return false;
 		}
 		
-		addRunNumberToAll(); // I'm cheating, but this should always return true as we're already checking above for clients.
+		if(masterServer == null)
+		{
+			logger.error(logHeader + "generateBrokerAndClientProcesses() needs a PSTBServer!");
+			return false;
+		}
+		
+		addRunNumberToAllNodes(); // I'm cheating, but this should always return true as we're already checking above for clients.
 		
 		Iterator<String> iteratorBO = brokerObjects.keySet().iterator();
 		for( ; iteratorBO.hasNext() ; )
@@ -565,7 +620,6 @@ public class PhysicalTopology {
 			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			
 			ProcessBuilder brokerIProcess = generateNodeProcess(brokerIName, brokerI, true);
-			
 			if(brokerIProcess == null)
 			{
 				logger.error(logHeader + "Couldn't create broker process for " + brokerIName + "!");
@@ -584,7 +638,6 @@ public class PhysicalTopology {
 			PSClientPADRES clientI = clientObjects.get(clientIName);
 			
 			ProcessBuilder clientIProcess = generateNodeProcess(clientIName, clientI, false);
-			
 			if(clientIProcess == null)
 			{
 				logger.error(logHeader + "Couldn't create client process for " + clientIName + "!");
@@ -595,6 +648,9 @@ public class PhysicalTopology {
 				clientProcesses.put(clientIName, clientIProcess);
 			}
 		}
+		
+		masterServer.setBrokerData(brokerObjects);
+		masterServer.setClientData(clientObjects);
 		
 		logger.info(logHeader + "Successfully generated broker and client processes.");
 		return true;
@@ -614,6 +670,7 @@ public class PhysicalTopology {
 		if(!distributed)
 		{
 			command.add("./startNode.sh");
+			command.add("false");
 			
 			if(isBroker)
 			{
@@ -623,7 +680,6 @@ public class PhysicalTopology {
 				
 				PSBrokerPADRES broker = (PSBrokerPADRES) node;
 				String context = broker.generateContext();
-				
 				command.add(context);
 			}
 			else
@@ -637,8 +693,6 @@ public class PhysicalTopology {
 				
 				command.add(diary);
 			}
-			
-			command.add("localhost");
 		}
 		else
 		{
@@ -670,21 +724,22 @@ public class PhysicalTopology {
 				
 				command.add(diary);
 			}
-			
-			InetAddress masterAddress = null;
-			try 
-			{
-				masterAddress = InetAddress.getLocalHost();
-			} 
-			catch (UnknownHostException e) 
-			{
-				logger.error(logHeader + "Couldn't access master IP Address: ", e);
-				return null;
-			}
-			
-			String address = masterAddress.getHostAddress();
-			command.add(address);
 		}
+		
+		command.add(ipAddress);
+		
+		Integer port = masterServer.getPort();
+		if(port == null)
+		{
+			return null;
+		}
+		command.add(port.toString());
+		
+		if(user == null || user.isEmpty())
+		{
+			return null;
+		}
+		command.add(user);
 		
 		String[] finalCommand = command.toArray(new String[0]);
 		
@@ -723,13 +778,12 @@ public class PhysicalTopology {
 		for( ; brokerIterator.hasNext() ; )
 		{
 			String brokerIName = brokerIterator.next();
-			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			ProcessBuilder brokerIProcess = brokerProcesses.get(brokerIName);
 			
-			boolean handleCheck = handleGivenObjectStartup(brokerIName, brokerI, brokerIProcess, true);
+			boolean handleCheck = startGivenNodeProcess(brokerIName, brokerIProcess, true);
 			if(!handleCheck)
 			{
-				logger.error(logHeader + "Error in the broker " + brokerIName + " startup!");
+				logger.error(logHeader + "Couldn't start broker" + brokerIName + "!");
 				return false;
 			}
 		}
@@ -738,160 +792,46 @@ public class PhysicalTopology {
 		for( ; clientIterator.hasNext() ; )
 		{
 			String clientIName = clientIterator.next();
-			PSClientPADRES clientI = clientObjects.get(clientIName);
 			ProcessBuilder clientIProcess = clientProcesses.get(clientIName);
 			
-			boolean handleCheck = handleGivenObjectStartup(clientIName, clientI, clientIProcess, false);
+			boolean handleCheck = startGivenNodeProcess(clientIName, clientIProcess, false);
 			if(!handleCheck)
 			{
-				logger.error(logHeader + "Error in the client " + clientIName + " startup!");
+				logger.error(logHeader + "Couldn't start client " + clientIName + "!");
 				return false;
 			}
 		}
 		
-		logger.info(logHeader + "Everything launched");
+		logger.info(logHeader + "Everything launched.");
 		return true;
 	}
 	
-	/**
-	 * Given a node Object - starts the process associated with it
-	 * 
-	 * @param givenNodeName - the name of the node Object
-	 * @param givenNode - the node Object itself
-	 * @param givenNodeProcess - the ProcessBuilder associated with this node
-	 * @param isBroker - Is the given node a Broker?
-	 * @return false on failure; true otherwise
-	 */
-	private boolean handleGivenObjectStartup(String givenNodeName, Object givenNode, ProcessBuilder givenNodeProcess, 
-												boolean isBroker)
+	private boolean startGivenNodeProcess(String nodeName, ProcessBuilder nodeProcess, boolean isBroker) 
 	{
-		/*
-		 * Setup
-		 * 
-		 * Send object -> local
-		 * Create socket -> distributed
-		 */
-		logger.debug(logHeader + "Starting setup for node " + givenNodeName + "...");
-		boolean setupProcessCheck = setupProcess(givenNodeName, givenNode, isBroker);
-		if(!setupProcessCheck)
-		{
-			shutdown();
-			return false;
-		}
-		logger.debug(logHeader + "Process setup complete.");
-		
-		// Run
 		Process temp;
 		try 
 		{
-			temp = givenNodeProcess.start();
+			temp = nodeProcess.start();
 		} 
 		catch (IOException e) 
 		{
-			logger.error(logHeader + "Couldn't start node " + givenNodeName + ": ", e);
-			shutdown();
+			logger.error(logHeader + "Couldn't start node " + nodeName + ": ", e);
 			return false;
 		}
-		logger.debug(logHeader + "Node " + givenNodeName + " process started.");
+		logger.info(logHeader + "Node " + nodeName + " process started.");
 		
-		// Save Process
 		if(isBroker)
 		{
-			activeBrokers.put(givenNodeName, temp);
+			activeBrokers.put(nodeName, temp);
 		}
 		else
 		{
-			activeClients.put(givenNodeName, temp);
+			activeClients.put(nodeName, temp);
 		}
 		
 		return true;
 	}
-	
-	/**
-	 * Starts the Process Setup.
-	 * For the local set up, this means serializing the object into a file.
-	 * For the distributed set up, this means creating a ServerSocket and returning it.
-	 * 
-	 * @param nodeName - the name of the node
-	 * @param node - the Object to send
-	 * @param isBroker - Is the Object we're sending a Broker Object? 
-	 * @return If everything goes well - a ServerSocket to be used again in handleGivenObjectStartup. 
-	 * If this is not a distributed topology, the ServerSocket returned will be an empty socket not to be used.
-	 * If there is an error at any point - null will be returned. 
-	 */
-	private boolean setupProcess(String nodeName, Object node, boolean isBroker)
-	{
-		String fileExtension = new String();
-		
-		if(isBroker)
-		{
-			fileExtension = ".bro";
-		}
-		else
-		{
-			fileExtension = ".cli";
-		}
-		
-		String objectFileString = nodeName + fileExtension;
-		
-		FileOutputStream fileOut = null;
-		try 
-		{
-			fileOut = new FileOutputStream(objectFileString);
-		} 
-		catch (FileNotFoundException e) 
-		{
-			logger.error(logHeader + "Couldn't create output file for node " + nodeName + ": ", e);
-			return false;
-		}
-		
-		boolean objectSentCheck = PSTBUtil.sendObject(node, nodeName, fileOut, logger, logHeader);
-		
-		if(!objectSentCheck)
-		{
-			logger.error(logHeader + "Couldn't send given node object through a file!");
-			return false;
-		}
-		else
-		{
-			try 
-			{
-				fileOut.close();
-			} 
-			catch (IOException e) 
-			{
-				logger.error(logHeader + "error closing node FileOutputStream: ", e);
-				return false;
-			}
-		}
-		
-		if(distributed)
-		{
-			ArrayList<String> command = new ArrayList<String>();
-			String machineName = nodeMachine.get(nodeName);
-			
-			command.add("scp");
-			command.add("-r");
-			command.add(objectFileString);
-			command.add(user + "@" + machineName + ":~/PSTB");
-			
-			String[] finalCommand = command.toArray(new String [0]);
-			boolean sendNodeIObjectCheck = PSTBUtil.createANewProcess(finalCommand, logger, false,
-														logHeader + "Couldn't create a new process to send " + nodeName + " its object: ", 
-														logHeader + "Sent " + nodeName + " its object.", 
-														logHeader + "Couldn't send " + nodeName + " its object.");
-			
-			return sendNodeIObjectCheck;
-		}
-		
-		return true;
-	}
-	
-	public void shutdown()
-	{
-		
-	}
-	
+
 	/**
 	 * The values checkActiveProcesses can return
 	 */
@@ -912,6 +852,8 @@ public class PhysicalTopology {
 		ArrayList<String> completedBrokers = new ArrayList<String>();
 		ArrayList<String> completedClients = new ArrayList<String>();
 		
+		Boolean brokerCheck;
+		Boolean clientCheck;
 		boolean brokersOK = true;
 		boolean clientsOK = true;
 		
@@ -921,18 +863,12 @@ public class PhysicalTopology {
 			String brokerIName = iteratorAB.next();
 			Process brokerI = activeBrokers.get(brokerIName);
 			
-			Integer checkProcessInt = checkProcessI("pstb.benchmark.PhysicalBroker", brokerIName, brokerI);
-			if(checkProcessInt == null)
+			brokerCheck = isNodeActive(true, brokerIName, brokerI);
+			if(brokerCheck == null)
 			{
-				logger.error(logHeader + "Error running checkProcessI!");
 				brokersOK = false;
 			}
-			else if(checkProcessInt != 0 && checkProcessInt != INIT_TERMINATION_VALUE)
-			{
-				logger.error(logHeader + "Broker " + brokerIName + " terminated with an error!");
-				brokersOK = false;
-			}
-			else if(checkProcessInt == 0)
+			else if(!brokerCheck.booleanValue())
 			{
 				completedBrokers.add(brokerIName);
 			}
@@ -944,18 +880,12 @@ public class PhysicalTopology {
 			String clientIName = iteratorAC.next();
 			Process clientI = activeClients.get(clientIName);
 			
-			Integer checkProcessInt = checkProcessI("pstb.benchmark.PhysicalClient", clientIName, clientI);
-			if(checkProcessInt == null)
+			clientCheck = isNodeActive(false, clientIName, clientI);
+			if(clientCheck == null)
 			{
-				logger.error(logHeader + "Error running checkProcessI!");
 				clientsOK = false;
 			}
-			else if(checkProcessInt != 0 && checkProcessInt != INIT_TERMINATION_VALUE)
-			{
-				logger.error(logHeader + "Client " + clientIName + " terminated with an error!");
-				clientsOK = false;
-			}
-			else if(checkProcessInt == 0)
+			else if(!clientCheck.booleanValue())
 			{
 				completedClients.add(clientIName);
 			}
@@ -992,6 +922,39 @@ public class PhysicalTopology {
 		{
 			return ActiveProcessRetVal.StillRunning;
 		}
+	}
+	
+	public Boolean isNodeActive(boolean isBroker, String nodeIName, Process nodeI)
+	{
+		Integer checkProcessInt = null;
+		String nodeType = new String();
+		if(isBroker)
+		{
+			checkProcessInt = checkProcessI("pstb.benchmark.PhysicalBroker", nodeIName, nodeI);
+			nodeType = "Broker ";
+		}
+		else
+		{
+			checkProcessInt = checkProcessI("pstb.benchmark.PhysicalClient", nodeIName, nodeI);
+			nodeType = "Client ";
+		}
+		
+		if(checkProcessInt == null)
+		{
+			logger.error(logHeader + "Error running checkProcessI!");
+			return null;
+		}
+		else if(checkProcessInt != 0 && checkProcessInt != INIT_TERMINATION_VALUE)
+		{
+			logger.error(logHeader + nodeType + nodeIName + " terminated with an error!");
+			return null;
+		}
+		else if(checkProcessInt == 0)
+		{
+			return false;
+		}
+		
+		return true;
 	}
 	
 	private Integer checkProcessI(String nodeIClass, String nodeIName, Process nodeI)
@@ -1041,9 +1004,11 @@ public class PhysicalTopology {
 			return null;
 	    }
 		
+		logger.debug(logHeader + "exitValue = " + retVal + "."); 
+		
 		if(retVal != 0 && retVal != INIT_TERMINATION_VALUE)
 		{
-			logger.error(logHeader + "node " + nodeIName + " terminated with error " + retVal);
+			logger.error(logHeader + "node " + nodeIName + " terminated with error " + retVal + "!");
 		}
 		
 		return retVal;
@@ -1073,6 +1038,7 @@ public class PhysicalTopology {
 	{
 		brokerProcesses.clear();
 		clientProcesses.clear();
+		masterServer = null;
 	}
 
 }

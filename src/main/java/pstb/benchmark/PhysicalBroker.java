@@ -1,15 +1,15 @@
 package pstb.benchmark;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import pstb.util.PSTBError;
+import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -36,92 +36,76 @@ import pstb.util.PSTBError;
  */
 public class PhysicalBroker {
 	private static final String logHeader = "PhyBroker: ";
-	private static final Logger logger = LogManager.getLogger(PhysicalBroker.class);
+	private static final Logger log = LogManager.getLogger(PhysicalBroker.class);
 	
-	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException
+	public static void main(String[] args)
 	{
-		String givenBrokerName = null;
-		String givenContext = null;
-		String masterMachineName = null;
+		Long currentTime = System.currentTimeMillis();
+		String formattedTime = PSTBUtil.DATE_FORMAT.format(currentTime);
+		ThreadContext.put("broker", formattedTime);
 		
-		for (int i = 0; i < args.length; i++) 
+		Physical helper = new Physical(log, logHeader);
+		boolean argCheck = helper.parseArguments(args);
+		if(!argCheck)
 		{
-			if (args[i].equals("-n")) 
-			{
-				givenBrokerName = args[i + 1];
-			}
-			if (args[i].equals("-c")) 
-			{
-				givenContext = args[i + 1];
-			}
-			if (args[i].equals("-m")) 
-			{
-				masterMachineName = args[i + 1];
-			}
-		}
-		
-		if(givenBrokerName == null)
-		{
-			logger.error(logHeader + "no name was given!");
-			System.exit(PSTBError.B_ARGS);
-		}
-		if(givenContext == null)
-		{
-			logger.error(logHeader + "no context was given!");
-			System.exit(PSTBError.B_ARGS);
-		}
-		if(masterMachineName == null)
-		{
-			logger.error(logHeader + "no masterMachineName was given!");
+			log.error(logHeader + "Not given proper arguments");
 			System.exit(PSTBError.B_ARGS);
 		}
 		
+		String givenContext = helper.getContext();
 		ThreadContext.put("broker", givenContext);
 		Thread.currentThread().setName(givenContext);
 		
 		// Now let's get the Broker Object
 		PSBrokerPADRES givenBroker = null;
-		try 
+		
+		boolean socketCreationCheck = helper.createSocket(); 
+		if(!socketCreationCheck)
 		{
-			FileInputStream fileIn = new FileInputStream(givenBrokerName + ".bro");
-			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
-			givenBroker = (PSBrokerPADRES) oISIn.readObject();
-			oISIn.close();
-			fileIn.close();
+			System.exit(PSTBError.B_SOCKET);
 		}
-		catch (FileNotFoundException e) 
+		Socket connection = helper.getMasterConnection();
+		
+		OutputStream connOut = null;
+		try
 		{
-			logger.error(logHeader + "Couldn't find " + givenBrokerName + "broker object file: ", e);
-			System.exit(PSTBError.B_FILE);
+			connOut = connection.getOutputStream();
 		}
-		catch (IOException e)
+		catch(IOException e)
 		{
-			logger.error(logHeader + "error accessing ObjectInputStream: ", e);
-			System.exit(PSTBError.B_IO);
-		}
-		catch(ClassNotFoundException e)
-		{
-			logger.error(logHeader + "can't find class: ", e);
-			System.exit(PSTBError.B_CNF);
+			log.error(logHeader + "Couldn't create an OutputStream from connection!");
+			System.exit(PSTBError.B_SOCKET);
 		}
 		
-		givenBroker.setBrokerLogger(logger);
+		String givenBrokerName = helper.getName();
+		PSTBUtil.sendStringAcrossSocket(connOut, givenBrokerName, log, logHeader);
+		
+		Object check = helper.getObjectFromMaster();
+		if(check == null)
+		{
+			log.error(logHeader + "Didn't get object from master!");
+			System.exit(PSTBError.B_OBJECT);
+		}
+		givenBroker = (PSBrokerPADRES) check;
+		
+		// Have broker, will run(?)
+		givenBroker.setBrokerLogger(log);
 		
 		boolean functionSuccessful = givenBroker.createBroker();
 		if(!functionSuccessful)
 		{
-			logger.error(logHeader + "error creating broker");
+			log.error(logHeader + "error creating broker");
 			System.exit(PSTBError.B_CREATE);
 		}
 		
 		functionSuccessful = givenBroker.startBroker();
 		if(!functionSuccessful)
 		{
-			logger.error(logHeader + "error starting broker");
+			log.error(logHeader + "error starting broker");
 			System.exit(PSTBError.B_START);
 		}
 		
-		logger.info(logHeader + "broker " + givenBroker.getName() + " started!");
+		log.info(logHeader + "broker " + givenBroker.getName() + " started!");
 	}
 }
 

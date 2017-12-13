@@ -1,10 +1,10 @@
 package pstb.benchmark;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,9 +41,8 @@ import pstb.util.PSTBUtil;
  * 			Exit with success
  */
 public class PhysicalClient {
-	private static final String localhost = "localhost";
 	private static final String logHeader = "PhyClient: ";
-	private static final Logger logger = LogManager.getLogger(PhysicalClient.class);
+	private static final Logger log = LogManager.getLogger(PhysicalClient.class);
 	
 	/**
 	 * The Main function
@@ -51,86 +50,76 @@ public class PhysicalClient {
 	 */
 	public static void main(String[] args)
 	{
-		String givenClientName = null;
-		String givenDiaryName = null;
-		String masterMachineName = null;
+		Long currentTime = System.currentTimeMillis();
+		String formattedTime = PSTBUtil.DATE_FORMAT.format(currentTime);
+		ThreadContext.put("client", formattedTime);
 		
-		for (int i = 0; i < args.length; i++) 
+		Physical helper = new Physical(log, logHeader);
+		boolean argCheck = helper.parseArguments(args);
+		if(!argCheck)
 		{
-			if (args[i].equals("-n")) 
-			{
-				givenClientName = args[i + 1];
-			}
-			if (args[i].equals("-d")) 
-			{
-				givenDiaryName = args[i + 1];
-			}
-			if (args[i].equals("-m")) 
-			{
-				masterMachineName = args[i + 1];
-			}
-		}
-		
-		if(givenClientName == null)
-		{
-			logger.error(logHeader + "no Client Name was given!");
-			System.exit(PSTBError.C_ARGS);
-		}
-		if(givenDiaryName == null)
-		{
-			logger.error(logHeader + "no Diary Name was given!");
-			System.exit(PSTBError.C_ARGS);
-		}
-		if(masterMachineName == null)
-		{
-			logger.error(logHeader + "no masterMachineName was given!");
+			log.error(logHeader + "Not given proper arguments");
 			System.exit(PSTBError.C_ARGS);
 		}
 		
-		ThreadContext.put("client", givenDiaryName);
-		Thread.currentThread().setName(givenDiaryName);
+		String context = helper.getContext();
+		ThreadContext.put("client", context);
+		Thread.currentThread().setName(context);
 		
 		// Now let's get the Client Object
-		PSClientPADRES givenClient = null;	
-		try 
+		PSClientPADRES givenClient = null;
+		
+		boolean socketCreationCheck = helper.createSocket(); 
+		if(!socketCreationCheck)
 		{
-			FileInputStream fileIn = new FileInputStream(givenClientName + ".cli");
-			ObjectInputStream oISIn = new ObjectInputStream(fileIn);
-			givenClient = (PSClientPADRES) oISIn.readObject();
-			oISIn.close();
-			fileIn.close();
+			System.exit(PSTBError.C_SOCKET);
 		}
-		catch (FileNotFoundException e) 
+		Socket connection = helper.getMasterConnection();
+		
+		OutputStream connOut = null;
+		try
 		{
-			logger.error(logHeader + "Couldn't find " + givenClientName + " client object file: ", e);
-			System.exit(PSTBError.C_FILE);
+			connOut = connection.getOutputStream();
 		}
-		catch (IOException e)
+		catch(IOException e)
 		{
-			logger.error(logHeader + "error accessing ObjectInputStream: ", e);
-			System.exit(PSTBError.C_IO);
-		}
-		catch(ClassNotFoundException e)
-		{
-			logger.error(logHeader + "can't find class: ", e);
-			System.exit(PSTBError.C_CNF);
+			log.error(logHeader + "Couldn't create an OutputStream from connection!");
+			System.exit(PSTBError.C_SOCKET);
 		}
 		
+		String givenClientName = helper.getName();
+		PSTBUtil.sendStringAcrossSocket(connOut, givenClientName, log, logHeader);
+		
+		Object check = helper.getObjectFromMaster();
+		if(check == null)
+		{
+			log.error(logHeader + "Didn't get object from master!");
+			System.exit(PSTBError.C_OBJECT);
+		}
+		givenClient = (PSClientPADRES) check;
+		
 		// Now that we have the client, let's set it's logger and get this show on the road
-		givenClient.addLogger(logger);
+		givenClient.addLogger(log);
 		
 		boolean functionCheck = givenClient.initialize(true);
 		if(!functionCheck)
 		{
-			logger.error(logHeader + "couldn't initialize client " + givenClientName);
+			log.error(logHeader + "Couldn't initialize client " + givenClientName);
 			System.exit(PSTBError.C_INIT);
+		}
+		
+		String start = helper.readConnection();
+		if(start == null || !start.equals(PSTBUtil.START))
+		{
+			log.error(logHeader + "Didn't get start signal from master!");
+			System.exit(PSTBError.C_START);
 		}
 		
 		functionCheck = givenClient.startRun();
 		if(!functionCheck)
 		{
-			logger.error(logHeader + "error running client " + givenClientName);
-			System.exit(PSTBError.C_START);
+			log.error(logHeader + "Couldn't conduct experiment in client " + givenClientName);
+			System.exit(PSTBError.C_RUN);
 		}
 		
 		givenClient.disconnect();
@@ -138,7 +127,7 @@ public class PhysicalClient {
 		functionCheck = givenClient.shutdown();
 		if(!functionCheck)
 		{
-			logger.error(logHeader + "error shutting down client " + givenClientName);
+			log.error(logHeader + "error shutting down client " + givenClientName);
 			System.exit(PSTBError.C_SHUT);
 		}
 		
@@ -147,11 +136,11 @@ public class PhysicalClient {
 		
 		if(diaryName == null)
 		{
-			logger.error(logHeader + "error generating a diary name for client " + givenClientName);
+			log.error(logHeader + "error generating a diary name for client " + givenClientName);
 			System.exit(PSTBError.C_DIARY);
 		}
 		
-		logger.info(logHeader + "returning a diary object with name " + diaryName);
+		log.info(logHeader + "returning a diary object with name " + diaryName);
 		FileOutputStream out = null;
 		try 
 		{
@@ -159,14 +148,14 @@ public class PhysicalClient {
 		} 
 		catch (FileNotFoundException e) 
 		{
-			logger.error(logHeader + "Error creating FileOutputStream for diary: ", e);
-			System.exit(PSTBError.C_FILE);
+			log.error(logHeader + "Error creating FileOutputStream for diary: ", e);
+			System.exit(PSTBError.C_DIARY);
 		}
 		
-		functionCheck = PSTBUtil.sendObject(givenClient.getDiary(), diaryName, out, logger, logHeader);
+		functionCheck = PSTBUtil.sendObject(givenClient.getDiary(), diaryName, out, log, logHeader);
 		if(!functionCheck)
 		{
-			logger.error(logHeader + "error sending a diary to master from client " + givenClientName);
+			log.error(logHeader + "error sending a diary to master from client " + givenClientName);
 			System.exit(PSTBError.C_DIARY);
 		}
 		
@@ -176,26 +165,26 @@ public class PhysicalClient {
 		} 
 		catch (IOException e) 
 		{
-			logger.error(logHeader + "error closing diary OutputStream: ", e);
-			System.exit(PSTBError.C_IO);
+			log.error(logHeader + "error closing diary OutputStream: ", e);
+			System.exit(PSTBError.C_DIARY);
 		}
 		
-		if(!masterMachineName.equals(localhost))
+		if(helper.areWeDistributed())
 		{
-			String[] command = {"scripts/nodeSendUpstream.sh", "adecaria", masterMachineName, "dia"};
-			boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, logger, false,
+			String ipAddress = helper.getMasterIPAddress();
+			String[] command = {"scripts/nodeSendUpstream.sh", helper.getUser(), ipAddress, "dia"};
+			boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, log, false,
 																	"Error creating process to send " + givenClientName + "'s diary: ", 
 																	"Sent " + givenClientName + "'s diary upstream.", 
 																	"Couldn't send " + givenClientName + "'s diary upstream.");
-			
 			if(!sendDiaryCheck)
 			{
-				logger.error(logHeader + "error sending diary!");
-				System.exit(PSTBError.C_IO);
+				log.error(logHeader + "error sending diary!");
+				System.exit(PSTBError.C_DIARY);
 			}
 		}
 		
-		logger.info("Successful run with client " + givenClientName);
+		log.info("Successful run with client " + givenClientName);
 		System.exit(0);
 	}
 }
