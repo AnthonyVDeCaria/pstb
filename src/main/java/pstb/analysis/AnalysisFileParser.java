@@ -14,8 +14,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.DiaryEntry.DiaryHeader;
-import pstb.util.DistributedFlagValue;
-import pstb.util.NetworkProtocol;
+import pstb.startup.DistributedFlagValue;
+import pstb.startup.NetworkProtocol;
 import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
 

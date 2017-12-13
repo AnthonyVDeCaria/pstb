@@ -1,10 +1,10 @@
 package pstb.benchmark;
 
-import pstb.util.LogicalTopology;
-import pstb.util.NetworkProtocol;
+import pstb.startup.LogicalTopology;
+import pstb.startup.NetworkProtocol;
+import pstb.startup.Workload;
 import pstb.util.PSTBUtil;
 import pstb.util.ClientNotes;
-import pstb.util.Workload;
 
 import java.io.IOException;
 import java.net.InetAddress;

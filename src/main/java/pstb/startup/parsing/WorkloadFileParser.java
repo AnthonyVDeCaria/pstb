@@ -2,7 +2,7 @@
  * @author padres-dev-4187
  *
  */
-package pstb.startup;
+package pstb.startup.parsing;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
-import pstb.util.Workload;
+import pstb.startup.Workload;
 import pstb.util.PSAction;
 
 public class WorkloadFileParser {

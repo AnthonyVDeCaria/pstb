@@ -5,6 +5,8 @@ package pstb.util;
 
 import java.util.ArrayList;
 
+import pstb.startup.ClientRole;
+
 /**
  * @author padres-dev-4187
  *

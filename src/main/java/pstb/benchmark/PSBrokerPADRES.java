@@ -11,8 +11,8 @@ import org.apache.logging.log4j.Logger;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerConfig;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCore;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCoreException;
-import pstb.util.DistributedFlagValue;
-import pstb.util.NetworkProtocol;
+import pstb.startup.DistributedFlagValue;
+import pstb.startup.NetworkProtocol;
 import pstb.util.PSTBUtil;
 
 /**

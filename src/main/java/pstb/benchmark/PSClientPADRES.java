@@ -22,13 +22,13 @@ import ca.utoronto.msrg.padres.common.message.parser.MessageFactory;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
+import pstb.startup.ClientRole;
+import pstb.startup.DistributedFlagValue;
+import pstb.startup.NetworkProtocol;
+import pstb.startup.Workload;
 import pstb.util.ClientDiary;
-import pstb.util.ClientRole;
 import pstb.util.DiaryEntry;
-import pstb.util.DistributedFlagValue;
-import pstb.util.NetworkProtocol;
 import pstb.util.PSAction;
-import pstb.util.Workload;
 
 /**
  * @author padres-dev-4187

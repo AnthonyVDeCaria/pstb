@@ -8,10 +8,13 @@
  * That is why it's a HashMap - the idea being you give a certain Advertisement
  * and you'll get a bunch of Publications that go with that Advertisement
  */
-package pstb.util;
+package pstb.startup;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import pstb.util.PSAction;
+import pstb.util.PSActionType;
 
 public class Workload implements java.io.Serializable 
 {

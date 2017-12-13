@@ -1,4 +1,4 @@
-package pstb.util;
+package pstb.startup;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,7 +10,8 @@ import java.util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.NonMutuallyConnectedNodes;
+import pstb.startup.parsing.logicaltopology.NonMutuallyConnectedNodes;
+import pstb.util.ClientNotes;
 
 /**
  * @author padres-dev-4187

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.startup;
+package pstb.startup.parsing;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

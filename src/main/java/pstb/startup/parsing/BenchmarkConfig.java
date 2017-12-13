@@ -4,7 +4,7 @@
  * A wrapper around the variables that set a certain benchmark.
  *
  */
-package pstb.startup;
+package pstb.startup.parsing;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,9 +13,9 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
+import pstb.startup.DistributedState;
+import pstb.startup.NetworkProtocol;
 import pstb.util.PSTBUtil;
-import pstb.util.DistributedState;
-import pstb.util.NetworkProtocol;
 
 public class BenchmarkConfig {
 	private ArrayList<String> topologyFilesStrings;

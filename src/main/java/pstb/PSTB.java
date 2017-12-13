@@ -16,18 +16,18 @@ import org.apache.logging.log4j.Logger;
 import pstb.benchmark.PhysicalTopology;
 import pstb.benchmark.PhysicalTopology.ActiveProcessRetVal;
 import pstb.benchmark.PSTBServer;
-import pstb.startup.BenchmarkConfig;
-import pstb.startup.DistributedFileParser;
-import pstb.startup.TopologyFileParser;
-import pstb.startup.WorkloadFileParser;
-import pstb.startup.WorkloadFileParser.WorkloadFileType;
-import pstb.util.DistributedState;
-import pstb.util.LogicalTopology;
-import pstb.util.NetworkProtocol;
+import pstb.startup.DistributedState;
+import pstb.startup.LogicalTopology;
+import pstb.startup.NetworkProtocol;
+import pstb.startup.Workload;
+import pstb.startup.parsing.BenchmarkConfig;
+import pstb.startup.parsing.DistributedFileParser;
+import pstb.startup.parsing.WorkloadFileParser;
+import pstb.startup.parsing.WorkloadFileParser.WorkloadFileType;
+import pstb.startup.parsing.logicaltopology.TopologyFileParser;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 import pstb.util.UI;
-import pstb.util.Workload;
 
 /**
  * @author padres-dev-4187

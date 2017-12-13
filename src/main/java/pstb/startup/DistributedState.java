@@ -1,4 +1,4 @@
-package pstb.util;
+package pstb.startup;
 
 public enum DistributedState {
 	Yes, No, Both
