@@ -1,4 +1,4 @@
-package pstb.benchmark;
+package pstb.benchmark.client;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,15 +20,16 @@ import ca.utoronto.msrg.padres.common.message.Publication;
 import ca.utoronto.msrg.padres.common.message.PublicationMessage;
 import ca.utoronto.msrg.padres.common.message.parser.MessageFactory;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
-import pstb.util.PSActionType;
+
+import pstb.analysis.diary.ClientDiary;
+import pstb.analysis.diary.DiaryEntry;
+import pstb.analysis.diary.DistributedFlagValue;
 import pstb.util.PSTBUtil;
 import pstb.startup.ClientRole;
-import pstb.startup.DistributedFlagValue;
 import pstb.startup.NetworkProtocol;
+import pstb.startup.PSAction;
+import pstb.startup.PSActionType;
 import pstb.startup.Workload;
-import pstb.util.ClientDiary;
-import pstb.util.DiaryEntry;
-import pstb.util.PSAction;
 
 /**
  * @author padres-dev-4187

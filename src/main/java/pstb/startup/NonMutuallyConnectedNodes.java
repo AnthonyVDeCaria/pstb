@@ -1,4 +1,4 @@
-package pstb.startup.parsing.logicaltopology;
+package pstb.startup;
 
 /**
  * @author padres-dev-4187

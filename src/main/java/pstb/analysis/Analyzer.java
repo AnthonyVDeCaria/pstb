@@ -15,13 +15,13 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.benchmark.PSClientPADRES;
-import pstb.startup.DistributedFlagValue;
+import pstb.analysis.diary.ClientDiary;
+import pstb.analysis.diary.DiaryEntry;
+import pstb.analysis.diary.DistributedFlagValue;
+import pstb.analysis.diary.DiaryEntry.DiaryHeader;
+import pstb.benchmark.client.PSClientPADRES;
 import pstb.startup.NetworkProtocol;
-import pstb.util.ClientDiary;
-import pstb.util.DiaryEntry;
-import pstb.util.DiaryEntry.DiaryHeader;
-import pstb.util.PSActionType;
+import pstb.startup.PSActionType;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 

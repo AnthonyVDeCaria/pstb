@@ -10,9 +10,6 @@ import java.util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.parsing.logicaltopology.NonMutuallyConnectedNodes;
-import pstb.util.ClientNotes;
-
 /**
  * @author padres-dev-4187
  * 

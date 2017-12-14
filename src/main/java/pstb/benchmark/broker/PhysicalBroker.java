@@ -1,4 +1,4 @@
-package pstb.benchmark;
+package pstb.benchmark.broker;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -8,6 +8,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
+import pstb.benchmark.Physical;
+import pstb.creation.PhysicalTopology;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 
@@ -88,9 +90,7 @@ public class PhysicalBroker {
 		}
 		givenBroker = (PSBrokerPADRES) check;
 		
-		// Have broker, will run(?)
-		givenBroker.setBrokerLogger(log);
-		
+		// Have broker, will run (assuming everything is working)
 		boolean functionSuccessful = givenBroker.createBroker();
 		if(!functionSuccessful)
 		{

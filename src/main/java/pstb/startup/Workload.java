@@ -13,9 +13,6 @@ package pstb.startup;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import pstb.util.PSAction;
-import pstb.util.PSActionType;
-
 public class Workload implements java.io.Serializable 
 {
 	private static final long serialVersionUID = 1L;

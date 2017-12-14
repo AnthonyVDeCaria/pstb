@@ -2,16 +2,17 @@
  * @author padres-dev-4187
  *
  */
-package pstb.benchmark;
+package pstb.benchmark.broker;
 
 import java.util.Arrays;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerConfig;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCore;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCoreException;
-import pstb.startup.DistributedFlagValue;
+import pstb.analysis.diary.DistributedFlagValue;
 import pstb.startup.NetworkProtocol;
 import pstb.util.PSTBUtil;
 
@@ -44,7 +45,7 @@ public class PSBrokerPADRES implements java.io.Serializable {
 	private BrokerConfig bConfig;
 	
 	private final String logHeader = "Broker: ";
-	private Logger logger;
+	private Logger logger = LogManager.getLogger(PhysicalBroker.class);
 	
 	/**
 	 * Broker Constructor
@@ -76,16 +77,6 @@ public class PSBrokerPADRES implements java.io.Serializable {
 	public void setNeighbourURIs(String [] givenNeighbourURIs)
 	{
 		neighbourURIs = givenNeighbourURIs;
-	}
-	
-	/**
-	 * Sets the Logger this Broker will use
-	 *  
-	 * @param phybrokerlogger - the given Logger
-	 */
-	public void setBrokerLogger(Logger phybrokerlogger)
-	{
-		logger = phybrokerlogger;
 	}
 	
 	/**

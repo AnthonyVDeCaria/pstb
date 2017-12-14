@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.benchmark;
+package pstb.creation;
 
 import java.io.BufferedReader;
 import java.io.IOException;

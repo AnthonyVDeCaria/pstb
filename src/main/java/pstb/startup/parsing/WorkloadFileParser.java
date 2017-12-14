@@ -12,10 +12,10 @@ import java.util.ArrayList;
 
 import org.apache.logging.log4j.Logger;
 
-import pstb.util.PSActionType;
 import pstb.util.PSTBUtil;
+import pstb.startup.PSAction;
+import pstb.startup.PSActionType;
 import pstb.startup.Workload;
-import pstb.util.PSAction;
 
 public class WorkloadFileParser {
 	private Workload wload;

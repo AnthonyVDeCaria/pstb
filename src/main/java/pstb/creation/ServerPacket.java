@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.benchmark;
+package pstb.creation;
 
 /**
  * @author padres-dev-4187

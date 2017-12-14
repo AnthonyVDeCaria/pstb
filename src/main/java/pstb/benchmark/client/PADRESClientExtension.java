@@ -1,4 +1,4 @@
-package pstb.benchmark;
+package pstb.benchmark.client;
 
 import ca.utoronto.msrg.padres.client.Client;
 import ca.utoronto.msrg.padres.client.ClientConfig;

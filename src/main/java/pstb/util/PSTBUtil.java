@@ -22,8 +22,9 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.Logger;
 
-import pstb.benchmark.PhysicalBroker;
-import pstb.benchmark.PhysicalClient;
+import pstb.analysis.diary.ClientDiary;
+import pstb.benchmark.broker.PhysicalBroker;
+import pstb.benchmark.client.PhysicalClient;
 
 public class PSTBUtil {
 	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);

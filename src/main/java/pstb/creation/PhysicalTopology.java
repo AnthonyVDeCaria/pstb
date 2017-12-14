@@ -1,10 +1,12 @@
-package pstb.benchmark;
+package pstb.creation;
 
+import pstb.benchmark.broker.PSBrokerPADRES;
+import pstb.benchmark.client.PSClientPADRES;
+import pstb.startup.ClientNotes;
 import pstb.startup.LogicalTopology;
 import pstb.startup.NetworkProtocol;
 import pstb.startup.Workload;
 import pstb.util.PSTBUtil;
-import pstb.util.ClientNotes;
 
 import java.io.IOException;
 import java.net.InetAddress;

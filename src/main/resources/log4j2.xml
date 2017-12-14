@@ -112,13 +112,13 @@
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Root"/>
         </Root>
-        <Logger name="pstb.benchmark.PSTBServer" level="debug" additivity="false">
+        <Logger name="pstb.creation.PSTBServer" level="debug" additivity="false">
         	<AppenderRef ref="PSTBServer"/>
         </Logger>
-        <Logger name="pstb.benchmark.PhysicalBroker" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.broker.PhysicalBroker" level="debug" additivity="false">
         	<AppenderRef ref="Broker"/>
         </Logger>
-        <Logger name="pstb.benchmark.PhysicalClient" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.client.PhysicalClient" level="debug" additivity="false">
         	<AppenderRef ref="Client"/>
         </Logger>
         <Logger name="SystemError" level="warn" additivity="false">

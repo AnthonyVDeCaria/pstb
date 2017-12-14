@@ -1,11 +1,9 @@
 /**
  * 
  */
-package pstb.util;
+package pstb.startup;
 
 import java.util.ArrayList;
-
-import pstb.startup.ClientRole;
 
 /**
  * @author padres-dev-4187

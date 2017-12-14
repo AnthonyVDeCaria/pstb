@@ -1,4 +1,4 @@
-package pstb.benchmark;
+package pstb.benchmark.client;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -10,6 +10,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
+import pstb.benchmark.Physical;
+import pstb.creation.PhysicalTopology;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.startup;
+package pstb.analysis.diary;
 
 /**
  * @author padres-dev-4187

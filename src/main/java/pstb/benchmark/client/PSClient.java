@@ -2,7 +2,7 @@
  * @author padres-dev-4187
  *
  */
-package pstb.benchmark;
+package pstb.benchmark.client;
 
 import java.util.ArrayList;
 
