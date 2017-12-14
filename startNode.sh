@@ -24,7 +24,7 @@ then
 			-Djava.rmi.server.codebase=file:lib/padres.jar \
 			-Djava.security.policy=etc/java.policy \
 			-Djava.awt.headless=true \
-			pstb.benchmark.PhysicalBroker \
+			pstb.benchmark.broker.PhysicalBroker \
 			-n $name \
 			-c $context \
 			-m $master \
@@ -41,7 +41,7 @@ else
 	java -Xmx"$memory"M \
 			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
 			-Xverify:none \
-			pstb.benchmark.PhysicalClient \
+			pstb.benchmark.client.PhysicalClient \
 			-n $name \
 			-c $context \
 			-m $master \

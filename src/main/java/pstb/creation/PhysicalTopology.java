@@ -2,6 +2,7 @@ package pstb.creation;
 
 import pstb.benchmark.broker.PSBrokerPADRES;
 import pstb.benchmark.client.PSClientPADRES;
+import pstb.creation.server.PSTBServer;
 import pstb.startup.ClientNotes;
 import pstb.startup.LogicalTopology;
 import pstb.startup.NetworkProtocol;
@@ -14,6 +15,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,9 +35,6 @@ public class PhysicalTopology {
 	private HashMap<String, Process> activeBrokers;
 	private HashMap<String, Process> activeClients;
 	
-	private final Integer MEM_CLIENT = 256;
-	private final Integer MEM_BROKER = 256;
-	
 	private LogicalTopology startingTopology;
 	private PSTBServer masterServer;
 	
@@ -43,11 +42,13 @@ public class PhysicalTopology {
 	private Boolean distributed;
 	private String topologyFilePath;
 	private String benchmarkStartTime;
-	
 	private Integer runNumber;
 	private final Integer INIT_RUN_NUMBER = -1;
 	
 	private String user;
+	
+	private final Integer MEM_CLIENT = 256;
+	private final Integer MEM_BROKER = 256;
 	
 	private String ipAddress;
 	private final Integer LOCAL_START_PORT = 1100;
@@ -61,10 +62,10 @@ public class PhysicalTopology {
 	private int givenMachineI = -1;
 	private HashMap<String, String> nodeMachine;
 	
+	private final int INIT_TERMINATION_VALUE = 9999;
+	
 	private final String logHeader = "Physical Topology: ";
 	private final Logger logger = LogManager.getRootLogger();
-	
-	private final int INIT_TERMINATION_VALUE = 9999;
 	
 	/**
 	 * Empty Constructor
@@ -111,11 +112,6 @@ public class PhysicalTopology {
 	public void setUsername(String givenUsername) 
 	{
 		user = givenUsername;
-	}
-	
-	public void setPSTBServer(PSTBServer givenServer)
-	{
-		masterServer = givenServer;
 	}
 	
 	/**
@@ -579,13 +575,7 @@ public class PhysicalTopology {
 		return machineName;
 	}
 	
-	/**
-	 * Generates processes using the Broker and Client objects created in developPhysicalTopology()
-	 * ... by which I mean call a function to generate ProcessBuilder.
-	 * 
-	 * @return false on error; true otherwise
-	 */
-	public boolean generateBrokerAndClientProcesses()
+	public boolean prepareRun(CountDownLatch givenStartSignal)
 	{
 		if(brokerObjects.isEmpty())
 		{
@@ -607,12 +597,30 @@ public class PhysicalTopology {
 			return false;
 		}
 		
-		if(masterServer == null)
-		{
-			logger.error(logHeader + "generateBrokerAndClientProcesses() needs a PSTBServer!");
-			return false;
-		}
+		setupServer(givenStartSignal);
 		
+		boolean retVal = generateBrokerAndClientProcesses();
+		return retVal;
+	}
+	
+	private void setupServer(CountDownLatch givenStartSignal)
+	{
+		masterServer = new PSTBServer();
+		masterServer.generatePort();
+		masterServer.setBrokerData(brokerObjects);
+		masterServer.setClientData(clientObjects);
+		masterServer.setStartSignal(givenStartSignal);
+	}
+	
+	/**
+	 * Generates processes using the Broker and Client objects created in developPhysicalTopology()
+	 * ... by which I mean call a function to generate ProcessBuilder.
+	 * @param start 
+	 * 
+	 * @return false on error; true otherwise
+	 */
+	private boolean generateBrokerAndClientProcesses()
+	{
 		addRunNumberToAllNodes(); // I'm cheating, but this should always return true as we're already checking above for clients.
 		
 		Iterator<String> iteratorBO = brokerObjects.keySet().iterator();
@@ -651,9 +659,6 @@ public class PhysicalTopology {
 			}
 		}
 		
-		masterServer.setBrokerData(brokerObjects);
-		masterServer.setClientData(clientObjects);
-		
 		logger.info(logHeader + "Successfully generated broker and client processes.");
 		return true;
 	}
@@ -667,6 +672,11 @@ public class PhysicalTopology {
 	 */
 	private ProcessBuilder generateNodeProcess(String nodeName, Object node, boolean isBroker)
 	{
+		if(masterServer == null)
+		{
+			return null;
+		}
+		
 		ArrayList<String> command = new ArrayList<String>();
 		
 		if(!distributed)
@@ -752,6 +762,32 @@ public class PhysicalTopology {
 		return createdProcessShell;
 	}
 	
+	public boolean startRun()
+	{
+		if(brokerProcesses.isEmpty())
+		{
+			logger.error(logHeader + "startRun() needs broker processes to be created first! Please run prepareRun()!");
+			return false;
+		}
+		
+		if(clientProcesses.isEmpty())
+		{
+			logger.error(logHeader + "startRun() needs client processes to be created first! Please run prepareRun()!");
+			return false;
+		}
+		
+		if(masterServer == null)
+		{
+			logger.error(logHeader + "startRun() needs a PSTBServer to be created first! Please run prepareRun()!");
+			return false;
+		}
+		
+		masterServer.start();
+				
+		boolean retVal = startProcesses();
+		return retVal;
+	}
+	
 	/**
 	 * Launches all of the Processes generated in generateBrokerAndClientProcesses()
 	 * ... by which I mean call the function that actually starts the Processes
@@ -760,22 +796,8 @@ public class PhysicalTopology {
 	 * 
 	 * @return false if there's an error; true otherwise
 	 */
-	public boolean startProcesses()
-	{
-		if(brokerProcesses.isEmpty())
-		{
-			logger.error(logHeader + "startRun() needs broker processes to be created first. " +
-							"Please run generateBrokerAndClientProcesses() first.");
-			return false;
-		}
-		
-		if(clientProcesses.isEmpty())
-		{
-			logger.error(logHeader + "startRun() needs client processes to be created first. " +
-							"Please run generateBrokerAndClientProcesses() first.");
-			return false;
-		}
-		
+	private boolean startProcesses()
+	{		
 		Iterator<String> brokerIterator = brokerProcesses.keySet().iterator();
 		for( ; brokerIterator.hasNext() ; )
 		{
@@ -932,12 +954,12 @@ public class PhysicalTopology {
 		String nodeType = new String();
 		if(isBroker)
 		{
-			checkProcessInt = checkProcessI("pstb.benchmark.PhysicalBroker", nodeIName, nodeI);
+			checkProcessInt = checkProcessI("pstb.benchmark.broker.PhysicalBroker", nodeIName, nodeI);
 			nodeType = "Broker ";
 		}
 		else
 		{
-			checkProcessInt = checkProcessI("pstb.benchmark.PhysicalClient", nodeIName, nodeI);
+			checkProcessInt = checkProcessI("pstb.benchmark.client.PhysicalClient", nodeIName, nodeI);
 			nodeType = "Client ";
 		}
 		

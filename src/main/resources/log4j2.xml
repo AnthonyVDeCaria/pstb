@@ -112,7 +112,7 @@
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Root"/>
         </Root>
-        <Logger name="pstb.creation.PSTBServer" level="debug" additivity="false">
+        <Logger name="pstb.creation.server.PSTBServer" level="debug" additivity="false">
         	<AppenderRef ref="PSTBServer"/>
         </Logger>
         <Logger name="pstb.benchmark.broker.PhysicalBroker" level="debug" additivity="false">

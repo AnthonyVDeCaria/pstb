@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.creation;
+package pstb.creation.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;

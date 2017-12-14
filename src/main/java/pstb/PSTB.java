@@ -13,7 +13,6 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.creation.PSTBServer;
 import pstb.creation.PhysicalTopology;
 import pstb.creation.PhysicalTopology.ActiveProcessRetVal;
 import pstb.startup.DistributedState;
@@ -451,21 +450,16 @@ public class PSTB {
 			{
 				givenPT.setRunNumber(runI);
 				
-				PSTBServer objectServer = new PSTBServer();
 				CountDownLatch start = new CountDownLatch(1);
-				objectServer.setStartSignal(start);
-				objectServer.generatePort();
-				objectServer.start();
-				givenPT.setPSTBServer(objectServer);
 																
-				functionCheck = givenPT.generateBrokerAndClientProcesses();
+				functionCheck = givenPT.prepareRun(start);
 				if(!functionCheck)
 				{
-					logger.error("Error generating processes!");
+					logger.error("Couldn't prepare experiment!");
 					return false;
 				}
 				
-				functionCheck = givenPT.startProcesses();
+				functionCheck = givenPT.startRun();
 				if(!functionCheck)
 				{
 					logger.error("Error starting run!");

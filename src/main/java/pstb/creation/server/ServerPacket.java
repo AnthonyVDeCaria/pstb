@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.creation;
+package pstb.creation.server;
 
 /**
  * @author padres-dev-4187
