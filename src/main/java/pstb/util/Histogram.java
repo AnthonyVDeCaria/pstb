@@ -1,4 +1,4 @@
-package pstb.analysis;
+package pstb.util;
 
 import java.io.IOException;
 import java.nio.file.Files;

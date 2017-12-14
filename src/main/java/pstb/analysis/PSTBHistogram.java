@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import org.apache.logging.log4j.Logger;
 
 import pstb.startup.PSActionType;
+import pstb.util.Histogram;
 
 /**
  * @author padres-dev-4187

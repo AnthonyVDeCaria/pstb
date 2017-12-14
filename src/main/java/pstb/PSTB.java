@@ -547,8 +547,8 @@ public class PSTB {
 					return false;
 				}
 				
-				givenPT.destroyAllProcesses();
-				givenPT.clearProcessBuilders();
+				givenPT.destroyAllActiveNodes();
+				givenPT.resetSystemAfterRun();
 				logger.info("Run " + runI + " complete.");
 			}
 		}
