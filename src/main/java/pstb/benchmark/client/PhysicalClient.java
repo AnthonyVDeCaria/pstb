@@ -71,13 +71,16 @@ public class PhysicalClient {
 		// Now let's get the Client Object
 		PSClientPADRES givenClient = null;
 		
+		log.debug(logHeader + "Attempting to create Socket...");
 		boolean socketCreationCheck = helper.createSocket(); 
 		if(!socketCreationCheck)
 		{
 			System.exit(PSTBError.C_SOCKET);
 		}
 		Socket connection = helper.getMasterConnection();
+		log.info(logHeader + "Socket created.");
 		
+		log.debug(logHeader + "Attempting to create OutputStream around Socket...");
 		OutputStream connOut = null;
 		try
 		{
@@ -88,27 +91,36 @@ public class PhysicalClient {
 			log.error(logHeader + "Couldn't create an OutputStream from connection!");
 			System.exit(PSTBError.C_SOCKET);
 		}
+		log.info(logHeader + "OutputStream created.");
 		
+		log.debug(logHeader + "Attempting to send name to master...");
 		String givenClientName = helper.getName();
 		PSTBUtil.sendStringAcrossSocket(connOut, givenClientName, log, logHeader);
+		log.info(logHeader + "Name sent.");
 		
+		log.debug(logHeader + "Attempting to retrieve " + givenClientName + "'s Client Object from master...");
 		Object check = helper.getObjectFromMaster();
 		if(check == null)
 		{
-			log.error(logHeader + "Didn't get object from master!");
+			log.error(logHeader + "Didn't get object " + givenClientName + "'s Client Object from master!");
 			System.exit(PSTBError.C_OBJECT);
 		}
 		givenClient = (PSClientPADRES) check;
+		log.info(logHeader + givenClientName + "'s Client Object received.");
 		
-		// Now that we have the client, let's set it's logger and get this show on the road
-		givenClient.addLogger(log);
-		
+		// Now that we have the client, let's get this show on the road
+		log.debug(logHeader + "Attempting to initialize client " + givenClientName + "...");
 		boolean functionCheck = givenClient.initialize(true);
 		if(!functionCheck)
 		{
 			log.error(logHeader + "Couldn't initialize client " + givenClientName);
 			System.exit(PSTBError.C_INIT);
 		}
+		log.info(logHeader + givenClientName + " initialized.");
+		
+		log.debug(logHeader + "Letting master know we've initialized...");
+		PSTBUtil.sendStringAcrossSocket(connOut, PSTBUtil.INIT, log, logHeader);
+		log.info(logHeader + "Master should know.");
 		
 		String start = helper.readConnection();
 		if(start == null || !start.equals(PSTBUtil.START))
@@ -116,6 +128,7 @@ public class PhysicalClient {
 			log.error(logHeader + "Didn't get start signal from master!");
 			System.exit(PSTBError.C_START);
 		}
+		log.info(logHeader + "Start signal received.");
 		
 		functionCheck = givenClient.startRun();
 		if(!functionCheck)
@@ -123,6 +136,7 @@ public class PhysicalClient {
 			log.error(logHeader + "Couldn't conduct experiment in client " + givenClientName);
 			System.exit(PSTBError.C_RUN);
 		}
+		log.info(logHeader + "Run complete.");
 		
 		givenClient.disconnect();
 		

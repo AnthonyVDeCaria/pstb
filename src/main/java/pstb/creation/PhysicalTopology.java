@@ -618,7 +618,7 @@ public class PhysicalTopology {
 			return false;
 		}
 		
-		setupServer(givenStartSignal);
+		setupServer(givenStartSignal, runNumber);
 		
 		boolean retVal = generateBrokerAndClientProcesses();
 		return retVal;
@@ -629,9 +629,9 @@ public class PhysicalTopology {
 	 * 
 	 * @param givenStartSignal - the signal that will be used to let key threads know the run has started
 	 */
-	private void setupServer(CountDownLatch givenStartSignal)
+	private void setupServer(CountDownLatch givenStartSignal, int givenRunNumber)
 	{
-		masterServer = new PSTBServer();
+		masterServer = new PSTBServer(givenRunNumber);
 		masterServer.generatePort();
 		masterServer.setBrokerData(brokerObjects);
 		masterServer.setClientData(clientObjects);
@@ -1153,6 +1153,7 @@ public class PhysicalTopology {
 		brokerProcesses.clear();
 		clientProcesses.clear();
 		masterServer = null;
+		runNumber = INIT_RUN_NUMBER;
 	}
 
 }

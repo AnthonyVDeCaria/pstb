@@ -99,7 +99,7 @@ public class AnalysisFileParser {
 				
 				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
-					String[] splitLine = line.split("	");
+					String[] splitLine = line.split(PSTBUtil.COLUMN_SEPARATOR);
 					
 					if(splitLine.length == NUM_SEGMENTS)
 					{

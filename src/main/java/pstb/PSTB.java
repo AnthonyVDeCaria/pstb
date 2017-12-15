@@ -475,8 +475,11 @@ public class PSTB {
 				{
 					logger.error("Interrupted waiting for start signal: ", e);
 				}
-				PSTBUtil.synchronizeRun(logger);
-	
+				logger.info("Start signal receieved.");
+				
+				PSTBUtil.synchronizeRun();
+				logger.info("Synchronization complete.");
+				
 				Long startTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
 				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))

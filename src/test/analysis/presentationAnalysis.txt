@@ -7,7 +7,7 @@ AverageDelay	ActionDelay	A	null	L	rmi	3000	65	P2
 
 DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S0,S1
 DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S0
-DelayHistogram	MessageDelay	R	etc/star3topology.txt,src/test.topologies/star4topology	null	null	null	0,4	S0
+DelayHistogram	MessageDelay	R	etc/star3topology.txt,src/test/topologies/star4topology.txt	null	null	null	0,4	S0
 
 
 

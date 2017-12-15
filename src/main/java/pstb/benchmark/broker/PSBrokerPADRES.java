@@ -267,19 +267,19 @@ public class PSBrokerPADRES implements java.io.Serializable {
 		// WHY: neatness / it's what the user gave us->why confuse them?
 		Long milliRunLength = (long) (runLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
 		
-//		return benchmarkStartTime + "-"
-//				+ topologyFilePath + "-"
-//				+ distributedFlag.toString() + "-"
-//				+ protocol.toString() + "-"
-//				+ milliRunLength.toString() + "-"
-//				+ runNumber.toString() + "-"
+//		return benchmarkStartTime + PSTBUtil.TYPE_SEPARATOR
+//				+ topologyFilePath + PSTBUtil.TYPE_SEPARATOR
+//				+ distributedFlag.toString() + PSTBUtil.TYPE_SEPARATOR
+//				+ protocol.toString() + PSTBUtil.TYPE_SEPARATOR
+//				+ milliRunLength.toString() + PSTBUtil.TYPE_SEPARATOR
+//				+ runNumber.toString() + PSTBUtil.TYPE_SEPARATOR
 //				+ brokerName;
 		
-		return topologyFilePath + "-"
-				+ distributedFlag.toString() + "-"
-				+ protocol.toString() + "-"
-				+ milliRunLength.toString() + "-"
-				+ runNumber.toString() + "-"
+		return topologyFilePath + PSTBUtil.DIARY_SEPARATOR
+				+ distributedFlag.toString() + PSTBUtil.DIARY_SEPARATOR
+				+ protocol.toString() + PSTBUtil.DIARY_SEPARATOR
+				+ milliRunLength.toString() + PSTBUtil.DIARY_SEPARATOR
+				+ runNumber.toString() + PSTBUtil.DIARY_SEPARATOR
 				+ brokerName;
 	}
 }

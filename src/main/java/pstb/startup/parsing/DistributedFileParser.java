@@ -63,7 +63,7 @@ public class DistributedFileParser {
 				
 				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
-					String[] splitLine = line.split("	");
+					String[] splitLine = line.split(PSTBUtil.COLUMN_SEPARATOR);
 					
 					if(splitLine.length != NUM_ELEMENTS)
 					{
@@ -72,7 +72,7 @@ public class DistributedFileParser {
 					}
 					else
 					{
-						String[] splitPorts = splitLine[LOC_PORTS].split(PSTBUtil.COMMA);
+						String[] splitPorts = splitLine[LOC_PORTS].split(PSTBUtil.ITEM_SEPARATOR);
 						int numSegments = splitPorts.length;
 						
 						for(int i = 0 ; i < numSegments ; i++)

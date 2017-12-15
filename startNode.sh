@@ -21,7 +21,7 @@ then
 	
 	java -Xmx"$memory"M \
 			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
-			-Djava.rmi.server.codebase=file:lib/padres.jar \
+			-Djava.rmi.server.codebase=file:target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
 			-Djava.security.policy=etc/java.policy \
 			-Djava.awt.headless=true \
 			pstb.benchmark.broker.PhysicalBroker \

@@ -72,7 +72,7 @@ public class BenchmarkConfig {
 		
 		// TopologyFilesStrings
 		String unsplitTFS = givenProperty.getProperty("startup.topologyFilesStrings");
-		String[] splitTFS = unsplitTFS.split(PSTBUtil.COMMA);
+		String[] splitTFS = unsplitTFS.split(PSTBUtil.ITEM_SEPARATOR);
 		setTopologyFilesStrings(PSTBUtil.turnStringArrayIntoArrayListString(splitTFS));
 		
 		// Distributed
@@ -80,7 +80,7 @@ public class BenchmarkConfig {
 		HashMap<String, DistributedState> propDis = new HashMap<String, DistributedState>();
 		if(unsplitDis != null)
 		{
-			String[] splitDis = unsplitDis.split(PSTBUtil.COMMA);
+			String[] splitDis = unsplitDis.split(PSTBUtil.ITEM_SEPARATOR);
 			int numGivenDis = splitDis.length;
 			if(numGivenDis == splitTFS.length)
 			{
@@ -136,7 +136,7 @@ public class BenchmarkConfig {
 		ArrayList<Long> propRL = new ArrayList<Long>();
 		if(unsplitRL != null)
 		{
-			String[] splitRL = unsplitRL.split(PSTBUtil.COMMA);
+			String[] splitRL = unsplitRL.split(PSTBUtil.ITEM_SEPARATOR);
 			for(int i = 0 ; i < splitRL.length ; i++)
 			{
 				try
@@ -164,7 +164,7 @@ public class BenchmarkConfig {
 		ArrayList<NetworkProtocol> propProto = new ArrayList<NetworkProtocol>();
 		if(unsplitProtocols != null)
 		{
-			String[] splitProtocols = unsplitProtocols.split(PSTBUtil.COMMA);
+			String[] splitProtocols = unsplitProtocols.split(PSTBUtil.ITEM_SEPARATOR);
 			int numGivenProtocols = splitProtocols.length;
 			if(numGivenProtocols <= NetworkProtocol.values().length)
 			{
@@ -213,7 +213,7 @@ public class BenchmarkConfig {
 		ArrayList<String> propPWFS = new ArrayList<String>();
 		if(unsplitPWFS != null)
 		{
-			String[] splitPWFS = unsplitPWFS.split(PSTBUtil.COMMA);
+			String[] splitPWFS = unsplitPWFS.split(PSTBUtil.ITEM_SEPARATOR);
 			propPWFS = PSTBUtil.turnStringArrayIntoArrayListString(splitPWFS);
 		}
 		setPubWorkloadFilesStrings(propPWFS);

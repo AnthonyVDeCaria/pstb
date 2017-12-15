@@ -547,7 +547,7 @@ public class Analyzer {
 									nameTestArray[LOC_CLIENT_NAME] = (String) requestedCN.get(iCN);
 								}
 								
-								String nameTestString = String.join("-", nameTestArray);
+								String nameTestString = String.join(PSTBUtil.DIARY_SEPARATOR, nameTestArray);
 								
 								Pattern nameTest = Pattern.compile(nameTestString);
 								Iterator<String> bookshelfIt = bookshelf.keySet().iterator();

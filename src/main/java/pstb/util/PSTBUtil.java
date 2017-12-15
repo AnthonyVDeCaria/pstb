@@ -31,16 +31,17 @@ public class PSTBUtil {
 	public static final Long SEC_TO_NANOSEC = new Long(1000000000L);
 	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
 	
-	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd HH:mm:ss.SSS");
+	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd-HH:mm:ss.SSS");
 	
-	public static final String SPACE = " ";
-	public static final String COMMA = ",";
+	public static final String COLUMN_SEPARATOR = "	";
+	public static final String ITEM_SEPARATOR = ",";
+	public static final String DIARY_SEPARATOR = "_";
+	public static final String FOLDER_REPLACEMENT = "-";
 	
 	public static final String LOCAL = "localhost";
 	
-	public static final String ACKNOWLEDGE = "ACK";
+	public static final String INIT = "On your command.";
 	public static final String START = "start";
-	public static final String ERROR = "ERROR";
 	
 	/**
 	 * Sees if a given string is an Integer
@@ -462,7 +463,7 @@ public class PSTBUtil {
 	 */
 	public static String cleanTFS(String givenTFS)
 	{
-		return givenTFS.replace('/', '_').replace('\\', '_');
+		return givenTFS.replace("/", FOLDER_REPLACEMENT).replace("\\", FOLDER_REPLACEMENT).replaceAll("\\.\\w+", "");
 	}
 	
 	/**
@@ -557,22 +558,15 @@ public class PSTBUtil {
 		}
 	}
 	
-	public static boolean synchronizeRun(Logger logger)
+	public static void synchronizeRun()
 	{
 		Calendar cal = Calendar.getInstance();
 		int seconds = -1;
 		
-		while(!isWithinRangeInclusive(seconds, 00, 05) && !isWithinRangeInclusive(seconds, 30, 35))
+		while(seconds != 00 && seconds != 15 && seconds != 30 && seconds != 45)
 		{
-			if(isWithinRangeInclusive(seconds, 06, 10) || isWithinRangeInclusive(seconds, 36, 40))
-			{
-				// Failure to launch
-				return false;
-			}
 			cal.setTimeInMillis(System.currentTimeMillis());
 			seconds = cal.get(Calendar.SECOND);
 		}
-		
-		return true;
 	}
 }

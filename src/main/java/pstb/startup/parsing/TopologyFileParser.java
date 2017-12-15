@@ -72,7 +72,7 @@ public class TopologyFileParser {
 				linesRead++;
 				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
-					String[] splitLine = line.split("	");
+					String[] splitLine = line.split(PSTBUtil.COLUMN_SEPARATOR);
 					String name = splitLine[LOC_NAME];
 					String roles = splitLine[LOC_ROLE];
 					String connections = splitLine[LOC_CONN];
@@ -129,7 +129,7 @@ public class TopologyFileParser {
 	 */
 	private ArrayList<NodeRole> checkProperRoles(String roles)
 	{		
-		String[] brokenRoles = roles.split(PSTBUtil.COMMA);
+		String[] brokenRoles = roles.split(PSTBUtil.ITEM_SEPARATOR);
 		ArrayList<NodeRole> roleLedger = new ArrayList<NodeRole>();
 		
 		for(int i = 0 ; i < brokenRoles.length ; i++)

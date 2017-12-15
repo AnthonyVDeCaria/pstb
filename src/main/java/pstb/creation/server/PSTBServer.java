@@ -11,6 +11,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import pstb.benchmark.broker.PSBrokerPADRES;
 import pstb.benchmark.client.PSClientPADRES;
@@ -29,10 +30,12 @@ public class PSTBServer extends Thread
 	private Integer port;
 	private ServerSocket objectConnection;
 	
+	private int runNumber;
+	
 	private String logHeader = "Server: ";
 	private Logger serverLog = LogManager.getLogger(PSTBServer.class);;
 	
-	public PSTBServer()
+	public PSTBServer(int givenRunNumber)
 	{
 		startSignal = null;
 		
@@ -41,6 +44,8 @@ public class PSTBServer extends Thread
 		
 		port = null;
 		objectConnection = null;
+		
+		runNumber = givenRunNumber;
 	}
 	
 	public void setStartSignal(CountDownLatch givenStartSignal)
@@ -79,7 +84,10 @@ public class PSTBServer extends Thread
 	
 	public void run()
 	{
-		setName("PSTBServer");
+		String serverName = "PSTBServer-" + runNumber; 
+		setName(serverName);
+		ThreadContext.put("PSTBServer", serverName);
+		Thread.currentThread().setName(serverName);
 		
 		while (brokerData.isEmpty() || clientData.isEmpty())
 		{
@@ -104,8 +112,9 @@ public class PSTBServer extends Thread
 		serverLog.info(logHeader + "Socket created.");
 		
 		int numBrokers = brokerData.size();
-		int numNodes = numBrokers + clientData.size();
-		CountDownLatch objectSent = new CountDownLatch(numNodes);
+		int numClients = clientData.size();
+		int numNodes = numBrokers + numClients;
+		CountDownLatch clientsWaiting = new CountDownLatch(numClients);
 		CountDownLatch brokerObjectSent = new CountDownLatch(numBrokers);
 		
 		int numConnectedNodes = 0;
@@ -128,7 +137,7 @@ public class PSTBServer extends Thread
 				}
 			};
 			
-			NodeHandler oH = new NodeHandler(objectPipe, objectSent, brokerObjectSent, startSignal, this);
+			NodeHandler oH = new NodeHandler(objectPipe, clientsWaiting, brokerObjectSent, startSignal, this);
 			oH.setUncaughtExceptionHandler(nodeHandlerExceptionNet);		
 			oH.start();
 						
@@ -137,15 +146,15 @@ public class PSTBServer extends Thread
 		
 		try 
 		{
-			objectSent.await();
+			clientsWaiting.await();
 		} 
 		catch (InterruptedException e) 
 		{
 			endServerFailure(logHeader + "Error waiting for nodes: ", e, true);
 		}
-		serverLog.info(logHeader + "All objects sent.");
+		serverLog.info(logHeader + "All objects sent - clients are now waiting for start.");
 		
-		serverLog.debug(logHeader + "Sending start signal.");
+		serverLog.debug(logHeader + "Sending start signal...");
 		startSignal.countDown();
 		serverLog.info(logHeader + "Start signal sent.");
 		

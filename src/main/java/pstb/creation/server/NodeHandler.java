@@ -23,21 +23,27 @@ public class NodeHandler extends Thread
 {
 	private Socket objectPipe;
 	private PSTBServer master;
-	private CountDownLatch sent;
+	private CountDownLatch wait;
 	private CountDownLatch broker;
 	private CountDownLatch start;
+	
+	private String mode;
+	private final String MODE_O = "OBJECT";
+	private final String MODE_I = "INIT";
 	
 	private final String logHeader = "ObjectHandler: ";
 	private final Logger log = LogManager.getLogger(PSTBServer.class);
 	
-	public NodeHandler(Socket givenPipe, CountDownLatch sentObjectSignal, CountDownLatch brokersCompleteSignal, CountDownLatch startSignal, 
-							PSTBServer givenObjectServer)
+	public NodeHandler(Socket givenPipe, CountDownLatch clientsWaitingSignal, CountDownLatch brokersCompleteSignal, 
+							CountDownLatch startSignal, PSTBServer givenObjectServer)
 	{
 		objectPipe = givenPipe;
 		master = givenObjectServer;
-		sent = sentObjectSignal;
+		wait = clientsWaitingSignal;
 		broker = brokersCompleteSignal;
 		start = startSignal;
+		
+		mode = MODE_O;
 	}
 	
 	public void run()
@@ -62,33 +68,60 @@ public class NodeHandler extends Thread
 			
 			while ((inputLine = bufferedIn.readLine()) != null)
 			{
-				nodeName = inputLine;
-				ServerPacket nodeObject = master.getNode(nodeName);
-					
-				if(nodeObject == null)
-		        {
-		        	PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.ERROR, log, logHeader);
-		        	endFailedThread(logHeader + "Client Process requested a name that doesn't exist!", null, false);
-		        }
-				
-				client = nodeObject.isClient();
-				
-				if(client)
+				if(mode == MODE_O)
 				{
-					try 
+					nodeName = inputLine;
+					ServerPacket nodeObject = master.getNode(nodeName);
+						
+					if(nodeObject == null)
+			        {
+			        	endFailedThread(logHeader + "Client Process requested a name that doesn't exist!", null, false);
+			        }
+					
+					client = nodeObject.isClient();
+					
+					if(client)
 					{
-						broker.await();
-					} 
-					catch (InterruptedException e) 
+						try 
+						{
+							broker.await();
+						} 
+						catch (InterruptedException e) 
+						{
+							endFailedThread(logHeader + "Interrupted waiting for brokers to complete signal: ", e, true);
+						}
+					}
+					
+					log.debug(logHeader + "Sending object data to node " + inputLine + "...");
+					PSTBUtil.sendObject(nodeObject.getNode(), inputLine, pipeOut, log, logHeader);
+					log.info(logHeader + "Object data sent to node " + nodeName + ".");
+					
+					if(!client)
 					{
-						endFailedThread(logHeader + "Interrupted waiting for brokers to complete signal: ", e, true);
+						broker.countDown();
+						break;
+					}
+					else
+					{
+						mode = MODE_I;
 					}
 				}
-				
-				log.debug(logHeader + "Sending object data to node " + inputLine + ".");
-				
-				PSTBUtil.sendObject(nodeObject.getNode(), inputLine, pipeOut, log, logHeader);
-				break;
+				else if(mode == MODE_I)
+				{
+					if(!inputLine.equals(PSTBUtil.INIT))
+					{
+						endFailedThread(logHeader + "Init not received from node " + nodeName + "!", null, false);
+					}
+					
+					log.debug(logHeader + "Letting master know " + nodeName + " is waiting for start...");
+					wait.countDown();
+					log.info(logHeader + "Master should know " + nodeName + " is waiting.");
+					break;
+				}
+				else
+				{
+					endFailedThread(logHeader + "Invaild mode " + mode + "!", null, false);
+				}
 			}
 		} 
 		catch (IOException e) 
@@ -96,14 +129,6 @@ public class NodeHandler extends Thread
 			endFailedThread(logHeader + "Couldn't get connected node's name: ", e, true);
 		}
 		log.info(logHeader + "Object loop complete.");
-		
-		log.debug(logHeader + "Letting master know we've finished sending " + nodeName + " its object.");
-		sent.countDown();
-		if(!client)
-		{
-			broker.countDown();
-		}
-		log.info(logHeader + "Master should know " + nodeName + " has its object.");
 		
 		// If it's a client, we have to handle synchronization
 		if(client)
@@ -152,7 +177,7 @@ public class NodeHandler extends Thread
 			log.error("Error closing objectPipe: ", eIO);
 		}
 		
-		sent.countDown();
+		wait.countDown();
 		
 		throw new RuntimeException(record, givenException);
 	}
