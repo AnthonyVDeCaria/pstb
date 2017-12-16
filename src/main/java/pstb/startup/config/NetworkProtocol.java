@@ -1,4 +1,4 @@
-package pstb.startup;
+package pstb.startup.config;
 
 public enum NetworkProtocol {
 	socket, rmi

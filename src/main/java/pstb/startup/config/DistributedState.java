@@ -1,4 +1,4 @@
-package pstb.startup;
+package pstb.startup.config;
 
 public enum DistributedState {
 	Yes, No, Both

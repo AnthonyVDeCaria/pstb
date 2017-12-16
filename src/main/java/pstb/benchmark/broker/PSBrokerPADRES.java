@@ -13,7 +13,7 @@ import ca.utoronto.msrg.padres.broker.brokercore.BrokerConfig;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCore;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCoreException;
 import pstb.analysis.diary.DistributedFlagValue;
-import pstb.startup.NetworkProtocol;
+import pstb.startup.config.NetworkProtocol;
 import pstb.util.PSTBUtil;
 
 /**

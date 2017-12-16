@@ -2,7 +2,7 @@
  * @author padres-dev-4187
  *
  */
-package pstb.startup;
+package pstb.startup.workload;
 
 public class PSAction implements java.io.Serializable
 {

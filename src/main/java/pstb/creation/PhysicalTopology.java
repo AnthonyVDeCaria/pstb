@@ -3,10 +3,10 @@ package pstb.creation;
 import pstb.benchmark.broker.PSBrokerPADRES;
 import pstb.benchmark.client.PSClientPADRES;
 import pstb.creation.server.PSTBServer;
-import pstb.startup.ClientNotes;
-import pstb.startup.LogicalTopology;
-import pstb.startup.NetworkProtocol;
-import pstb.startup.Workload;
+import pstb.startup.config.NetworkProtocol;
+import pstb.startup.topology.ClientNotes;
+import pstb.startup.topology.LogicalTopology;
+import pstb.startup.workload.Workload;
 import pstb.util.PSTBUtil;
 
 import java.io.IOException;

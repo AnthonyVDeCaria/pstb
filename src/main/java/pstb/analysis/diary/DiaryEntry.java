@@ -8,7 +8,7 @@ import java.util.HashMap;
 
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.PSActionType;
+import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 import pstb.util.PSTBUtil.TimeType;
 

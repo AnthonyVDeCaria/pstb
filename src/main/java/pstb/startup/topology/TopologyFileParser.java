@@ -1,4 +1,4 @@
-package pstb.startup.parsing;
+package pstb.startup.topology;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.LogicalTopology;
-import pstb.startup.NodeRole;
 import pstb.util.PSTBUtil;
 
 /**

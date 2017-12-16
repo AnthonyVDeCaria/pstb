@@ -26,11 +26,11 @@ import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.util.PSTBUtil;
-import pstb.startup.ClientRole;
-import pstb.startup.NetworkProtocol;
-import pstb.startup.PSAction;
-import pstb.startup.PSActionType;
-import pstb.startup.Workload;
+import pstb.startup.config.NetworkProtocol;
+import pstb.startup.topology.ClientRole;
+import pstb.startup.workload.PSAction;
+import pstb.startup.workload.PSActionType;
+import pstb.startup.workload.Workload;
 
 /**
  * @author padres-dev-4187

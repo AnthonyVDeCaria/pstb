@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.startup;
+package pstb.startup.workload;
 
 /**
  * @author padres-dev-4187

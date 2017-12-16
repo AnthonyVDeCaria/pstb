@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.PSActionType;
+import pstb.startup.workload.PSActionType;
 
 /**
  * @author padres-dev-4187
