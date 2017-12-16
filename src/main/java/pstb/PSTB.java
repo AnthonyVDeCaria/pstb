@@ -429,7 +429,7 @@ public class PSTB {
 			Long iTHRunLengthMilli = givenRLs.get(runLengthI);
 			Long iTHRunLengthNano = iTHRunLengthMilli * PSTBUtil.MILLISEC_TO_NANOSEC;
 			Long sleepLengthMilli = iTHRunLengthMilli / 10;
-			Long bufferTimeNano = iTHRunLengthNano / 10;
+//			Long bufferTimeNano = iTHRunLengthNano / 10;
 			
 			boolean functionCheck = givenPT.addRunLengthToAllNodes(iTHRunLengthNano);
 			if(!functionCheck)
@@ -480,8 +480,8 @@ public class PSTB {
 				PSTBUtil.synchronizeRun();
 				logger.info("Synchronization complete.");
 				
-				Long startTime = System.nanoTime();
 				PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
+//				Long startTime = System.nanoTime();
 				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
 				{
 					// If ActiveProcesses had an error... well...
@@ -501,28 +501,28 @@ public class PSTB {
 					// If there are brokers with no clients, has the experiment already finished?
 					else if(valueCAP.equals(ActiveProcessRetVal.FloatingBrokers) )
 					{
-						Long currentTime = System.nanoTime();
-						if((currentTime - startTime) < (iTHRunLengthNano - bufferTimeNano))
-						{
-							logger.error("Run " + runI + " finished early!");
-							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-							return false;
-						}
-						else
-						{
-							break; // We finished already - there's no need to sleep again
-						}
+//						Long currentTime = System.nanoTime();
+//						if((currentTime - startTime) < (iTHRunLengthNano - bufferTimeNano))
+//						{
+//							logger.error("Run " + runI + " finished early!");
+//							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+//							return false;
+//						}
+//						else
+//						{
+//							break; // We finished already - there's no need to sleep again
+//						}
 					}
 					// Should the experiment be over already?
 					else
 					{
-						Long currentTime = System.nanoTime();
-						if((currentTime - startTime) > (iTHRunLengthNano + bufferTimeNano))
-						{
-							logger.error("Run " + runI + " hasn't finished within the experiment period!");
-							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-							return false;
-						}
+//						Long currentTime = System.nanoTime();
+//						if((currentTime - startTime) > (iTHRunLengthNano + bufferTimeNano))
+//						{
+//							logger.error("Run " + runI + " hasn't finished within the experiment period!");
+//							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+//							return false;
+//						}
 					}
 					
 					// So that we don't continuously check, let's put this thread to sleep for a tenth of the run

@@ -741,59 +741,34 @@ public class PhysicalTopology {
 		{
 			command.add("./startNode.sh");
 			command.add("false");
-			
-			if(isBroker)
-			{
-				command.add("1");
-				command.add(MEM_BROKER.toString());
-				command.add(nodeName);
-				
-				PSBrokerPADRES broker = (PSBrokerPADRES) node;
-				String context = broker.generateContext();
-				command.add(context);
-			}
-			else
-			{
-				command.add("0");
-				command.add(MEM_CLIENT.toString());
-				command.add(nodeName);
-				
-				PSClientPADRES client = (PSClientPADRES) node;
-				String diary = client.generateDiaryName();
-				
-				command.add(diary);
-			}
 		}
 		else
 		{
 			command.add("./startRemoteNode.sh");
-			command.add(user);
 			
 			String machine = nodeMachine.get(nodeName);
 			command.add(machine);
+		}
+		
+		if(isBroker)
+		{
+			command.add("1");
+			command.add(MEM_BROKER.toString());
+			command.add(nodeName);
 			
-			if(isBroker)
-			{
-				command.add("1");
-				command.add(MEM_BROKER.toString());
-				command.add(nodeName);
-				
-				PSBrokerPADRES broker = (PSBrokerPADRES) node;
-				String context = broker.generateContext();
-				
-				command.add(context);
-			}
-			else
-			{
-				command.add("0");
-				command.add(MEM_CLIENT.toString());
-				command.add(nodeName);
-				
-				PSClientPADRES client = (PSClientPADRES) node;
-				String diary = client.generateDiaryName();
-				
-				command.add(diary);
-			}
+			PSBrokerPADRES broker = (PSBrokerPADRES) node;
+			String context = broker.generateContext();
+			command.add(context);
+		}
+		else
+		{
+			command.add("0");
+			command.add(MEM_CLIENT.toString());
+			command.add(nodeName);
+			
+			PSClientPADRES client = (PSClientPADRES) node;
+			String diary = client.generateDiaryName();
+			command.add(diary);
 		}
 		
 		command.add(ipAddress);
