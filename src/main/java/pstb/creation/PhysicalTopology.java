@@ -6,7 +6,7 @@ import pstb.creation.server.PSTBServer;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.topology.ClientNotes;
 import pstb.startup.topology.LogicalTopology;
-import pstb.startup.workload.Workload;
+import pstb.startup.workload.PSAction;
 import pstb.util.PSTBUtil;
 
 import java.io.IOException;
@@ -36,6 +36,7 @@ public class PhysicalTopology {
 	private HashMap<String, Process> activeClients;
 	
 	private LogicalTopology startingTopology;
+	private HashMap<String, ArrayList<PSAction>> masterWorkload;
 	private PSTBServer masterServer;
 	private String user;
 	
@@ -83,6 +84,7 @@ public class PhysicalTopology {
 		
 		startingTopology = new LogicalTopology();
 		masterServer = null;
+		masterWorkload = new HashMap<String, ArrayList<PSAction>>();
 		
 		runNumber = INIT_RUN_NUMBER;
 		protocol = null;
@@ -289,9 +291,10 @@ public class PhysicalTopology {
 	 */
 	public boolean developPhysicalTopology(boolean givenDistributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol,
 												String givenTFP, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
-												String givenBST)
+												String givenBST, HashMap<String, ArrayList<PSAction>> givenMasterWorkload)
 	{
 		startingTopology = givenTopo;
+		masterWorkload = givenMasterWorkload;
 		
 		protocol = givenProtocol;
 		distributed = givenDistributed;
@@ -466,6 +469,14 @@ public class PhysicalTopology {
 			
 			ArrayList<String> clientIConnections = clientINotes.getConnections();
 			
+			String workloadFileString = clientINotes.getRequestedWorkload();
+			ArrayList<PSAction> clientIWorkload = masterWorkload.get(workloadFileString);
+			if(clientIWorkload == null)
+			{
+				logger.error(logHeader + "Client " + clientIName + " is requesting a non-existant workload!");
+				return false;
+			}
+			
 			ArrayList<String> clientIBrokerURIs = new ArrayList<String>();
 			int numClientIConnections = clientIConnections.size();
 			
@@ -492,12 +503,12 @@ public class PhysicalTopology {
 			}
 			
 			clientI.setClientName(clientIName);
-			clientI.addConnectedBrokers(clientIBrokerURIs);
-			clientI.setClientRoles(clientINotes.getRoles());
+			clientI.setConnectedBrokers(clientIBrokerURIs);
 			clientI.setDistributed(distributed);
 			clientI.setNetworkProtocol(protocol);
 			clientI.setTopologyFilePath(topologyFilePath);
 			clientI.setBenchmarkStartTime(benchmarkStartTime);
+			clientI.setWorkload(clientIWorkload);
 										
 			clientObjects.put(clientIName, clientI);
 			
@@ -516,7 +527,7 @@ public class PhysicalTopology {
 	 */
 	private String getClientMachine()
 	{
-		String machineName = "localhost";
+		String machineName = PSTBUtil.LOCAL;
 		
 		if(distributed)
 		{
@@ -562,29 +573,6 @@ public class PhysicalTopology {
 		
 		brokerObjects.forEach((brokerName, actualBroker)->{
 			actualBroker.setRunLength(givenRL);
-		});
-		
-		return true;
-	}
-	
-	/**
-	 * Adds a Workload to all Clients
-	 * @see Workload
-	 * 
-	 * @param givenWorkload - the Workload to add
-	 * @return false if there's an error; true otherwise
-	 */
-	public boolean addWorkloadToAllClients(Workload givenWorkload)
-	{
-		if(clientObjects.isEmpty())
-		{
-			logger.error(logHeader + "addRunLengthToAllClients() needs clients to be created first. " +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		clientObjects.forEach((clientName, actualClient)->{
-			actualClient.addWorkload(givenWorkload);
 		});
 		
 		return true;

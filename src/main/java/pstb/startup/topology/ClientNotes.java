@@ -11,12 +11,12 @@ import java.util.ArrayList;
  */
 public class ClientNotes {
 	private ArrayList<String> connections;
-	private ArrayList<ClientRole> roles;
+	private String requestedWorkload;
 	
 	public ClientNotes()
 	{
 		connections = new ArrayList<String>();
-		roles = new ArrayList<ClientRole>();
+		requestedWorkload = new String();
 	}
 	
 	/**
@@ -29,22 +29,12 @@ public class ClientNotes {
 	}
 	
 	/**
-	 * Sets the Client's roles
+	 * Sets the Client's workload
 	 * 
-	 * @param newRoles - the roles to set
+	 * @param newWorkload - the String of the workload file to set
 	 */
-	public void setRoles(ArrayList<ClientRole> newRoles) {
-		this.roles = newRoles;
-	}
-	
-	/**
-	 * Adds a new role for the Client
-	 * 
-	 * @param newRole - the new ClientRole to add
-	 */
-	public void addNewRole(ClientRole newRole)
-	{
-		roles.add(newRole);
+	public void setWorkload(String workload) {
+		this.requestedWorkload = workload;
 	}
 	
 	/**
@@ -55,13 +45,8 @@ public class ClientNotes {
 	public ArrayList<String> getConnections() {
 		return connections;
 	}
-	
-	/**
-	 * Gets the Client's roles
-	 * 
-	 * @return the roles
-	 */
-	public ArrayList<ClientRole> getRoles() {
-		return roles;
+
+	public String getRequestedWorkload() {
+		return requestedWorkload;
 	}
 }

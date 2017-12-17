@@ -40,48 +40,41 @@ public class LogicalTopology {
 	 * Adds a new node to the topology, assuming that all the roles make sense.
 	 * I.e. if its a broker node, there is only the Broker role.
 	 * 
-	 * @param roles - a list of all of this node's roles
+	 * @param role - this node's role
 	 * @param name - the name of this node
 	 * @param connections - what brokers this node is connected to
+	 * @param workloadFile - if needed, the workload file of this node 
 	 */
-	public boolean addNewNodeToTopo(ArrayList<NodeRole> roles, String name, ArrayList<String> connections)
+	public boolean addNewNodeToTopo(NodeRole role, String name, ArrayList<String> connections, String workloadFileString)
 	{
-		if(roles == null || connections == null || name == null)
+		if(role == null || connections == null || name == null || workloadFileString == null)
 		{
 			logger.error(logHeader + "An input was given as null!");
 			return false;
 		}
 		
-		if(roles.isEmpty() || connections.isEmpty() || name.isEmpty())
+		if(connections.isEmpty() || name.isEmpty())
 		{
-			logger.error(logHeader + "An input was empty!");
+			logger.error(logHeader + "A key input was empty!");
 			return false;
 		}
 		
-		if(roles.contains(NodeRole.B))
+		if(role.equals(NodeRole.B))
 		{
-			if(roles.size() > 1)
-			{
-				logger.error(logHeader + "Multiple roles given when a broker only has one!");
-				return false;
-			}
-			else
-			{
-				addNewBroker(name, connections);
-			}
+			addNewBroker(name, connections);
 		}
 		else
 		{
+			if(workloadFileString.isEmpty())
+			{
+				logger.error(logHeader + "no workload was given for this client!");
+				return false;
+			}
+			
 			ClientNotes newNote = new ClientNotes();
 			
 			newNote.setConnections(connections);
-			
-			ArrayList<ClientRole> newRoles = new ArrayList<ClientRole>();
-			roles.forEach((roleI)->{
-				ClientRole test = ClientRole.valueOf(roleI.toString());
-				newRoles.add(test);
-			});
-			newNote.setRoles(newRoles);
+			newNote.setWorkload(workloadFileString);
 			
 			addNewClient(name, newNote);
 		}

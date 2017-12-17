@@ -26,8 +26,7 @@ public class BenchmarkConfig {
 	private ArrayList<Long> runLengths; // Milliseconds
 	private Integer numRunsPerExperiment;
 	
-	private ArrayList<String> pubWorkloadFilesStrings;
-	private String subWorkloadFileString;
+	private ArrayList<String> workloadFilesStrings;
 	
 	private Logger logger = null;
 	private final String logHeader = "Properties: ";
@@ -49,8 +48,7 @@ public class BenchmarkConfig {
 		protocols = new ArrayList<NetworkProtocol>();
 		runLengths = new ArrayList<Long>();
 		numRunsPerExperiment = new Integer(0);
-		pubWorkloadFilesStrings = new ArrayList<String>();
-		subWorkloadFileString = new String();
+		workloadFilesStrings = new ArrayList<String>();
 	}
 	
 	/**
@@ -206,19 +204,15 @@ public class BenchmarkConfig {
 			everythingisProper = false;
 		}
 		
-		// pubWorkloadFilesStrings
-		String unsplitPWFS = givenProperty.getProperty("startup.pubWorkloadFilesStrings");
+		// workloadFilesStrings
+		String unsplitPWFS = givenProperty.getProperty("startup.workloadFilesStrings");
 		ArrayList<String> propPWFS = new ArrayList<String>();
 		if(unsplitPWFS != null)
 		{
 			String[] splitPWFS = unsplitPWFS.split(PSTBUtil.ITEM_SEPARATOR);
 			propPWFS = PSTBUtil.turnStringArrayIntoArrayListString(splitPWFS);
 		}
-		setPubWorkloadFilesStrings(propPWFS);
-		
-		// subWorkloadFileString
-		String propSWFS = givenProperty.getProperty("startup.subWorkloadFileString");
-		setSubWorkloadFileString(propSWFS);
+		setWorkloadFilesStrings(propPWFS);
 		
 		return everythingisProper;
 	}
@@ -289,23 +283,13 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Sets the pubWorkloadFilesStrings
+	 * Sets the workloadFilesStrings
 	 * 
-	 * @param nPWFS - the new pubWorkloadFilesStrings
+	 * @param nWFS - the new workloadFilesStrings
 	 */
-	private void setPubWorkloadFilesStrings(ArrayList<String> nPWFS)
+	private void setWorkloadFilesStrings(ArrayList<String> nWFS)
 	{
-		pubWorkloadFilesStrings = nPWFS;
-	}
-	
-	/**
-	 * Sets the subWorkloadFileString
-	 * 
-	 * @param nSWFS - the new subWorkloadFileString
-	 */
-	private void setSubWorkloadFileString(String nSWFS)
-	{
-		subWorkloadFileString = nSWFS;
+		workloadFilesStrings = nWFS;
 	}
 	
 	/**
@@ -379,23 +363,13 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Gets the pubWorkloadFilesStrings
+	 * Gets the WorkloadFilesStrings
 	 * 
-	 * @return the pubWorkloadFilesStrings 
+	 * @return the WorkloadFilesStrings 
 	 */
-	public ArrayList<String> getPubWorkloadFilesStrings()
+	public ArrayList<String> getWorkloadFilesStrings()
 	{
-		return pubWorkloadFilesStrings;
-	}
-	
-	/**
-	 * Gets the subWorkloadFileString
-	 * 
-	 * @return the subWorkloadFileString
-	 */
-	public String getSubWorkloadFileString()
-	{
-		return subWorkloadFileString;
+		return workloadFilesStrings;
 	}
 	
 	/**
@@ -404,8 +378,7 @@ public class BenchmarkConfig {
 	public void printAllFields()
 	{
 		logger.info(logHeader + "numRunsPerExperiment = " + numRunsPerExperiment + ".");
-		logger.info(logHeader + "pubWorkloadFilesStrings = " + Arrays.toString(pubWorkloadFilesStrings.toArray()) + ".");
-		logger.info(logHeader + "subWorkloadFileString = " + subWorkloadFileString + ".");
+		logger.info(logHeader + "workloadFilesStrings = " + Arrays.toString(workloadFilesStrings.toArray()) + ".");
 		logger.info(logHeader + "runLength = " + Arrays.toString(runLengths.toArray()) + ".");
 		logger.info(logHeader + "protocols = " + Arrays.toString(protocols.toArray()) + ".");
 		logger.info(logHeader + "topologyFilesStrings = " + Arrays.toString(topologyFilesStrings.toArray()) + ".");
@@ -436,14 +409,9 @@ public class BenchmarkConfig {
 			logger.error(logHeader + "No Number of Experiment Runs was given!");
 			anyFieldNull = true;
 		}
-		if(pubWorkloadFilesStrings.isEmpty())
+		if(workloadFilesStrings.isEmpty())
 		{
-			logger.error(logHeader + "No Publisher Workload File String(s) were given!");
-			anyFieldNull = true;
-		}
-		if(subWorkloadFileString.isEmpty())
-		{
-			logger.error(logHeader + "No Subscriber Workload File String was given!");
+			logger.error(logHeader + "No Workload File String(s) were given!");
 			anyFieldNull = true;
 		}
 		if(runLengths.isEmpty())

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,9 +22,8 @@ import pstb.startup.config.DistributedState;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.topology.TopologyFileParser;
-import pstb.startup.workload.Workload;
+import pstb.startup.workload.PSAction;
 import pstb.startup.workload.WorkloadFileParser;
-import pstb.startup.workload.WorkloadFileParser.WorkloadFileType;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 import pstb.util.UI;
@@ -96,44 +96,52 @@ public class PSTB {
 		}
 		
 		logger.info("Properties file loaded successfully!!");
-				
-		WorkloadFileParser parseWLF = new WorkloadFileParser(logger);
-		parseWLF.setPubWorkloadFilesStrings(benchmarkRules.getPubWorkloadFilesStrings());
-		parseWLF.setSubWorkloadFileString(benchmarkRules.getSubWorkloadFileString());
+			
+		HashMap<String, ArrayList<PSAction>> masterWorkload = new HashMap<String, ArrayList<PSAction>>();
+		ArrayList<String> workloadFilesStrings = benchmarkRules.getWorkloadFilesStrings();
 		
-		logger.info("Parsing Workload Files...");
+		logger.debug("Parsing Workload Files...");
+		boolean allWorkloadsOk = true;
 		
-		logger.debug("Parsing Publisher Workload...");
-		boolean pubCheck = parseWLF.parseWorkloadFiles(WorkloadFileType.P);
-		logger.debug("Parsing Subscriber Workload...");
-		boolean subCheck = parseWLF.parseWorkloadFiles(WorkloadFileType.S);
-		
-		if(!pubCheck)
+		for(int i = 0 ; i < workloadFilesStrings.size() ; i++)
 		{
-			logger.error("Publisher Workload File failed parsing!");
+			String workloadFileI = workloadFilesStrings.get(i);
+			WorkloadFileParser parseWLFI = new WorkloadFileParser(workloadFileI);
+			
+			logger.debug("Parsing Workload File " + workloadFileI + "...");
+			boolean parseCheck = parseWLFI.parse();
+			if(!parseCheck)
+			{
+				allWorkloadsOk = false;
+				logger.error("Parse Failed for file " + workloadFileI + "!");
+			}
+			else
+			{
+				logger.info("Parse Complete for file " + workloadFileI + ".");
+				ArrayList<PSAction> workloadI = parseWLFI.getWorkload();
+				masterWorkload.put(workloadFileI, workloadI);
+			}
+		}
+		if(!allWorkloadsOk)
+		{
+			logger.error("Error with topology files!");
+			masterWorkload.clear();
 			endProgram(PSTBError.M_WORKLOAD, userInput);
 		}
-		if(!subCheck)
-		{
-			logger.error("Subscriber Workload File failed parsing!");
-			endProgram(PSTBError.M_WORKLOAD, userInput);
-		}
-		
 		logger.info("All workload files valid!!");
 		
-		Workload askedWorkload = parseWLF.getWorkload();
-		
-		boolean allToposOk = true;
+		Set<String> givenWorkloadFilesStrings = masterWorkload.keySet();
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesStrings();
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
 		int numBrokersLargestTopo = 0;
 		int numNodesLargestTopo = 0;
 		
 		logger.info("Starting to parse Topology Files...");
+		boolean allToposOk = true;
 		for(int i = 0 ; i < allTopoFiles.size() ; i++)
 		{
 			String topoI = allTopoFiles.get(i);
-			TopologyFileParser parseTopo = new TopologyFileParser(topoI);
+			TopologyFileParser parseTopo = new TopologyFileParser(topoI, givenWorkloadFilesStrings);
 			
 			logger.debug("Parsing Topology File " + topoI + "...");
 			boolean parseCheck = parseTopo.parse();
@@ -293,12 +301,12 @@ public class PSTB {
 				if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
 				{
 					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), askedProtocols.get(protocolI),
-																		topologyI, disHostsAndPorts, currTimeString);
+																		topologyI, disHostsAndPorts, currTimeString, masterWorkload);
 				}
 				if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
 				{
 					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI), 
-																	topologyI, disHostsAndPorts, currTimeString);
+																	topologyI, disHostsAndPorts, currTimeString, masterWorkload);
 				}
 				
 				if(!checkDisPT || !checkLocalPT)
@@ -314,13 +322,13 @@ public class PSTB {
 				{
 					localPT.setUsername(localUsername);
 					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(),
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+																benchmarkRules.getNumRunsPerExperiment());
 				}
 				if (disPT.doObjectsExist())
 				{
 					disPT.setUsername(disUsername);
 					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(),
-															benchmarkRules.getNumRunsPerExperiment(), askedWorkload);
+																benchmarkRules.getNumRunsPerExperiment());
 				}
 				
 				if(!successfulExperiment)
@@ -411,8 +419,7 @@ public class PSTB {
 	 * @param givenAnalyzer - the Benchmark's analyzer
 	 * @return false if there is a failure; true otherwise
 	 */
-	private static boolean conductExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment,
-												Workload givenWorkload)
+	private static boolean conductExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
 	{
 		// We'll need this to collect the diaries latter, so...
 		Boolean givenPTDis = givenPT.getDistributed();
@@ -435,13 +442,6 @@ public class PSTB {
 			if(!functionCheck)
 			{
 				logger.error("Error setting Run Length!");
-				return false;
-			}
-			
-			functionCheck = givenPT.addWorkloadToAllClients(givenWorkload);
-			if(!functionCheck)
-			{
-				logger.error("Error setting Workload!");
 				return false;
 			}
 			

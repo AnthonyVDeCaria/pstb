@@ -5,7 +5,7 @@ B2	B	B3
 B3	B	B2
 
 #Clients
-P0	P	B0
-S0	S	B1
-S1	S	B2
-S2	S	B3
+P0	C	B0	etc/sample.txt
+S0	C	B1	etc/sampleSub.txt
+S1	C	B2	etc/sampleSub.txt
+S2	C	B3	etc/sampleSub.txt

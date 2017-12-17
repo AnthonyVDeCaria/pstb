@@ -6,7 +6,7 @@ B3	B	B0
 B4	B	B0
 
 #Clients
-Trip	A,P	B0
+Trip	A,P	B0	fuckYou
 #Poop
 Trip	S,B,P	B3
 Shut	S,C,P	B5

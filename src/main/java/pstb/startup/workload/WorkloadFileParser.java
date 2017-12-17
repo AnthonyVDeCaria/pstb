@@ -5,21 +5,18 @@
 package pstb.startup.workload;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.util.PSTBUtil;
 
 public class WorkloadFileParser {
-	private Workload wload;
-	private ArrayList<String> pubWorkloadFilesStrings;
-	private String subWorkloadFileString;
-	
-	private PSAction fileAd; // this exists on a per file basis
+	private String workloadFileString;
+	private ArrayList<PSAction> workload;
 	
 	private final int MINSEGMENTSNUM = 3;
 	private final int MAXSEGMENTSNUM = 4;
@@ -31,59 +28,43 @@ public class WorkloadFileParser {
 	private final int NO_PAYLOAD = 0;
 	
 	private final String logHeader = "Workload Parser: ";
-	private  Logger logger = null;
-	
-	/**
-	 * @author padres-dev-4187
-	 * 
-	 * The types of workload files
-	 */
-	public enum WorkloadFileType
-	{
-		P, S;
-	}
+	private Logger logger = LogManager.getRootLogger();
 	
 	/**
 	 * Constructor
 	 * 
 	 * @param log - the Logger that is requested we log to
 	 */
-	public WorkloadFileParser(Logger log)
+	public WorkloadFileParser()
 	{
-		logger = log;
-		wload = new Workload();
-		pubWorkloadFilesStrings = new ArrayList<String>();
-		subWorkloadFileString = new String();
+		workloadFileString = new String();
+		workload = new ArrayList<PSAction>();
+	}
+	
+	public WorkloadFileParser(String givenWorkloadFileString)
+	{
+		workloadFileString = givenWorkloadFileString;
+		workload = new ArrayList<PSAction>();
 	}
 	
 	/**
-	 * Gets the Workload object
+	 * Sets the WorkloadFileString
 	 * 
-	 * @return the Workload
+	 * @param givenWFS - a String representation of the workload file's Path
 	 */
-	public Workload getWorkload()
+	public void setWorkloadFileString(String givenWFS)
 	{
-		return wload;
+		workloadFileString = givenWFS;
 	}
 	
 	/**
-	 * Sets the PubWorkloadFilesStrings
+	 * Gets the workload
 	 * 
-	 * @param givenPWFS - the given PubWorkloadFilesStrings
+	 * @return the PSAction ArrayList
 	 */
-	public void setPubWorkloadFilesStrings(ArrayList<String> givenPWFS)
+	public ArrayList<PSAction> getWorkload()
 	{
-		pubWorkloadFilesStrings = givenPWFS;
-	}
-	
-	/**
-	 * Sets the SubWorkloadFileString
-	 * 
-	 * @param givenSWFS
-	 */
-	public void setSubWorkloadFileString(String givenSWFS)
-	{
-		subWorkloadFileString = givenSWFS;
+		return workload;
 	}
 	
 	/**
@@ -92,84 +73,30 @@ public class WorkloadFileParser {
 	 * @param requestedWF - the type of Workload file that is to be parsed
 	 * @return false on failure; true otherwise
 	 */
-	public boolean parseWorkloadFiles(WorkloadFileType requestedWF)
+	public boolean parse()
 	{
 		boolean parseSuccessful = true;
 		
-		if(pubWorkloadFilesStrings.isEmpty() || subWorkloadFileString.isEmpty())
+		if(workloadFileString.isEmpty())
 		{
-			logger.error(logHeader + "One of the File(s) Strings doesn't exist");
+			logger.error(logHeader + "No workload file was given!");
 			return false;
 		}
 		
-		if(requestedWF == WorkloadFileType.S)
-		{
-			BufferedReader sWFReader = null;
-			try
-			{
-				sWFReader = new BufferedReader(new FileReader(subWorkloadFileString));
-			}
-			catch (IOException e) 
-			{
-				logger.error(logHeader + "Cannot find file", e);
-				return false;
-			}
-			
-			parseSuccessful = parseGivenWorkloadFile(sWFReader, requestedWF);
-			if(!parseSuccessful)
-			{
-				logger.error(logHeader + "Error in file " + subWorkloadFileString);
-			}
-		}
-		else
-		{
-			ArrayList<FileReader> fileList = tryToAccessWorkloadFiles(pubWorkloadFilesStrings);
-			
-			if(fileList != null)
-			{
-				for(int i = 0 ; i < fileList.size() ; i++)
-				{
-					BufferedReader iTHFileReader = new BufferedReader(fileList.get(i));
-					parseSuccessful = parseGivenWorkloadFile(iTHFileReader, requestedWF);
-					if(!parseSuccessful)
-					{
-						logger.error(logHeader + "Error in publisher file " + i);
-					}
-				}
-			}
-			else
-			{
-				logger.error(logHeader + "Error reading Publisher Files");
-				return false;
-			}
-		}
-		
-		return parseSuccessful;
-	}
-	
-	/**
-	 * Parses a given Workload File
-	 * 
-	 * @param givenFile - the file to parse
-	 * @param requestedWF - the type of Workload File it is
-	 * @return false on failure; true otherwise
-	 */
-	private boolean parseGivenWorkloadFile(BufferedReader givenFile, WorkloadFileType requestedWF)
-	{
-		boolean isParseSuccessful = true;
+		BufferedReader readerWF = null;
 		String line = null;
 		int linesRead = 0;
-		fileAd = null;
-		
 		try
 		{
-			while( (line = givenFile.readLine()) != null)
+			readerWF = new BufferedReader(new FileReader(workloadFileString));
+			
+			while( (line = readerWF.readLine()) != null)
 			{
 				linesRead++;
 				String[] splitLine = line.split("	");
 				if(!checkProperLength(splitLine))
 				{
-					isParseSuccessful = false;
+					parseSuccessful = false;
 					logger.error(logHeader + "line " + linesRead + " is not the proper length");
 				}
 				else
@@ -178,15 +105,15 @@ public class WorkloadFileParser {
 					
 					if(actionDelay == null)
 					{
-						isParseSuccessful = false;
+						parseSuccessful = false;
 						logger.error(logHeader + "line " + linesRead + " has an incorrect action delay");
 					}
 					else
 					{
-						PSActionType lineIsActionType = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase(), requestedWF);
+						PSActionType lineIsActionType = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase());
 						if(lineIsActionType == null)
 						{
-							isParseSuccessful = false;
+							parseSuccessful = false;
 							logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action");
 						}
 						else
@@ -197,7 +124,7 @@ public class WorkloadFileParser {
 																			Long.MAX_VALUE, NO_PAYLOAD);
 								if(!addCheck)
 								{
-									isParseSuccessful = false;
+									parseSuccessful = false;
 									logger.error(logHeader + "error adding " + linesRead + " to the workload");
 								}
 							}
@@ -211,45 +138,45 @@ public class WorkloadFileParser {
 									payloadSize = PSTBUtil.checkIfInteger(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
 									if(payloadSize == null)
 									{
-										isParseSuccessful = false;
+										parseSuccessful = false;
 										logger.error(logHeader + "line " + linesRead + " has an incorrect payload size!");
 									}
 								}
-								else
+								else if(lineIsActionType.equals(PSActionType.A) || lineIsActionType.equals(PSActionType.S))
 								{
 									timeActive = PSTBUtil.checkIfLong(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
 									if(timeActive == null)
 									{
-										isParseSuccessful = false;
+										parseSuccessful = false;
 										logger.error(logHeader + "line " + linesRead + " has an incorrect time active value!");
 									}
 								}
-								
-								if(payloadSize != null || timeActive != null)
+								else
 								{
-									boolean addCheck = addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
-																				timeActive, payloadSize);
-									if(!addCheck)
-									{
-										isParseSuccessful = false;
-										logger.error(logHeader + "error adding " + linesRead + " to the workload!");
-									}
+									logger.warn(logHeader + "line " + linesRead + " shouldn't have a third column - ignoring it.");
+								}
+								
+								boolean addCheck = addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
+										timeActive, payloadSize);
+								if(!addCheck)
+								{
+									parseSuccessful = false;
+									logger.error(logHeader + "error adding " + linesRead + " to the workload!");
 								}
 							}
 						}
 					}
 				}
 			}
-			givenFile.close();
+			readerWF.close();
 		}
 		catch (IOException e) 
 		{
-			// we SHOULD never get here, but if we do
-			logger.error(logHeader + "Major error", e);
+			logger.error(logHeader + "Cannot find file: ", e);
 			return false;
 		}
 		
-		return isParseSuccessful;
+		return parseSuccessful;
 	}
 	
 	/**
@@ -275,7 +202,7 @@ public class WorkloadFileParser {
 	 * @param fileType - the type of file
 	 * @return null on failure; the given Client Action otherwise
 	 */
-	private PSActionType checkProperClientAction(String supposedClientAction, WorkloadFileType fileType)
+	private PSActionType checkProperClientAction(String supposedClientAction)
 	{
 		PSActionType test = null;
 		try 
@@ -288,53 +215,14 @@ public class WorkloadFileParser {
 			return null;
 		}
 		
-		if(test.equals(PSActionType.R) || test.equals(PSActionType.U) || test.equals(PSActionType.V))
+		if(test.equals(PSActionType.R))
 		{
 			logger.error(logHeader + supposedClientAction + " is a Client Action that should not be "
 					+ "submitted by the user.");
 			return null;
 		}
 		
-		if(
-				test.equals(PSActionType.S) && fileType.equals(WorkloadFileType.P)
-				|| test.equals(PSActionType.U) && fileType.equals(WorkloadFileType.P)
-				|| test.equals(PSActionType.P) && fileType.equals(WorkloadFileType.S)
-				|| test.equals(PSActionType.A) && fileType.equals(WorkloadFileType.S)
-				|| test.equals(PSActionType.V) && fileType.equals(WorkloadFileType.S)
-			)
-		{
-			logger.error(logHeader + " a " + fileType + " shouldn't have " + supposedClientAction + " actions");
-			return null;
-		}
-		
 		return test;
-	}
-	
-	/**
-	 * Attempts to access all the PubWorkloadFiles
-	 * 
-	 * @return null if a file cannot be read; an ArrayList of FileReaders if successful
-	 */
-	private ArrayList<FileReader> tryToAccessWorkloadFiles(ArrayList<String> pubWorkloadFilesPaths)
-	{
-		ArrayList<FileReader> temp = new ArrayList<FileReader>();
-		for(int i = 0 ; i < pubWorkloadFilesPaths.size(); i++)
-		{
-			FileReader iTHFR = null;
-			try
-			{
-				iTHFR = new FileReader(pubWorkloadFilesPaths.get(i));
-			}
-			catch (FileNotFoundException e) 
-			{
-				logger.error(logHeader + "Cannot find file", e);
-				temp.clear();
-				return temp;
-			}
-			temp.add(iTHFR);
-		}
-		
-		return temp;
 	}
 	
 	/**
@@ -353,83 +241,36 @@ public class WorkloadFileParser {
 		newAction.setAttributes(attributes);
 		newAction.setActionType(actionType);
 		
-		switch(actionType)
+		if(actionType.equals(PSActionType.A) || actionType.equals(PSActionType.S))
 		{
-			case A:
+			if(timeActive != null)
 			{
-				if(fileAd != null)
+				if(timeActive < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
 				{
-					logger.error(logHeader + "an advertiser already exists!");
-					return false;
+					timeActive *= PSTBUtil.MILLISEC_TO_NANOSEC;
 				}
-				else
-				{
-					if(timeActive != null)
-					{
-						if(timeActive < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
-						{
-							timeActive *= PSTBUtil.MILLISEC_TO_NANOSEC;
-						}
-						newAction.setTimeActive(timeActive);
-						wload.updateAdvertisementWorkload(newAction);
-						fileAd = newAction;
-					}
-					else
-					{
-						logger.error(logHeader + "given Time Active value is null when it shouldn't be!");
-						return false;
-					}
-					
-					break;
-				}
+				newAction.setTimeActive(timeActive);
 			}
-			case P:
+			else
 			{
-				if(fileAd == null)
-				{
-					logger.error(logHeader + "no Advertisement was given");
-					return false;
-				}
-				else
-				{
-					if(payloadSize != null)
-					{
-						newAction.setPayloadSize(payloadSize);
-						wload.updatePublicationWorkload(fileAd, newAction);
-					}
-					else
-					{
-						logger.error(logHeader + "given payload size is null when it shouldn't be!");
-						return false;
-					}
-					
-					break;
-				}
-			}
-			case S:
-			{
-				if(timeActive != null)
-				{
-					if(timeActive < (Long.MAX_VALUE / PSTBUtil.MILLISEC_TO_NANOSEC))
-					{
-						timeActive *= PSTBUtil.MILLISEC_TO_NANOSEC;
-					}
-					newAction.setTimeActive(timeActive);
-					wload.updateSubscriptionWorkload(newAction);
-				}
-				else
-				{
-					logger.error(logHeader + "given Time Active value is null when it shouldn't be!");
-					return false;
-				}
-				break;
-			}
-			default:
-			{
-				logger.error(logHeader + "Switch case defaulted");
+				logger.error(logHeader + "given Time Active value is null when it shouldn't be!");
 				return false;
 			}
 		}
+		else if(actionType.equals(PSActionType.P))
+		{
+			if(payloadSize != null)
+			{
+				newAction.setPayloadSize(payloadSize);
+			}
+			else
+			{
+				logger.error(logHeader + "given Payload Size value is null when it shouldn't be!");
+				return false;
+			}
+		}
+		
+		workload.add(newAction);
 		return true;
 	}
 	
