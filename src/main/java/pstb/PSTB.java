@@ -14,8 +14,8 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.creation.PhysicalTopology;
-import pstb.creation.PhysicalTopology.ActiveProcessRetVal;
+import pstb.creation.PADRESTopology;
+import pstb.creation.PADRESTopology.ActiveProcessRetVal;
 import pstb.startup.DistributedFileParser;
 import pstb.startup.config.BenchmarkConfig;
 import pstb.startup.config.DistributedState;
@@ -283,12 +283,12 @@ public class PSTB {
 			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
 				DistributedState givenDS = askedDistributed.get(topologyI);
-				PhysicalTopology localPT = null;
-				PhysicalTopology disPT = null;
+				PADRESTopology localPT = null;
+				PADRESTopology disPT = null;
 				try
 				{
-					localPT = new PhysicalTopology();
-					disPT = new PhysicalTopology();
+					localPT = new PADRESTopology();
+					disPT = new PADRESTopology();
 				}
 				catch (UnknownHostException e)
 				{
@@ -419,7 +419,7 @@ public class PSTB {
 	 * @param givenAnalyzer - the Benchmark's analyzer
 	 * @return false if there is a failure; true otherwise
 	 */
-	private static boolean conductExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
+	private static boolean conductExperiment(PADRESTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
 	{
 		// We'll need this to collect the diaries latter, so...
 		Boolean givenPTDis = givenPT.getDistributed();
@@ -480,7 +480,7 @@ public class PSTB {
 				PSTBUtil.synchronizeRun();
 				logger.info("Synchronization complete.");
 				
-				PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
+				PADRESTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
 //				Long startTime = System.nanoTime();
 				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
 				{

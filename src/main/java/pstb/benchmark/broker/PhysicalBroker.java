@@ -10,7 +10,7 @@ import org.apache.logging.log4j.ThreadContext;
 
 import pstb.benchmark.Physical;
 import pstb.benchmark.broker.padres.PSTBBrokerPADRES;
-import pstb.creation.PhysicalTopology;
+import pstb.creation.PADRESTopology;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 
@@ -19,7 +19,7 @@ import pstb.util.PSTBUtil;
  * 
  * The Process Class
  * Calls the Broker functions after the broker object has been created
- * @see PhysicalTopology
+ * @see PADRESTopology
  * 
  * Algorithm
  * Search the args for the name flag

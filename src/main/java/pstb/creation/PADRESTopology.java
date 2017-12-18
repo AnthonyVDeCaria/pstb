@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
  * from the Broker and Client Objects
  * to the Broker and Client Processes
  */
-public class PhysicalTopology {
+public class PADRESTopology {
 	private HashMap<String, PSTBBrokerPADRES> brokerObjects;
 	private HashMap<String, PSTBClientPADRES> clientObjects;
 	private HashMap<String, ProcessBuilder> brokerProcesses;
@@ -73,7 +73,7 @@ public class PhysicalTopology {
 	/**
 	 * Empty Constructor
 	 */
-	public PhysicalTopology() throws UnknownHostException
+	public PADRESTopology() throws UnknownHostException
 	{
 		brokerObjects = new HashMap<String, PSTBBrokerPADRES>();
 		clientObjects = new HashMap<String, PSTBClientPADRES>();

@@ -12,7 +12,7 @@ import org.apache.logging.log4j.ThreadContext;
 
 import pstb.benchmark.Physical;
 import pstb.benchmark.client.padres.PSTBClientPADRES;
-import pstb.creation.PhysicalTopology;
+import pstb.creation.PADRESTopology;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 
@@ -21,7 +21,7 @@ import pstb.util.PSTBUtil;
  *
  * The Client Process
  * Calls the client functions after the client object has been created
- * @see PhysicalTopology
+ * @see PADRESTopology
  *
  * Algorithm
  * Search the args for the name flag
