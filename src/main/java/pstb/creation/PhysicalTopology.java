@@ -1,12 +1,12 @@
 package pstb.creation;
 
-import pstb.benchmark.broker.padres.PSBrokerPADRES;
-import pstb.benchmark.client.padres.PSClientPADRES;
+import pstb.benchmark.broker.padres.PSTBBrokerPADRES;
+import pstb.benchmark.client.padres.PSTBClientPADRES;
 import pstb.creation.server.PSTBServer;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.topology.ClientNotes;
 import pstb.startup.topology.LogicalTopology;
-import pstb.startup.workload.PSAction;
+import pstb.startup.workload.PADRESAction;
 import pstb.util.PSTBUtil;
 
 import java.io.IOException;
@@ -28,15 +28,15 @@ import org.apache.logging.log4j.Logger;
  * to the Broker and Client Processes
  */
 public class PhysicalTopology {
-	private HashMap<String, PSBrokerPADRES> brokerObjects;
-	private HashMap<String, PSClientPADRES> clientObjects;
+	private HashMap<String, PSTBBrokerPADRES> brokerObjects;
+	private HashMap<String, PSTBClientPADRES> clientObjects;
 	private HashMap<String, ProcessBuilder> brokerProcesses;
 	private HashMap<String, ProcessBuilder> clientProcesses;
 	private HashMap<String, Process> activeBrokers;
 	private HashMap<String, Process> activeClients;
 	
 	private LogicalTopology startingTopology;
-	private HashMap<String, ArrayList<PSAction>> masterWorkload;
+	private HashMap<String, ArrayList<PADRESAction>> masterWorkload;
 	private PSTBServer masterServer;
 	private String user;
 	
@@ -75,8 +75,8 @@ public class PhysicalTopology {
 	 */
 	public PhysicalTopology() throws UnknownHostException
 	{
-		brokerObjects = new HashMap<String, PSBrokerPADRES>();
-		clientObjects = new HashMap<String, PSClientPADRES>();
+		brokerObjects = new HashMap<String, PSTBBrokerPADRES>();
+		clientObjects = new HashMap<String, PSTBClientPADRES>();
 		brokerProcesses = new HashMap<String, ProcessBuilder>();
 		clientProcesses = new HashMap<String, ProcessBuilder>();
 		activeBrokers = new HashMap<String, Process>();
@@ -84,7 +84,7 @@ public class PhysicalTopology {
 		
 		startingTopology = new LogicalTopology();
 		masterServer = null;
-		masterWorkload = new HashMap<String, ArrayList<PSAction>>();
+		masterWorkload = new HashMap<String, ArrayList<PADRESAction>>();
 		
 		runNumber = INIT_RUN_NUMBER;
 		protocol = null;
@@ -217,7 +217,7 @@ public class PhysicalTopology {
 	 * @param givenName - the name
 	 * @return the broker object - which could be null if none exists
 	 */
-	public PSBrokerPADRES getParticularBroker(String givenName)
+	public PSTBBrokerPADRES getParticularBroker(String givenName)
 	{
 		return brokerObjects.get(givenName);
 	}
@@ -241,7 +241,7 @@ public class PhysicalTopology {
 	 * @param givenName - the name
 	 * @return the client object - which could be null if none exists
 	 */
-	public PSClientPADRES getParticularClient(String givenName)
+	public PSTBClientPADRES getParticularClient(String givenName)
 	{
 		return clientObjects.get(givenName);
 	}
@@ -291,10 +291,10 @@ public class PhysicalTopology {
 	 */
 	public boolean developPhysicalTopology(boolean givenDistributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol,
 												String givenTFP, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
-												String givenBST, HashMap<String, ArrayList<PSAction>> givenMasterWorkload)
+												String givenBST, HashMap<String, ArrayList<PADRESAction>> pADRESWorkload)
 	{
 		startingTopology = givenTopo;
-		masterWorkload = givenMasterWorkload;
+		masterWorkload = pADRESWorkload;
 		
 		protocol = givenProtocol;
 		distributed = givenDistributed;
@@ -345,7 +345,7 @@ public class PhysicalTopology {
 			String hostName = getBrokerHost();
 			Integer port = getBrokerPort(hostName);
 			
-			PSBrokerPADRES actBrokerI = new PSBrokerPADRES(hostName, port, protocol, brokerI);
+			PSTBBrokerPADRES actBrokerI = new PSTBBrokerPADRES(hostName, port, protocol, brokerI);
 			
 			brokerObjects.put(brokerI, actBrokerI);
 			
@@ -357,14 +357,14 @@ public class PhysicalTopology {
 		for( ; iteratorBO.hasNext() ; )
 		{
 			String brokerIName = iteratorBO.next();
-			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
+			PSTBBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			ArrayList<String> neededURIs = new ArrayList<String>();
 			
 			ArrayList<String> bIConnectedNodes = brokerList.get(brokerIName);
 			for(int j = 0 ; j < bIConnectedNodes.size() ; j++)
 			{
 				String brokerJName = bIConnectedNodes.get(j);
-				PSBrokerPADRES actBrokerJ = brokerObjects.get(brokerJName);
+				PSTBBrokerPADRES actBrokerJ = brokerObjects.get(brokerJName);
 				if(actBrokerJ == null)
 				{
 					logger.error(logHeader + "couldn't find " + brokerJName + " in genBrokers that " + brokerIName 
@@ -462,7 +462,7 @@ public class PhysicalTopology {
 		// Loop through the publisherList, creating every client that's there
 		for( ; cliIterator.hasNext() ; )
 		{
-			PSClientPADRES clientI = new PSClientPADRES();
+			PSTBClientPADRES clientI = new PSTBClientPADRES();
 			
 			String clientIName = cliIterator.next();
 			ClientNotes clientINotes = clientList.get(clientIName);
@@ -470,7 +470,7 @@ public class PhysicalTopology {
 			ArrayList<String> clientIConnections = clientINotes.getConnections();
 			
 			String workloadFileString = clientINotes.getRequestedWorkload();
-			ArrayList<PSAction> clientIWorkload = masterWorkload.get(workloadFileString);
+			ArrayList<PADRESAction> clientIWorkload = masterWorkload.get(workloadFileString);
 			if(clientIWorkload == null)
 			{
 				logger.error(logHeader + "Client " + clientIName + " is requesting a non-existant workload!");
@@ -641,7 +641,7 @@ public class PhysicalTopology {
 		for( ; iteratorBO.hasNext() ; )
 		{
 			String brokerIName = iteratorBO.next();
-			PSBrokerPADRES brokerI = brokerObjects.get(brokerIName);
+			PSTBBrokerPADRES brokerI = brokerObjects.get(brokerIName);
 			
 			ProcessBuilder brokerIProcess = generateNodeProcess(brokerIName, brokerI, true);
 			if(brokerIProcess == null)
@@ -659,7 +659,7 @@ public class PhysicalTopology {
 		for( ; iteratorCO.hasNext() ; )
 		{
 			String clientIName = iteratorCO.next();
-			PSClientPADRES clientI = clientObjects.get(clientIName);
+			PSTBClientPADRES clientI = clientObjects.get(clientIName);
 			
 			ProcessBuilder clientIProcess = generateNodeProcess(clientIName, clientI, false);
 			if(clientIProcess == null)
@@ -744,7 +744,7 @@ public class PhysicalTopology {
 			command.add(MEM_BROKER.toString());
 			command.add(nodeName);
 			
-			PSBrokerPADRES broker = (PSBrokerPADRES) node;
+			PSTBBrokerPADRES broker = (PSTBBrokerPADRES) node;
 			String context = broker.generateContext();
 			command.add(context);
 		}
@@ -754,7 +754,7 @@ public class PhysicalTopology {
 			command.add(MEM_CLIENT.toString());
 			command.add(nodeName);
 			
-			PSClientPADRES client = (PSClientPADRES) node;
+			PSTBClientPADRES client = (PSTBClientPADRES) node;
 			String diary = client.generateDiaryName();
 			command.add(diary);
 		}

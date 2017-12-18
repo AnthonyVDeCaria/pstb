@@ -26,7 +26,7 @@ import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.client.PhysicalClient;
 import pstb.util.PSTBUtil;
 import pstb.startup.config.NetworkProtocol;
-import pstb.startup.workload.PSAction;
+import pstb.startup.workload.PADRESAction;
 import pstb.startup.workload.PSActionType;
 
 /**
@@ -40,13 +40,13 @@ import pstb.startup.workload.PSActionType;
  * starting it (i.e. handle advertisements, publications and subscriptions)
  * and message processing.
  */
-public class PSClientPADRES implements java.io.Serializable 
+public class PSTBClientPADRES implements java.io.Serializable 
 {	
 	private static final long serialVersionUID = 1L;
 	private String clientName;
 	private ArrayList<String> brokerURIs;
 	
-	private ArrayList<PSAction> workload;
+	private ArrayList<PADRESAction> workload;
 	private Long runLength;
 	private Integer runNumber;
 	
@@ -77,12 +77,12 @@ public class PSClientPADRES implements java.io.Serializable
 	/**
 	 * Empty Constructor
 	 */
-	public PSClientPADRES()
+	public PSTBClientPADRES()
 	{
 		clientName = new String();
 		brokerURIs = new ArrayList<String>();
 		
-		workload = new ArrayList<PSAction>();
+		workload = new ArrayList<PADRESAction>();
 		runLength = INIT_RUN_LENGTH;
 		runNumber = INIT_RUN_NUMBER;
 		
@@ -117,11 +117,11 @@ public class PSClientPADRES implements java.io.Serializable
 	/**
 	 * Sets the Client workload
 	 * 
-	 * @param givenW - the given Workload
+	 * @param clientIWorkload - the given Workload
 	 */
-	public void setWorkload(ArrayList<PSAction> givenW)
+	public void setWorkload(ArrayList<PADRESAction> clientIWorkload)
 	{
-		workload = givenW;
+		workload = clientIWorkload;
 	}
 	
 	/**
@@ -463,7 +463,7 @@ public class PSClientPADRES implements java.io.Serializable
 		}
 		// We do
 		
-		ArrayList<PSAction> activeList = new ArrayList<PSAction>();
+		ArrayList<PADRESAction> activeList = new ArrayList<PADRESAction>();
 		
 		PSTBUtil.synchronizeRun();
 		
@@ -479,7 +479,7 @@ public class PSClientPADRES implements java.io.Serializable
 			
 			if(i < workload.size())
 			{
-				PSAction actionI = workload.get(i);
+				PADRESAction actionI = workload.get(i);
 				PSActionType actionIsActionType = actionI.getActionType();
 				
 				clientLog.debug(logHeader + "Attempting to send " + actionIsActionType + " " + actionI.getAttributes() + ".");
@@ -574,7 +574,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 * @param givenActiveList - the ActiveList to look over
 	 * @return false on any error; true if successful
 	 */
-	private boolean updateActiveList(ArrayList<PSAction> givenActiveList)
+	private boolean updateActiveList(ArrayList<PADRESAction> givenActiveList)
 	{	
 		int numActiveActions = givenActiveList.size();
 		ArrayList<Integer> nodesToRemove = new ArrayList<Integer>();
@@ -603,7 +603,7 @@ public class PSClientPADRES implements java.io.Serializable
 		 */
 		for(int i = 0 ; i < numActiveActions ; i++)
 		{
-			PSAction activeActionI = givenActiveList.get(i);
+			PADRESAction activeActionI = givenActiveList.get(i);
 			PSActionType aAIActionType = activeActionI.getActionType();
 			String aAIAttributes = activeActionI.getAttributes();
 			clientLog.trace(logHeader + "Accessing entry " + aAIAttributes + ".");
@@ -655,7 +655,7 @@ public class PSClientPADRES implements java.io.Serializable
 		for(int i = 0 ; i < nodesToRemove.size() ; i++)
 		{
 			int j = nodesToRemove.get(i);
-			PSAction inactionActionJ = givenActiveList.get(j);
+			PADRESAction inactionActionJ = givenActiveList.get(j);
 			
 			clientLog.debug(logHeader + "Removing " + inactionActionJ.getActionType().toString() + " " + inactionActionJ.getAttributes()
 							+ " from ActiveList");
@@ -673,13 +673,13 @@ public class PSClientPADRES implements java.io.Serializable
 	 * @param activeList - the list of all remaining Ads and Subs
 	 * @return false on failure; true otherwise
 	 */
-	private boolean cleanup(ArrayList<PSAction> activeList)
+	private boolean cleanup(ArrayList<PADRESAction> activeList)
 	{
 		int sizeAL = activeList.size();
 		clientLog.debug(logHeader + "Undoing " + sizeAL + " 'infinite' actions."); 
 		for(int i = 0 ; i < sizeAL ; i++)
 		{
-			PSAction activeActionI = activeList.get(i);
+			PADRESAction activeActionI = activeList.get(i);
 			
 			if(activeActionI.getActionType().equals(PSActionType.A))
 			{
@@ -718,7 +718,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 * @param givenAction - the given Action
 	 * @return true if the action was recorded; false on error
 	 */
-	private boolean launchAction(PSActionType selectedAction, PSAction givenAction)
+	private boolean launchAction(PSActionType selectedAction, PADRESAction givenAction)
 	{
 		clientLog.debug(logHeader + "Preparing to record " + selectedAction + " " + givenAction.getAttributes());
 		
@@ -839,7 +839,7 @@ public class PSClientPADRES implements java.io.Serializable
 	 * @param givenAction - the Action itself
 	 * @return the proper message on success; null on failure
 	 */
-	private Message executeAction(PSActionType selectedAction, PSAction givenAction) 
+	private Message executeAction(PSActionType selectedAction, PADRESAction givenAction) 
 	{
 		String generalLog = "Attempting to ";
 		Message result = null;

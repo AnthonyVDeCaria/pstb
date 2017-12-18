@@ -22,7 +22,7 @@ import pstb.startup.config.DistributedState;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.topology.TopologyFileParser;
-import pstb.startup.workload.PSAction;
+import pstb.startup.workload.PADRESAction;
 import pstb.startup.workload.WorkloadFileParser;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
@@ -97,7 +97,7 @@ public class PSTB {
 		
 		logger.info("Properties file loaded successfully!!");
 			
-		HashMap<String, ArrayList<PSAction>> masterWorkload = new HashMap<String, ArrayList<PSAction>>();
+		HashMap<String, ArrayList<PADRESAction>> PADRESWorkload = new HashMap<String, ArrayList<PADRESAction>>();
 		ArrayList<String> workloadFilesStrings = benchmarkRules.getWorkloadFilesStrings();
 		
 		logger.debug("Parsing Workload Files...");
@@ -118,19 +118,19 @@ public class PSTB {
 			else
 			{
 				logger.info("Parse Complete for file " + workloadFileI + ".");
-				ArrayList<PSAction> workloadI = parseWLFI.getWorkload();
-				masterWorkload.put(workloadFileI, workloadI);
+				ArrayList<PADRESAction> workloadI = parseWLFI.getPADRESWorkload();
+				PADRESWorkload.put(workloadFileI, workloadI);
 			}
 		}
 		if(!allWorkloadsOk)
 		{
 			logger.error("Error with topology files!");
-			masterWorkload.clear();
+			PADRESWorkload.clear();
 			endProgram(PSTBError.M_WORKLOAD, userInput);
 		}
 		logger.info("All workload files valid!!");
 		
-		Set<String> givenWorkloadFilesStrings = masterWorkload.keySet();
+		Set<String> givenWorkloadFilesStrings = PADRESWorkload.keySet();
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesStrings();
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
 		int numBrokersLargestTopo = 0;
@@ -301,12 +301,12 @@ public class PSTB {
 				if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
 				{
 					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), askedProtocols.get(protocolI),
-																		topologyI, disHostsAndPorts, currTimeString, masterWorkload);
+																		topologyI, disHostsAndPorts, currTimeString, PADRESWorkload);
 				}
 				if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
 				{
 					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI), 
-																	topologyI, disHostsAndPorts, currTimeString, masterWorkload);
+																	topologyI, disHostsAndPorts, currTimeString, PADRESWorkload);
 				}
 				
 				if(!checkDisPT || !checkLocalPT)

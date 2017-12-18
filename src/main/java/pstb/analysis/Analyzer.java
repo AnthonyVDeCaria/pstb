@@ -19,7 +19,7 @@ import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.analysis.diary.DiaryEntry.DiaryHeader;
-import pstb.benchmark.client.padres.PSClientPADRES;
+import pstb.benchmark.client.padres.PSTBClientPADRES;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBError;
@@ -142,7 +142,7 @@ public class Analyzer {
 	 * - a collection of ClientDiaries
 	 * 
 	 * @param diaryName - the name associated the diary object
-	 * @see PSClientPADRES
+	 * @see PSTBClientPADRES
 	 * @return an ArrayList of diaries if everything works properly; null otherwise
 	 */
 	private static boolean collectDiaries()

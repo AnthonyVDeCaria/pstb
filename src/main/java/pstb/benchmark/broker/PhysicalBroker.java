@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import pstb.benchmark.Physical;
-import pstb.benchmark.broker.padres.PSBrokerPADRES;
+import pstb.benchmark.broker.padres.PSTBBrokerPADRES;
 import pstb.creation.PhysicalTopology;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
@@ -60,7 +60,7 @@ public class PhysicalBroker {
 		Thread.currentThread().setName(givenContext);
 		
 		// Now let's get the Broker Object
-		PSBrokerPADRES givenBroker = null;
+		PSTBBrokerPADRES givenBroker = null;
 		
 		boolean socketCreationCheck = helper.createSocket(); 
 		if(!socketCreationCheck)
@@ -89,7 +89,7 @@ public class PhysicalBroker {
 			log.error(logHeader + "Didn't get object from master!");
 			System.exit(PSTBError.B_OBJECT);
 		}
-		givenBroker = (PSBrokerPADRES) check;
+		givenBroker = (PSTBBrokerPADRES) check;
 		
 		// Have broker, will run (assuming everything is working)
 		boolean functionSuccessful = givenBroker.createBroker();

@@ -13,8 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
-import pstb.benchmark.broker.padres.PSBrokerPADRES;
-import pstb.benchmark.client.padres.PSClientPADRES;
+import pstb.benchmark.broker.padres.PSTBBrokerPADRES;
+import pstb.benchmark.client.padres.PSTBClientPADRES;
 
 /**
  * @author padres-dev-4187
@@ -24,8 +24,8 @@ public class PSTBServer extends Thread
 {
 	private CountDownLatch startSignal;
 	
-	private HashMap<String, PSBrokerPADRES> brokerData;
-	private HashMap<String, PSClientPADRES> clientData;
+	private HashMap<String, PSTBBrokerPADRES> brokerData;
+	private HashMap<String, PSTBClientPADRES> clientData;
 	
 	private Integer port;
 	private ServerSocket objectConnection;
@@ -39,8 +39,8 @@ public class PSTBServer extends Thread
 	{
 		startSignal = null;
 		
-		brokerData = new HashMap<String, PSBrokerPADRES>();
-		clientData = new HashMap<String, PSClientPADRES>();
+		brokerData = new HashMap<String, PSTBBrokerPADRES>();
+		clientData = new HashMap<String, PSTBClientPADRES>();
 		
 		port = null;
 		objectConnection = null;
@@ -53,13 +53,13 @@ public class PSTBServer extends Thread
 		startSignal = givenStartSignal;
 	}
 	
-	public void setBrokerData(HashMap<String, PSBrokerPADRES> givenBrokers)
+	public void setBrokerData(HashMap<String, PSTBBrokerPADRES> givenBrokers)
 	{
 		brokerData = givenBrokers;
 		serverLog.debug(logHeader + "Broker data set.");
 	}
 	
-	public void setClientData(HashMap<String, PSClientPADRES> givenClients)
+	public void setClientData(HashMap<String, PSTBClientPADRES> givenClients)
 	{
 		clientData = givenClients;
 		serverLog.debug(logHeader + "Client data set.");

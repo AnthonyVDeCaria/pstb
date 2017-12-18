@@ -24,7 +24,7 @@ import pstb.util.PSTBUtil;
  * 
  * @author padres-dev-4187
  */
-public class PSBrokerPADRES implements java.io.Serializable {
+public class PSTBBrokerPADRES implements java.io.Serializable {
 	private static final long serialVersionUID = 1L;
 	private String host;
 	private Integer port;
@@ -56,7 +56,7 @@ public class PSBrokerPADRES implements java.io.Serializable {
 	 * @param newProtocol - this broker's protocol
 	 * @param givenName - this broker's name
 	 */
-	public PSBrokerPADRES(String newHost, Integer newPort, NetworkProtocol newProtocol, String givenName)
+	public PSTBBrokerPADRES(String newHost, Integer newPort, NetworkProtocol newProtocol, String givenName)
 	{
 		host = newHost;
 		port = newPort;

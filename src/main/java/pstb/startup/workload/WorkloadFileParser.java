@@ -16,7 +16,8 @@ import pstb.util.PSTBUtil;
 
 public class WorkloadFileParser {
 	private String workloadFileString;
-	private ArrayList<PSAction> workload;
+	private ArrayList<PADRESAction> workloadP;
+	private ArrayList<SIENAAction> workloadS;
 	
 	private final int MINSEGMENTSNUM = 3;
 	private final int MAXSEGMENTSNUM = 4;
@@ -38,13 +39,13 @@ public class WorkloadFileParser {
 	public WorkloadFileParser()
 	{
 		workloadFileString = new String();
-		workload = new ArrayList<PSAction>();
+		workloadP = new ArrayList<PADRESAction>();
 	}
 	
 	public WorkloadFileParser(String givenWorkloadFileString)
 	{
 		workloadFileString = givenWorkloadFileString;
-		workload = new ArrayList<PSAction>();
+		workloadP = new ArrayList<PADRESAction>();
 	}
 	
 	/**
@@ -58,13 +59,23 @@ public class WorkloadFileParser {
 	}
 	
 	/**
-	 * Gets the workload
+	 * Gets the workload as detailed by PADRES
 	 * 
-	 * @return the PSAction ArrayList
+	 * @return the PADRESAction ArrayList
 	 */
-	public ArrayList<PSAction> getWorkload()
+	public ArrayList<PADRESAction> getPADRESWorkload()
 	{
-		return workload;
+		return workloadP;
+	}
+	
+	/**
+	 * Gets the workload as detailed by SIENA
+	 * 
+	 * @return theSIENAAction ArrayList
+	 */
+	public ArrayList<SIENAAction> getSIENAWorkload()
+	{
+		return workloadS;
 	}
 	
 	/**
@@ -236,10 +247,9 @@ public class WorkloadFileParser {
 	 */
 	private boolean addActionToWorkload(Long actionDelay, PSActionType actionType, String attributes, Long timeActive, Integer payloadSize)
 	{
-		PSAction newAction = new PSAction();
-		newAction.setActionDelay(actionDelay);
-		newAction.setAttributes(attributes);
-		newAction.setActionType(actionType);
+		PADRESAction newPAction = new PADRESAction(actionType, actionDelay);
+		SIENAAction newSAction = new SIENAAction(actionType, actionDelay);
+		newPAction.setAttributes(attributes);
 		
 		if(actionType.equals(PSActionType.A) || actionType.equals(PSActionType.S))
 		{
@@ -249,7 +259,8 @@ public class WorkloadFileParser {
 				{
 					timeActive *= PSTBUtil.MILLISEC_TO_NANOSEC;
 				}
-				newAction.setTimeActive(timeActive);
+				newPAction.setTimeActive(timeActive);
+				newSAction.setTimeActive(timeActive);
 			}
 			else
 			{
@@ -261,7 +272,7 @@ public class WorkloadFileParser {
 		{
 			if(payloadSize != null)
 			{
-				newAction.setPayloadSize(payloadSize);
+				newPAction.setPayloadSize(payloadSize);
 			}
 			else
 			{
@@ -270,7 +281,7 @@ public class WorkloadFileParser {
 			}
 		}
 		
-		workload.add(newAction);
+		workloadP.add(newPAction);
 		return true;
 	}
 	

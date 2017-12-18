@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import pstb.benchmark.Physical;
-import pstb.benchmark.client.padres.PSClientPADRES;
+import pstb.benchmark.client.padres.PSTBClientPADRES;
 import pstb.creation.PhysicalTopology;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
@@ -70,7 +70,7 @@ public class PhysicalClient {
 		Thread.currentThread().setName(context);
 		
 		// Now let's get the Client Object
-		PSClientPADRES givenClient = null;
+		PSTBClientPADRES givenClient = null;
 		
 		log.debug(logHeader + "Attempting to create Socket...");
 		boolean socketCreationCheck = helper.createSocket(); 
@@ -106,7 +106,7 @@ public class PhysicalClient {
 			log.error(logHeader + "Didn't get object " + givenClientName + "'s Client Object from master!");
 			System.exit(PSTBError.C_OBJECT);
 		}
-		givenClient = (PSClientPADRES) check;
+		givenClient = (PSTBClientPADRES) check;
 		log.info(logHeader + givenClientName + "'s Client Object received.");
 		
 		// Now that we have the client, let's get this show on the road

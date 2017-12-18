@@ -13,12 +13,12 @@ import ca.utoronto.msrg.padres.common.message.Message;
  */
 public class PADRESClientExtension extends Client  
 {
-	PSClientPADRES hiddenClient;
+	PSTBClientPADRES hiddenClient;
 	
 	/**
 	 * Constructor
 	 */
-	public PADRESClientExtension(ClientConfig givenCConfig, PSClientPADRES givenClient) throws ClientException
+	public PADRESClientExtension(ClientConfig givenCConfig, PSTBClientPADRES givenClient) throws ClientException
 	{
 		super(givenCConfig);
 		hiddenClient = givenClient;
