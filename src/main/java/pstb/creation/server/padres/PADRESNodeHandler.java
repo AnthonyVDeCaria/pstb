@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.creation.server;
+package pstb.creation.server.padres;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,20 +12,23 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
+import pstb.creation.server.PSTBServer;
+import pstb.creation.server.ServerPacket;
 import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
  *
  */
-public class NodeHandler extends Thread
+public class PADRESNodeHandler extends Thread
 {
 	private Socket objectPipe;
-	private PSTBServer master;
 	private CountDownLatch wait;
 	private CountDownLatch broker;
 	private CountDownLatch start;
+	private PADRESServer master;
 	
 	private String mode;
 	private final String MODE_O = "OBJECT";
@@ -34,20 +37,24 @@ public class NodeHandler extends Thread
 	private final String logHeader = "ObjectHandler: ";
 	private final Logger log = LogManager.getLogger(PSTBServer.class);
 	
-	public NodeHandler(Socket givenPipe, CountDownLatch clientsWaitingSignal, CountDownLatch brokersCompleteSignal, 
-							CountDownLatch startSignal, PSTBServer givenObjectServer)
+	public PADRESNodeHandler(Socket givenPipe, CountDownLatch clientsWaitingSignal, CountDownLatch brokersCompleteSignal, 
+							CountDownLatch startSignal, PADRESServer givenServer)
 	{
 		objectPipe = givenPipe;
-		master = givenObjectServer;
 		wait = clientsWaitingSignal;
 		broker = brokersCompleteSignal;
 		start = startSignal;
+		master = givenServer;
 		
 		mode = MODE_O;
 	}
 	
 	public void run()
 	{
+		String serverName = master.getName();
+		ThreadContext.put("server", serverName);
+		Thread.currentThread().setName(serverName);
+		
 		OutputStream pipeOut = null;	
 		try
 		{

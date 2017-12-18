@@ -9,9 +9,15 @@
             <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </File>
         
-        <File name="PSTBServer" fileName="logs/PSTBServer.log" immediateFlush="false" append="false">
-            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-        </File>
+        <Routing name="Server">
+	        <Routes pattern="${ctx:server}">
+	            <Route>
+	                <File name="${ctx:server}" fileName="logs/${ctx:server}.log" immediateFlush="false" append="false">
+	                   <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+	                </File>
+	            </Route>
+	        </Routes>
+	    </Routing>
         
         <Routing name="Broker">
 	        <Routes pattern="${ctx:broker}">
@@ -112,7 +118,7 @@
             <AppenderRef ref="Root"/>
         </Root>
         <Logger name="pstb.creation.server.PSTBServer" level="debug" additivity="false">
-        	<AppenderRef ref="PSTBServer"/>
+        	<AppenderRef ref="Server"/>
         </Logger>
         <Logger name="pstb.benchmark.broker.PhysicalBroker" level="debug" additivity="false">
         	<AppenderRef ref="Broker"/>

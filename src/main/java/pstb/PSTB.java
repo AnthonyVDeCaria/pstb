@@ -15,7 +15,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.creation.PADRESTopology;
-import pstb.creation.PADRESTopology.ActiveProcessRetVal;
+import pstb.creation.PhysicalTopology;
+import pstb.creation.PhysicalTopology.ActiveProcessRetVal;
 import pstb.startup.DistributedFileParser;
 import pstb.startup.config.BenchmarkConfig;
 import pstb.startup.config.DistributedState;
@@ -318,13 +319,13 @@ public class PSTB {
 				logger.info("Beginning experiment...");
 				boolean successfulExperiment = true;
 				
-				if(localPT.doObjectsExist())
+				if(localPT.doAnyObjectsExist())
 				{
 					localPT.setUsername(localUsername);
 					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(),
 																benchmarkRules.getNumRunsPerExperiment());
 				}
-				if (disPT.doObjectsExist())
+				if (disPT.doAnyObjectsExist())
 				{
 					disPT.setUsername(disUsername);
 					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(),
@@ -480,7 +481,7 @@ public class PSTB {
 				PSTBUtil.synchronizeRun();
 				logger.info("Synchronization complete.");
 				
-				PADRESTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
+				PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
 //				Long startTime = System.nanoTime();
 				while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
 				{
