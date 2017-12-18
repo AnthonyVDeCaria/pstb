@@ -2,7 +2,7 @@
  * @author padres-dev-4187
  *
  */
-package pstb.benchmark.broker;
+package pstb.benchmark.broker.padres;
 
 import java.util.Arrays;
 
@@ -13,6 +13,7 @@ import ca.utoronto.msrg.padres.broker.brokercore.BrokerConfig;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCore;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCoreException;
 import pstb.analysis.diary.DistributedFlagValue;
+import pstb.benchmark.broker.PhysicalBroker;
 import pstb.startup.config.NetworkProtocol;
 import pstb.util.PSTBUtil;
 

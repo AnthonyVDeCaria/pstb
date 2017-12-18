@@ -13,8 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
-import pstb.benchmark.broker.PSBrokerPADRES;
-import pstb.benchmark.client.PSClientPADRES;
+import pstb.benchmark.broker.padres.PSBrokerPADRES;
+import pstb.benchmark.client.padres.PSClientPADRES;
 
 /**
  * @author padres-dev-4187

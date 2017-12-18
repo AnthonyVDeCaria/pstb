@@ -19,7 +19,7 @@ import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.analysis.diary.DiaryEntry.DiaryHeader;
-import pstb.benchmark.client.PSClientPADRES;
+import pstb.benchmark.client.padres.PSClientPADRES;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBError;

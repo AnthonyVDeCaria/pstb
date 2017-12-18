@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import pstb.benchmark.Physical;
+import pstb.benchmark.client.padres.PSClientPADRES;
 import pstb.creation.PhysicalTopology;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;

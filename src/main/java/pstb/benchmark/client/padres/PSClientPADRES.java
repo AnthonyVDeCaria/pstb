@@ -1,4 +1,4 @@
-package pstb.benchmark.client;
+package pstb.benchmark.client.padres;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,6 +23,7 @@ import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DistributedFlagValue;
+import pstb.benchmark.client.PhysicalClient;
 import pstb.util.PSTBUtil;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSAction;

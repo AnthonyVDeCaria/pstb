@@ -1,7 +1,7 @@
 package pstb.creation;
 
-import pstb.benchmark.broker.PSBrokerPADRES;
-import pstb.benchmark.client.PSClientPADRES;
+import pstb.benchmark.broker.padres.PSBrokerPADRES;
+import pstb.benchmark.client.padres.PSClientPADRES;
 import pstb.creation.server.PSTBServer;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.topology.ClientNotes;
