@@ -22,10 +22,19 @@ import pstb.util.PSTBUtil;
  *
  */
 public class PhysicalTopology {
+	protected final Integer MEM_CLIENT = 256;
+	protected final Integer MEM_BROKER = 256;
+	
+	private final Integer LOCAL_START_PORT = 1100;
+	private final int INIT_TERMINATION_VALUE = 9999;
+	private final String BROKER_CLASS_NAME = "pstb.benchmark.broker.PhysicalBroker";
+	private final String CLIENT_CLASS_NAME = "pstb.benchmark.client.PhysicalClient";
+	
 	protected HashMap<String, ProcessBuilder> brokerProcesses;
 	protected HashMap<String, ProcessBuilder> clientProcesses;
-	protected HashMap<String, Process> activeBrokers;
-	protected HashMap<String, Process> activeClients;
+	
+	private HashMap<String, Process> activeBrokers;
+	private HashMap<String, Process> activeClients;
 	
 	protected LogicalTopology startingTopology;
 	protected String user;
@@ -34,15 +43,11 @@ public class PhysicalTopology {
 	protected NetworkProtocol protocol;
 	protected String topologyFilePath;
 	protected String benchmarkStartTime;
-	protected Integer runNumber;
-	protected final Integer INIT_RUN_NUMBER = -1;
-	
-	protected final Integer MEM_CLIENT = 256;
-	protected final Integer MEM_BROKER = 256;
-	
+
 	protected String ipAddress;
-	protected final Integer LOCAL_START_PORT = 1100;
+	
 	protected Integer localPortNum = LOCAL_START_PORT;
+	
 	protected HashMap<String, ArrayList<Integer>> hostsAndPorts;
 	protected ArrayList<String> freeHosts;
 	protected int freeHostI = -1;
@@ -51,11 +56,6 @@ public class PhysicalTopology {
 	protected ArrayList<String> givenMachines;
 	protected int givenMachineI = -1;
 	protected HashMap<String, String> nodeMachine;
-	
-	protected final int INIT_TERMINATION_VALUE = 9999;
-	
-	private final String BROKER_CLASS_NAME = "pstb.benchmark.broker.PhysicalBroker";
-	private final String CLIENT_CLASS_NAME = "pstb.benchmark.client.PhysicalClient";
 	
 	private final String logHeader = "Physical Topology: ";
 	private final Logger logger = LogManager.getRootLogger();
@@ -68,10 +68,10 @@ public class PhysicalTopology {
 		activeClients = new HashMap<String, Process>();
 		
 		startingTopology = new LogicalTopology();
-		
-		runNumber = INIT_RUN_NUMBER;
-		protocol = null;
+		user = new String();
 		distributed = null;
+		
+		protocol = null;
 		topologyFilePath = new String();
 		benchmarkStartTime = new String();
 		
@@ -86,29 +86,60 @@ public class PhysicalTopology {
 		ipAddress = masterAddress.getHostAddress();
 	}
 	
-	/**
-	 * Sets the Run Number
-	 * 
-	 * @param runNum - the given Run Number
-	 */
-	public void setRunNumber(Integer runNum)
+	public PhysicalTopology(LogicalTopology givenTopo, NetworkProtocol givenProtocol, String givenTFP, 
+			HashMap<String, ArrayList<Integer>> givenHostsAndPorts, String givenBST) throws UnknownHostException
 	{
-		runNumber = runNum;
+		brokerProcesses = new HashMap<String, ProcessBuilder>();
+		clientProcesses = new HashMap<String, ProcessBuilder>();
+		activeBrokers = new HashMap<String, Process>();
+		activeClients = new HashMap<String, Process>();
+		
+		startingTopology = givenTopo;
+		user = new String();
+		distributed = null;
+		
+		protocol = givenProtocol;
+		topologyFilePath = PSTBUtil.cleanTFS(givenTFP);
+		benchmarkStartTime = givenBST;
+		
+		hostsAndPorts = givenHostsAndPorts;
+		
+		if(givenHostsAndPorts != null)
+		{
+			freeHosts = new ArrayList<String>(givenHostsAndPorts.keySet());
+			givenMachines = new ArrayList<String>(givenHostsAndPorts.keySet());
+			hostIsPortJ = new HashMap<String, Integer>();
+			
+			freeHosts.forEach((host)->{
+				hostIsPortJ.put(host, 0);
+			});
+		}
+		else
+		{
+			freeHosts = new ArrayList<String>();
+			hostIsPortJ = new HashMap<String, Integer>();
+			
+			givenMachines = new ArrayList<String>();
+			nodeMachine = new HashMap<String, String>();
+		}
+		
+		InetAddress masterAddress = InetAddress.getLocalHost();
+		ipAddress = masterAddress.getHostAddress();
+	}
+	
+	/**
+	 * Sets the Starting Topology
+	 * 
+	 * @param givenLT - the given Starting Topology
+	 */
+	public void setStartingTopology(LogicalTopology givenLT)
+	{
+		startingTopology = givenLT;
 	}
 	
 	public void setUsername(String givenUsername) 
 	{
 		user = givenUsername;
-	}
-	
-	/**
-	 * Gets the Run Number
-	 * 
-	 * @return the Run Number
-	 */
-	public Integer getRunNumber()
-	{
-		return this.runNumber;
 	}
 	
 	/**
@@ -149,6 +180,11 @@ public class PhysicalTopology {
 	public String getUser() 
 	{
 		return user;
+	}
+	
+	public boolean haveHostsAndPortsBeenSet()
+	{
+		return hostsAndPorts.isEmpty();
 	}
 	
 	/**
@@ -276,8 +312,6 @@ public class PhysicalTopology {
 		return machineName;
 	}
 	
-
-	
 	/**
 	 * Launches all of the Processes generated in generateBrokerAndClientProcesses()
 	 * ... by which I mean call the function that actually starts the Processes
@@ -352,6 +386,30 @@ public class PhysicalTopology {
 		}
 		
 		return true;
+	}
+	
+	/**
+	 * Starts the run. 
+	 * I.e. Starts the PSTBServer and all of the ProcessBuilders.
+	 * 
+	 * @return false on failure; true otherwise
+	 */
+	public boolean startRun()
+	{
+		if(brokerProcesses.isEmpty())
+		{
+			logger.error(logHeader + "startRun() needs broker processes to be created first! Please run prepareRun()!");
+			return false;
+		}
+		
+		if(clientProcesses.isEmpty())
+		{
+			logger.error(logHeader + "startRun() needs client processes to be created first! Please run prepareRun()!");
+			return false;
+		}
+				
+		boolean retVal = startProcesses();
+		return retVal;
 	}
 
 	/**
@@ -569,5 +627,14 @@ public class PhysicalTopology {
 		activeClients.clear();
 		activeBrokers.clear();
 	}
-
+	
+	/**
+	 * Resets everything after a run is finished
+	 */
+	public void resetSystemAfterRun()
+	{
+		destroyAllActiveNodes();
+		brokerProcesses.clear();
+		clientProcesses.clear();
+	}
 }

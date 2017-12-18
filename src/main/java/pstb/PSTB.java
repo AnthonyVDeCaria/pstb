@@ -288,8 +288,10 @@ public class PSTB {
 				PADRESTopology disPT = null;
 				try
 				{
-					localPT = new PADRESTopology();
-					disPT = new PADRESTopology();
+					localPT = new PADRESTopology(allLTs.get(topologyI), askedProtocols.get(protocolI), topologyI, null, 
+							currTimeString, PADRESWorkload);
+					disPT = new PADRESTopology(allLTs.get(topologyI), askedProtocols.get(protocolI), topologyI, disHostsAndPorts, 
+							currTimeString, PADRESWorkload);
 				}
 				catch (UnknownHostException e)
 				{
@@ -301,13 +303,11 @@ public class PSTB {
 				
 				if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
 				{
-					checkLocalPT = localPT.developPhysicalTopology(false, allLTs.get(topologyI), askedProtocols.get(protocolI),
-																		topologyI, disHostsAndPorts, currTimeString, PADRESWorkload);
+					checkLocalPT = localPT.developPhysicalTopology(false);
 				}
 				if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
 				{
-					checkDisPT = disPT.developPhysicalTopology(true, allLTs.get(topologyI), askedProtocols.get(protocolI), 
-																	topologyI, disHostsAndPorts, currTimeString, PADRESWorkload);
+					checkDisPT = disPT.developPhysicalTopology(true);
 				}
 				
 				if(!checkDisPT || !checkLocalPT)
@@ -449,11 +449,9 @@ public class PSTB {
 			// Loop through the runs
 			for(int runI = 0 ; runI < givenNumberOfRunsPerExperiment ; runI++)
 			{
-				givenPT.setRunNumber(runI);
-				
 				CountDownLatch start = new CountDownLatch(1);
 																
-				functionCheck = givenPT.prepareRun(start);
+				functionCheck = givenPT.prepareRun(start, runI);
 				if(!functionCheck)
 				{
 					logger.error("Couldn't prepare experiment!");

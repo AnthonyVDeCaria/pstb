@@ -7,7 +7,6 @@ import pstb.startup.config.NetworkProtocol;
 import pstb.startup.topology.ClientNotes;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.workload.PADRESAction;
-import pstb.util.PSTBUtil;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -46,6 +45,19 @@ public class PADRESTopology extends PhysicalTopology {
 		clientObjects = new HashMap<String, PSTBClientPADRES>();
 		
 		masterWorkload = new HashMap<String, ArrayList<PADRESAction>>();
+		masterServer = null;
+	}
+	
+	public PADRESTopology(LogicalTopology givenTopo, NetworkProtocol givenProtocol, String givenTFP, 
+			HashMap<String, ArrayList<Integer>> givenHostsAndPorts, String givenBST, 
+			HashMap<String, ArrayList<PADRESAction>> givenWorkload) throws UnknownHostException
+	{
+		super(givenTopo, givenProtocol, givenTFP, givenHostsAndPorts, givenBST);
+		
+		brokerObjects = new HashMap<String, PSTBBrokerPADRES>();
+		clientObjects = new HashMap<String, PSTBClientPADRES>();
+		
+		masterWorkload = givenWorkload;
 		masterServer = null;
 	}
 	
@@ -128,24 +140,19 @@ public class PADRESTopology extends PhysicalTopology {
 	 * @param givenHostsAndPorts 
 	 * @return false if an error occurs, true otherwise
 	 */
-	public boolean developPhysicalTopology(boolean givenDistributed, LogicalTopology givenTopo, NetworkProtocol givenProtocol,
-												String givenTFP, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
-												String givenBST, HashMap<String, ArrayList<PADRESAction>> pADRESWorkload)
+	public boolean developPhysicalTopology(boolean givenDistributed)
 	{
-		startingTopology = givenTopo;
-		masterWorkload = pADRESWorkload;
-		distributed = givenDistributed;
+		super.distributed = givenDistributed;
 		
-		protocol = givenProtocol;
-		topologyFilePath = PSTBUtil.cleanTFS(givenTFP);
-		benchmarkStartTime = givenBST;
-		
-		hostsAndPorts = givenHostsAndPorts;
-		freeHosts = new ArrayList<String>(givenHostsAndPorts.keySet());
-		givenMachines = new ArrayList<String>(givenHostsAndPorts.keySet());
-		freeHosts.forEach((host)->{
-			hostIsPortJ.put(host, 0);
-		});
+		if(givenDistributed)
+		{
+			boolean hostSetCheck = super.haveHostsAndPortsBeenSet();
+			if(!hostSetCheck)
+			{
+				logger.error(logHeader + "No Hosts and Ports have been submitted to handle a distributed topology!");
+				return false;
+			}
+		}
 		
 		boolean checkGB = developBrokers();
 		if(!checkGB)
@@ -174,21 +181,21 @@ public class PADRESTopology extends PhysicalTopology {
 	{
 		logger.debug(logHeader + "Attempting to develop broker objects");
 		
-		HashMap<String, ArrayList<String>> brokerList = startingTopology.getBrokers();
+		HashMap<String, ArrayList<String>> brokerList = super.startingTopology.getBrokers();
 		
 		// Loop through the brokerList -> that way we can create a bunch of unconnected brokerObjects
 		Iterator<String> iteratorBL = brokerList.keySet().iterator();
 		for( ; iteratorBL.hasNext() ; )
 		{
 			String brokerI = iteratorBL.next();
-			String hostName = getBrokerHost();
-			Integer port = getBrokerPort(hostName);
+			String hostName = super.getBrokerHost();
+			Integer port = super.getBrokerPort(hostName);
 			
 			PSTBBrokerPADRES actBrokerI = new PSTBBrokerPADRES(hostName, port, protocol, brokerI);
 			
 			brokerObjects.put(brokerI, actBrokerI);
 			
-			nodeMachine.put(brokerI, hostName);
+			super.nodeMachine.put(brokerI, hostName);
 		}
 		
 		// Now loop through the brokerObject, accessing the brokerList to find a given broker's connections
@@ -208,7 +215,7 @@ public class PADRESTopology extends PhysicalTopology {
 				{
 					logger.error(logHeader + "couldn't find " + brokerJName + " in genBrokers that " + brokerIName 
 									+ " is connected to!");
-					nodeMachine.clear();
+					super.nodeMachine.clear();
 					return false;
 				}
 				neededURIs.add(actBrokerJ.getBrokerURI());
@@ -340,7 +347,7 @@ public class PADRESTopology extends PhysicalTopology {
 	 * @param givenStartSignal - the signal that will be used to let key threads know the run has started
 	 * @return false if there is an issue; true otherwise
 	 */
-	public boolean prepareRun(CountDownLatch givenStartSignal)
+	public boolean prepareRun(CountDownLatch givenStartSignal, Integer givenRunNumber)
 	{
 		if(brokerObjects.isEmpty())
 		{
@@ -356,13 +363,15 @@ public class PADRESTopology extends PhysicalTopology {
 			return false;
 		}
 		
-		if(runNumber.compareTo(INIT_RUN_NUMBER) <= 0)
-		{
-			logger.error(logHeader + "generateBrokerAndClientProcesses() needs a runNumber. Please run setRunNumber()!");
-			return false;
-		}
+		setupServer(givenStartSignal, givenRunNumber);
 		
-		setupServer(givenStartSignal, runNumber);
+		clientObjects.forEach((clientName, actualClient)->{
+			actualClient.setRunNumber(givenRunNumber);
+		});
+		
+		brokerObjects.forEach((brokerName, actualBroker)->{
+			actualBroker.setRunNumber(givenRunNumber);
+		});
 		
 		boolean retVal = generateBrokerAndClientProcesses();
 		return retVal;
@@ -391,8 +400,6 @@ public class PADRESTopology extends PhysicalTopology {
 	 */
 	private boolean generateBrokerAndClientProcesses()
 	{
-		addRunNumberToAllNodes(); // I'm cheating, but this should always return true as we're already checking above for clients.
-		
 		Iterator<String> iteratorBO = brokerObjects.keySet().iterator();
 		for( ; iteratorBO.hasNext() ; )
 		{
@@ -430,38 +437,6 @@ public class PADRESTopology extends PhysicalTopology {
 		}
 		
 		logger.info(logHeader + "Successfully generated broker and client processes.");
-		return true;
-	}
-	
-	/**
-	 * Adds a Run Number to all nodes
-	 * 
-	 * @return false if there's an error; true otherwise
-	 */
-	private boolean addRunNumberToAllNodes()
-	{
-		if(clientObjects.isEmpty())
-		{
-			logger.error(logHeader + "addRunNumberToAll() needs clients to be created first. " +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		if(brokerObjects.isEmpty())
-		{
-			logger.error(logHeader + "addRunNumberToAll() needs brokers to be created first. " +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		clientObjects.forEach((clientName, actualClient)->{
-			actualClient.setRunNumber(runNumber);
-		});
-		
-		brokerObjects.forEach((brokerName, actualBroker)->{
-			actualBroker.setRunNumber(runNumber);
-		});
-		
 		return true;
 	}
 	
@@ -547,27 +522,9 @@ public class PADRESTopology extends PhysicalTopology {
 	 */
 	public boolean startRun()
 	{
-		if(brokerProcesses.isEmpty())
-		{
-			logger.error(logHeader + "startRun() needs broker processes to be created first! Please run prepareRun()!");
-			return false;
-		}
-		
-		if(clientProcesses.isEmpty())
-		{
-			logger.error(logHeader + "startRun() needs client processes to be created first! Please run prepareRun()!");
-			return false;
-		}
-		
-		if(masterServer == null)
-		{
-			logger.error(logHeader + "startRun() needs a PSTBServer to be created first! Please run prepareRun()!");
-			return false;
-		}
-		
 		masterServer.start();
 				
-		boolean retVal = startProcesses();
+		boolean retVal = super.startRun();
 		return retVal;
 	}
 	
@@ -576,11 +533,8 @@ public class PADRESTopology extends PhysicalTopology {
 	 */
 	public void resetSystemAfterRun()
 	{
-		destroyAllActiveNodes();
-		brokerProcesses.clear();
-		clientProcesses.clear();
+		super.resetSystemAfterRun();
 		masterServer = null;
-		runNumber = INIT_RUN_NUMBER;
 	}
 
 }
