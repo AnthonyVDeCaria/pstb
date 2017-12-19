@@ -14,7 +14,7 @@ import ca.utoronto.msrg.padres.broker.brokercore.BrokerCore;
 import ca.utoronto.msrg.padres.broker.brokercore.BrokerCoreException;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.broker.PhysicalBroker;
-import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.PADRESNetworkProtocol;
 import pstb.util.PSTBUtil;
 
 /**
@@ -28,7 +28,7 @@ public class PSTBBrokerPADRES implements java.io.Serializable {
 	private static final long serialVersionUID = 1L;
 	private String host;
 	private Integer port;
-	private NetworkProtocol protocol;
+	private PADRESNetworkProtocol protocol;
 	private String brokerName;
 	private String[] neighbourURIs;
 	
@@ -56,7 +56,7 @@ public class PSTBBrokerPADRES implements java.io.Serializable {
 	 * @param newProtocol - this broker's protocol
 	 * @param givenName - this broker's name
 	 */
-	public PSTBBrokerPADRES(String newHost, Integer newPort, NetworkProtocol newProtocol, String givenName)
+	public PSTBBrokerPADRES(String newHost, Integer newPort, PADRESNetworkProtocol newProtocol, String givenName)
 	{
 		host = newHost;
 		port = newPort;

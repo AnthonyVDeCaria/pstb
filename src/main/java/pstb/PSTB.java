@@ -20,7 +20,7 @@ import pstb.creation.PhysicalTopology.ActiveProcessRetVal;
 import pstb.startup.DistributedFileParser;
 import pstb.startup.config.BenchmarkConfig;
 import pstb.startup.config.DistributedState;
-import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.PADRESNetworkProtocol;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.topology.TopologyFileParser;
 import pstb.startup.workload.PADRESAction;
@@ -271,7 +271,7 @@ public class PSTB {
 		
 		String localUsername = System.getProperty("user.name");
 		
-		ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
+		ArrayList<PADRESNetworkProtocol> askedProtocols = benchmarkRules.getPProtocols();
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
 		
@@ -280,18 +280,20 @@ public class PSTB {
 		for( ; iteratorLT.hasNext() ; )
 		{
 			String topologyI = iteratorLT.next();
+			LogicalTopology actualTopologyI = allLTs.get(topologyI);
 			
 			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
 			{
 				DistributedState givenDS = askedDistributed.get(topologyI);
+				PADRESNetworkProtocol givenProtocolI = askedProtocols.get(protocolI);
 				PADRESTopology localPT = null;
 				PADRESTopology disPT = null;
 				try
 				{
-					localPT = new PADRESTopology(allLTs.get(topologyI), askedProtocols.get(protocolI), topologyI, null, 
-							currTimeString, PADRESWorkload);
-					disPT = new PADRESTopology(allLTs.get(topologyI), askedProtocols.get(protocolI), topologyI, disHostsAndPorts, 
-							currTimeString, PADRESWorkload);
+					localPT = new PADRESTopology(actualTopologyI, localUsername, null, 
+							topologyI, currTimeString, PADRESWorkload, givenProtocolI);
+					disPT = new PADRESTopology(actualTopologyI, disUsername, disHostsAndPorts, 
+							topologyI, currTimeString, PADRESWorkload, givenProtocolI);
 				}
 				catch (UnknownHostException e)
 				{
@@ -321,13 +323,11 @@ public class PSTB {
 				
 				if(localPT.doAnyObjectsExist())
 				{
-					localPT.setUsername(localUsername);
 					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(),
 																benchmarkRules.getNumRunsPerExperiment());
 				}
-				if (disPT.doAnyObjectsExist())
+				if(disPT.doAnyObjectsExist())
 				{
-					disPT.setUsername(disUsername);
 					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(),
 																benchmarkRules.getNumRunsPerExperiment());
 				}
@@ -439,19 +439,12 @@ public class PSTB {
 			Long sleepLengthMilli = iTHRunLengthMilli / 10;
 //			Long bufferTimeNano = iTHRunLengthNano / 10;
 			
-			boolean functionCheck = givenPT.addRunLengthToAllNodes(iTHRunLengthNano);
-			if(!functionCheck)
-			{
-				logger.error("Error setting Run Length!");
-				return false;
-			}
-			
 			// Loop through the runs
 			for(int runI = 0 ; runI < givenNumberOfRunsPerExperiment ; runI++)
 			{
 				CountDownLatch start = new CountDownLatch(1);
 																
-				functionCheck = givenPT.prepareRun(start, runI);
+				boolean functionCheck = givenPT.prepareRun(start, iTHRunLengthNano, runI);
 				if(!functionCheck)
 				{
 					logger.error("Couldn't prepare experiment!");

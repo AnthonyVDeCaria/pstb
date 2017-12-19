@@ -1,5 +1,5 @@
 package pstb.startup.config;
 
-public enum NetworkProtocol {
+public enum PADRESNetworkProtocol {
 	socket, rmi
 }

@@ -3,7 +3,7 @@ package pstb.creation;
 import pstb.benchmark.broker.padres.PSTBBrokerPADRES;
 import pstb.benchmark.client.padres.PSTBClientPADRES;
 import pstb.creation.server.padres.PADRESServer;
-import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.PADRESNetworkProtocol;
 import pstb.startup.topology.ClientNotes;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.workload.PADRESAction;
@@ -25,40 +25,79 @@ import org.apache.logging.log4j.Logger;
  * to the Broker and Client Processes
  */
 public class PADRESTopology extends PhysicalTopology {
+	// Variables given by user on creation
+	private HashMap<String, ArrayList<PADRESAction>> masterWorkload;
+	private PADRESNetworkProtocol protocol;
+	
+	//Objects
 	private HashMap<String, PSTBBrokerPADRES> brokerObjects;
 	private HashMap<String, PSTBClientPADRES> clientObjects;
 	
-	private HashMap<String, ArrayList<PADRESAction>> masterWorkload;
+	// Server
 	private PADRESServer masterServer;
 	
+	// Logger
 	private final String logHeader = "PADRES Topology: ";
 	private final Logger logger = LogManager.getRootLogger();
 	
 	/**
-	 * Empty Constructor
+	 * Constructor
+	 * 
+	 * @param givenTopo - the LogicalTopology that will be used as a basis
+	 * @param givenProtocol - the 
+	 * @param givenTFS
+	 * @param givenHostsAndPorts
+	 * @param givenBST
+	 * @param givenWorkload
+	 * @throws UnknownHostException
 	 */
-	public PADRESTopology() throws UnknownHostException
+	public PADRESTopology(LogicalTopology givenTopo, String givenUser, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
+			String givenTFS, String givenBST,
+			HashMap<String, ArrayList<PADRESAction>> givenWorkload, PADRESNetworkProtocol givenProtocol) throws UnknownHostException
 	{
-		super();
+		super(givenTopo, givenUser, givenHostsAndPorts, givenTFS, givenBST);
+		
+		masterWorkload = givenWorkload;
+		protocol = givenProtocol;
 		
 		brokerObjects = new HashMap<String, PSTBBrokerPADRES>();
 		clientObjects = new HashMap<String, PSTBClientPADRES>();
 		
-		masterWorkload = new HashMap<String, ArrayList<PADRESAction>>();
 		masterServer = null;
 	}
 	
-	public PADRESTopology(LogicalTopology givenTopo, NetworkProtocol givenProtocol, String givenTFP, 
-			HashMap<String, ArrayList<Integer>> givenHostsAndPorts, String givenBST, 
-			HashMap<String, ArrayList<PADRESAction>> givenWorkload) throws UnknownHostException
+	/**
+	 * Gets the NetworkProtocol
+	 * 
+	 * @return the NetworkProtocol
+	 */
+	public PADRESNetworkProtocol getProtocol() 
 	{
-		super(givenTopo, givenProtocol, givenTFP, givenHostsAndPorts, givenBST);
-		
-		brokerObjects = new HashMap<String, PSTBBrokerPADRES>();
-		clientObjects = new HashMap<String, PSTBClientPADRES>();
-		
-		masterWorkload = givenWorkload;
-		masterServer = null;
+		return protocol;
+	}
+	
+	/**
+	 * Retrieves a Broker Object.
+	 * (Basically an extension of the HashMap's get() function)
+	 * 
+	 * @param givenName - the name
+	 * @return the broker object - which could be null if none exists
+	 */
+	public PSTBBrokerPADRES getParticularBroker(String givenName)
+	{
+		return brokerObjects.get(givenName);
+	}
+	
+	/**
+	 * Retrieves a Client Object.
+	 * (Basically an extension of the HashMap's get() function)
+	 * 
+	 * @param givenName - the name
+	 * @return the client object - which could be null if none exists
+	 */
+	public PSTBClientPADRES getParticularClient(String givenName)
+	{
+		return clientObjects.get(givenName);
 	}
 	
 	/**
@@ -93,30 +132,6 @@ public class PADRESTopology extends PhysicalTopology {
 	public boolean doAnyObjectsExist()
 	{
 		return !brokerObjects.isEmpty() && !clientObjects.isEmpty();
-	}
-	
-	/**
-	 * Retrieves a Broker Object.
-	 * (Basically an extension of the HashMap's get() function)
-	 * 
-	 * @param givenName - the name
-	 * @return the broker object - which could be null if none exists
-	 */
-	public PSTBBrokerPADRES getParticularBroker(String givenName)
-	{
-		return brokerObjects.get(givenName);
-	}
-	
-	/**
-	 * Retrieves a Client Object.
-	 * (Basically an extension of the HashMap's get() function)
-	 * 
-	 * @param givenName - the name
-	 * @return the client object - which could be null if none exists
-	 */
-	public PSTBClientPADRES getParticularClient(String givenName)
-	{
-		return clientObjects.get(givenName);
 	}
 	
 	/**
@@ -226,7 +241,7 @@ public class PADRESTopology extends PhysicalTopology {
 			brokerI.setNeighbourURIs(nURIs);
 			
 			brokerI.setDistributed(distributed);
-			brokerI.setTopologyFilePath(topologyFilePath);
+			brokerI.setTopologyFilePath(topologyFileString);
 			brokerI.setBenchmarkStartTime(benchmarkStartTime);
 						
 			brokerObjects.put(brokerIName, brokerI);
@@ -291,10 +306,10 @@ public class PADRESTopology extends PhysicalTopology {
 			
 			clientI.setClientName(clientIName);
 			clientI.setConnectedBrokers(clientIBrokerURIs);
-			clientI.setDistributed(distributed);
+			clientI.setDistributed(super.distributed);
 			clientI.setNetworkProtocol(protocol);
-			clientI.setTopologyFilePath(topologyFilePath);
-			clientI.setBenchmarkStartTime(benchmarkStartTime);
+			clientI.setTopologyFileString(super.topologyFileString);
+			clientI.setBenchmarkStartTime(super.benchmarkStartTime);
 			clientI.setWorkload(clientIWorkload);
 										
 			clientObjects.put(clientIName, clientI);
@@ -308,46 +323,14 @@ public class PADRESTopology extends PhysicalTopology {
 	}
 	
 	/**
-	 * Adds the runLength value to all Clients
-	 * @see BenchmarkConfig
-	 * 
-	 * @param givenRL - the runLength value to add
-	 * @return false if there's an error; true otherwise
-	 */
-	public boolean addRunLengthToAllNodes(Long givenRL)
-	{
-		if(clientObjects.isEmpty())
-		{
-			logger.error(logHeader + "addRunLengthToAll() needs clients to be created first. " +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		if(brokerObjects.isEmpty())
-		{
-			logger.error(logHeader + "addRunLengthToAll() needs brokers to be created first. " +
-							"Please run developPhysicalTopology().");
-			return false;
-		}
-		
-		clientObjects.forEach((clientName, actualClient)->{
-			actualClient.setRunLength(givenRL);
-		});
-		
-		brokerObjects.forEach((brokerName, actualBroker)->{
-			actualBroker.setRunLength(givenRL);
-		});
-		
-		return true;
-	}
-	
-	/**
 	 * Prepares the topology for a run
 	 * 
 	 * @param givenStartSignal - the signal that will be used to let key threads know the run has started
+	 * @param givenRunLength - the amount of time this run will last
+	 * @param givenRunNumber - the current run we're on
 	 * @return false if there is an issue; true otherwise
 	 */
-	public boolean prepareRun(CountDownLatch givenStartSignal, Integer givenRunNumber)
+	public boolean prepareRun(CountDownLatch givenStartSignal, Long givenRunLength, Integer givenRunNumber)
 	{
 		if(brokerObjects.isEmpty())
 		{
@@ -366,10 +349,12 @@ public class PADRESTopology extends PhysicalTopology {
 		setupServer(givenStartSignal, givenRunNumber);
 		
 		clientObjects.forEach((clientName, actualClient)->{
+			actualClient.setRunLength(givenRunLength);
 			actualClient.setRunNumber(givenRunNumber);
 		});
 		
 		brokerObjects.forEach((brokerName, actualBroker)->{
+			actualBroker.setRunLength(givenRunLength);
 			actualBroker.setRunNumber(givenRunNumber);
 		});
 		

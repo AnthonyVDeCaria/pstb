@@ -13,7 +13,6 @@ import java.util.Iterator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.config.NetworkProtocol;
 import pstb.startup.topology.LogicalTopology;
 import pstb.util.PSTBUtil;
 
@@ -22,92 +21,65 @@ import pstb.util.PSTBUtil;
  *
  */
 public class PhysicalTopology {
+	// Constants
 	protected final Integer MEM_CLIENT = 256;
 	protected final Integer MEM_BROKER = 256;
-	
 	private final Integer LOCAL_START_PORT = 1100;
 	private final int INIT_TERMINATION_VALUE = 9999;
 	private final String BROKER_CLASS_NAME = "pstb.benchmark.broker.PhysicalBroker";
 	private final String CLIENT_CLASS_NAME = "pstb.benchmark.client.PhysicalClient";
 	
+	// Variables that have a start value
+	protected int freeHostI = -1;
+	protected int givenMachineI = -1;
+	protected Integer localPortNum = LOCAL_START_PORT;
+	
+	// Variables given by user on creation
+	protected LogicalTopology startingTopology;
+	protected String user;
+	protected HashMap<String, ArrayList<Integer>> hostsAndPorts;
+	
+	// Variables set on creation
+	protected String ipAddress;
+	protected ArrayList<String> givenMachines;
+	protected ArrayList<String> freeHosts;
+	protected HashMap<String, Integer> hostIsPortJ;
+	
+	// Variables set on initial start up
+	protected Boolean distributed;
+	protected String topologyFileString;
+	protected String benchmarkStartTime;
+	
+	// Variables set during Object creation
+	protected HashMap<String, String> nodeMachine;
+	
+	// ProcessBuilders
 	protected HashMap<String, ProcessBuilder> brokerProcesses;
 	protected HashMap<String, ProcessBuilder> clientProcesses;
 	
+	// Processes
 	private HashMap<String, Process> activeBrokers;
 	private HashMap<String, Process> activeClients;
 	
-	protected LogicalTopology startingTopology;
-	protected String user;
-	protected Boolean distributed;
-	
-	protected NetworkProtocol protocol;
-	protected String topologyFilePath;
-	protected String benchmarkStartTime;
-
-	protected String ipAddress;
-	
-	protected Integer localPortNum = LOCAL_START_PORT;
-	
-	protected HashMap<String, ArrayList<Integer>> hostsAndPorts;
-	protected ArrayList<String> freeHosts;
-	protected int freeHostI = -1;
-	protected HashMap<String, Integer> hostIsPortJ;
-	
-	protected ArrayList<String> givenMachines;
-	protected int givenMachineI = -1;
-	protected HashMap<String, String> nodeMachine;
-	
+	// Logger
 	private final String logHeader = "Physical Topology: ";
 	private final Logger logger = LogManager.getRootLogger();
 	
-	public PhysicalTopology() throws UnknownHostException
+	public PhysicalTopology(LogicalTopology givenTopo, String givenUser, HashMap<String, ArrayList<Integer>> givenHostsAndPorts,
+			String givenTFS, String givenBST) throws UnknownHostException
 	{
-		brokerProcesses = new HashMap<String, ProcessBuilder>();
-		clientProcesses = new HashMap<String, ProcessBuilder>();
-		activeBrokers = new HashMap<String, Process>();
-		activeClients = new HashMap<String, Process>();
-		
-		startingTopology = new LogicalTopology();
-		user = new String();
-		distributed = null;
-		
-		protocol = null;
-		topologyFilePath = new String();
-		benchmarkStartTime = new String();
-		
-		hostsAndPorts = new HashMap<String, ArrayList<Integer>>();
-		freeHosts = new ArrayList<String>();
-		hostIsPortJ = new HashMap<String, Integer>();
-		
-		givenMachines = new ArrayList<String>();
-		nodeMachine = new HashMap<String, String>();
+		startingTopology = givenTopo;
+		user = givenUser;
+		hostsAndPorts = givenHostsAndPorts;
 		
 		InetAddress masterAddress = InetAddress.getLocalHost();
 		ipAddress = masterAddress.getHostAddress();
-	}
-	
-	public PhysicalTopology(LogicalTopology givenTopo, NetworkProtocol givenProtocol, String givenTFP, 
-			HashMap<String, ArrayList<Integer>> givenHostsAndPorts, String givenBST) throws UnknownHostException
-	{
-		brokerProcesses = new HashMap<String, ProcessBuilder>();
-		clientProcesses = new HashMap<String, ProcessBuilder>();
-		activeBrokers = new HashMap<String, Process>();
-		activeClients = new HashMap<String, Process>();
-		
-		startingTopology = givenTopo;
-		user = new String();
-		distributed = null;
-		
-		protocol = givenProtocol;
-		topologyFilePath = PSTBUtil.cleanTFS(givenTFP);
-		benchmarkStartTime = givenBST;
-		
-		hostsAndPorts = givenHostsAndPorts;
 		
 		if(givenHostsAndPorts != null)
 		{
-			freeHosts = new ArrayList<String>(givenHostsAndPorts.keySet());
 			givenMachines = new ArrayList<String>(givenHostsAndPorts.keySet());
+			
+			freeHosts = new ArrayList<String>(givenHostsAndPorts.keySet());
 			hostIsPortJ = new HashMap<String, Integer>();
 			
 			freeHosts.forEach((host)->{
@@ -116,30 +88,23 @@ public class PhysicalTopology {
 		}
 		else
 		{
+			givenMachines = new ArrayList<String>();
+			
 			freeHosts = new ArrayList<String>();
 			hostIsPortJ = new HashMap<String, Integer>();
-			
-			givenMachines = new ArrayList<String>();
-			nodeMachine = new HashMap<String, String>();
 		}
 		
-		InetAddress masterAddress = InetAddress.getLocalHost();
-		ipAddress = masterAddress.getHostAddress();
-	}
-	
-	/**
-	 * Sets the Starting Topology
-	 * 
-	 * @param givenLT - the given Starting Topology
-	 */
-	public void setStartingTopology(LogicalTopology givenLT)
-	{
-		startingTopology = givenLT;
-	}
-	
-	public void setUsername(String givenUsername) 
-	{
-		user = givenUsername;
+		distributed = null;
+		topologyFileString = PSTBUtil.cleanTFS(givenTFS);
+		benchmarkStartTime = givenBST;
+		
+		nodeMachine = new HashMap<String, String>();
+		
+		brokerProcesses = new HashMap<String, ProcessBuilder>();
+		clientProcesses = new HashMap<String, ProcessBuilder>();
+		
+		activeBrokers = new HashMap<String, Process>();
+		activeClients = new HashMap<String, Process>();
 	}
 	
 	/**
@@ -153,23 +118,13 @@ public class PhysicalTopology {
 	}
 	
 	/**
-	 * Gets the NetworkProtocol
-	 * 
-	 * @return the NetworkProtocol
-	 */
-	public NetworkProtocol getProtocol() 
-	{
-		return protocol;
-	}
-	
-	/**
 	 * Gets the Topology File Path
 	 * 
 	 * @return the TopologyFilePath
 	 */
 	public String getTopologyFilePath() 
 	{
-		return topologyFilePath;
+		return topologyFileString;
 	}
 	
 	/**
@@ -184,7 +139,7 @@ public class PhysicalTopology {
 	
 	public boolean haveHostsAndPortsBeenSet()
 	{
-		return hostsAndPorts.isEmpty();
+		return !hostsAndPorts.isEmpty();
 	}
 	
 	/**

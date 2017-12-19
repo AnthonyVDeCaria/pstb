@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.analysis.diary.DiaryEntry.DiaryHeader;
-import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.PADRESNetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 
@@ -310,7 +310,7 @@ public class AnalysisFileParser {
 		
 		// Protocols
 		int numProtocols = splitProtocols.length;
-		if(numProtocols == NetworkProtocol.values().length)
+		if(numProtocols == PADRESNetworkProtocol.values().length)
 		{
 			log.warn(logHeader + "This was not necessary - typing null would have sufficed.");
 			retVal.put(AnalysisInput.Protocol, null);
@@ -327,7 +327,7 @@ public class AnalysisFileParser {
 				
 				try
 				{
-					tempObject = NetworkProtocol.valueOf(splitProtocols[i]);
+					tempObject = PADRESNetworkProtocol.valueOf(splitProtocols[i]);
 					listProtocol.add(tempObject);
 				}
 				catch(Exception e)

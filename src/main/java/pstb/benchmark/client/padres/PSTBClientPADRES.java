@@ -25,7 +25,7 @@ import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.client.PhysicalClient;
 import pstb.util.PSTBUtil;
-import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.PADRESNetworkProtocol;
 import pstb.startup.workload.PADRESAction;
 import pstb.startup.workload.PSActionType;
 
@@ -52,7 +52,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	
 	private ClientDiary diary;
 	private String topologyFilePath;
-	private NetworkProtocol protocol;
+	private PADRESNetworkProtocol protocol;
 	private Boolean distributed;
 	private String benchmarkStartTime;
 	
@@ -64,7 +64,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	
 	private final Long INIT_RUN_LENGTH = 0L;
 	private final Integer INIT_RUN_NUMBER = -1;
-	private final NetworkProtocol INIT_PROTOCOL = null;
+	private final PADRESNetworkProtocol INIT_PROTOCOL = null;
 	private final Boolean INIT_DISTRIBUTED = null;
 	
 	private final long MIN_RUNLENGTH = 1;
@@ -149,7 +149,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * 
 	 * @param givenTFP - the topologyFilePath to set
 	 */
-	public void setTopologyFilePath(String givenTFP) 
+	public void setTopologyFileString(String givenTFP) 
 	{
 		topologyFilePath = givenTFP;
 	}
@@ -159,7 +159,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * 
 	 * @param givenNP - the NetworkProtocol to set
 	 */
-	public void setNetworkProtocol(NetworkProtocol givenNP)
+	public void setNetworkProtocol(PADRESNetworkProtocol givenNP)
 	{
 		protocol = givenNP;
 	}
@@ -250,7 +250,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * 
 	 * @return the protocol
 	 */
-	public NetworkProtocol getProtocol()
+	public PADRESNetworkProtocol getProtocol()
 	{
 		return protocol;
 	}

@@ -20,7 +20,7 @@ import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.analysis.diary.DiaryEntry.DiaryHeader;
 import pstb.benchmark.client.padres.PSTBClientPADRES;
-import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.PADRESNetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
@@ -511,7 +511,7 @@ public class Analyzer {
 					}
 					else
 					{
-						nameTestArray[LOC_PROTOCOL] = ((NetworkProtocol) requestedP.get(iP)).toString();
+						nameTestArray[LOC_PROTOCOL] = ((PADRESNetworkProtocol) requestedP.get(iP)).toString();
 					}
 					
 					for(int iRL = 0 ; iRL < numRL ; iRL++)
