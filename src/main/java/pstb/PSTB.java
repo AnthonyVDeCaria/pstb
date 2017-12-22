@@ -21,9 +21,10 @@ import pstb.startup.DistributedFileParser;
 import pstb.startup.config.BenchmarkConfig;
 import pstb.startup.config.DistributedState;
 import pstb.startup.config.PADRESNetworkProtocol;
+import pstb.startup.config.SupportedEngines.SupportedEngine;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.topology.TopologyFileParser;
-import pstb.startup.workload.PADRESAction;
+import pstb.startup.workload.PSAction;
 import pstb.startup.workload.WorkloadFileParser;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
@@ -98,16 +99,19 @@ public class PSTB {
 		
 		logger.info("Properties file loaded successfully!!");
 			
-		HashMap<String, ArrayList<PADRESAction>> PADRESWorkload = new HashMap<String, ArrayList<PADRESAction>>();
 		ArrayList<String> workloadFilesStrings = benchmarkRules.getWorkloadFilesStrings();
+		ArrayList<SupportedEngine> requestedEngines = benchmarkRules.getEngines();
+		boolean pRequested = benchmarkRules.padresRequested();
+		boolean sRequested = benchmarkRules.sienaRequested();
+		HashMap<String, ArrayList<PSAction>> PADRESWorkload = new HashMap<String, ArrayList<PSAction>>();
+		HashMap<String, ArrayList<PSAction>> SIENAWorkload = new HashMap<String, ArrayList<PSAction>>();
 		
 		logger.debug("Parsing Workload Files...");
 		boolean allWorkloadsOk = true;
-		
 		for(int i = 0 ; i < workloadFilesStrings.size() ; i++)
 		{
 			String workloadFileI = workloadFilesStrings.get(i);
-			WorkloadFileParser parseWLFI = new WorkloadFileParser(workloadFileI);
+			WorkloadFileParser parseWLFI = new WorkloadFileParser(workloadFileI, requestedEngines);
 			
 			logger.debug("Parsing Workload File " + workloadFileI + "...");
 			boolean parseCheck = parseWLFI.parse();
@@ -119,23 +123,41 @@ public class PSTB {
 			else
 			{
 				logger.info("Parse Complete for file " + workloadFileI + ".");
-				ArrayList<PADRESAction> workloadI = parseWLFI.getPADRESWorkload();
-				PADRESWorkload.put(workloadFileI, workloadI);
+				
+				if(pRequested)
+				{
+					ArrayList<PSAction> workloadI = parseWLFI.getPADRESWorkload();
+					PADRESWorkload.put(workloadFileI, workloadI);
+				}
+				
+				if(sRequested)
+				{
+					ArrayList<PSAction> workloadI = parseWLFI.getSIENAWorkload();
+					SIENAWorkload.put(workloadFileI, workloadI);
+				}
 			}
 		}
 		if(!allWorkloadsOk)
 		{
 			logger.error("Error with topology files!");
-			PADRESWorkload.clear();
 			endProgram(PSTBError.M_WORKLOAD, userInput);
 		}
 		logger.info("All workload files valid!!");
 		
-		Set<String> givenWorkloadFilesStrings = PADRESWorkload.keySet();
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesStrings();
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
 		int numBrokersLargestTopo = 0;
 		int numNodesLargestTopo = 0;
+		Set<String> givenWorkloadFilesStrings = null;
+		if(pRequested)
+		{
+			givenWorkloadFilesStrings = PADRESWorkload.keySet();
+		}
+		else if(sRequested)
+		{
+			givenWorkloadFilesStrings = SIENAWorkload.keySet();
+		}
+		// for now else isn't needed
 		
 		logger.info("Starting to parse Topology Files...");
 		boolean allToposOk = true;
@@ -209,7 +231,6 @@ public class PSTB {
 				}
 			}
 		}
-		
 		if(!allToposOk)
 		{
 			logger.error("Error with topology files!");
@@ -218,7 +239,6 @@ public class PSTB {
 			numNodesLargestTopo = 0;
 			endProgram(PSTBError.M_TOPO_LOG, userInput);
 		}
-		
 		logger.info("All topologies valid!!");
 		
 		HashMap<String, ArrayList<Integer>> disHostsAndPorts = new HashMap<String, ArrayList<Integer>>();
@@ -268,10 +288,7 @@ public class PSTB {
 		// Benchmark
 		Long currTime = System.currentTimeMillis();
 		String currTimeString = PSTBUtil.DATE_FORMAT.format(currTime);
-		
 		String localUsername = System.getProperty("user.name");
-		
-		ArrayList<PADRESNetworkProtocol> askedProtocols = benchmarkRules.getPProtocols();
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
 		
@@ -281,63 +298,75 @@ public class PSTB {
 		{
 			String topologyI = iteratorLT.next();
 			LogicalTopology actualTopologyI = allLTs.get(topologyI);
+			DistributedState givenDS = askedDistributed.get(topologyI);
 			
-			for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
+			for(int engineI = 0 ; engineI < requestedEngines.size() ; engineI++)
 			{
-				DistributedState givenDS = askedDistributed.get(topologyI);
-				PADRESNetworkProtocol givenProtocolI = askedProtocols.get(protocolI);
-				PADRESTopology localPT = null;
-				PADRESTopology disPT = null;
-				try
+				SupportedEngine iTHEngine = requestedEngines.get(engineI);
+				if(iTHEngine.equals(SupportedEngine.PADRES))
 				{
-					localPT = new PADRESTopology(actualTopologyI, localUsername, null, 
-							topologyI, currTimeString, PADRESWorkload, givenProtocolI);
-					disPT = new PADRESTopology(actualTopologyI, disUsername, disHostsAndPorts, 
-							topologyI, currTimeString, PADRESWorkload, givenProtocolI);
+					ArrayList<PADRESNetworkProtocol> askedProtocols = benchmarkRules.getPProtocols();
+					
+					for(int protocolI = 0 ; protocolI < askedProtocols.size() ; protocolI++)
+					{
+						PADRESNetworkProtocol givenProtocolI = askedProtocols.get(protocolI);
+						PADRESTopology localPT = null;
+						PADRESTopology disPT = null;
+						try
+						{
+							localPT = new PADRESTopology(actualTopologyI, localUsername, null, 
+									topologyI, currTimeString, PADRESWorkload, givenProtocolI);
+							disPT = new PADRESTopology(actualTopologyI, disUsername, disHostsAndPorts, 
+									topologyI, currTimeString, PADRESWorkload, givenProtocolI);
+						}
+						catch (UnknownHostException e)
+						{
+							logger.error("Couldn't create PhysicalTopolgies: ", e);
+							endProgram(PSTBError.M_TOPO_PHY, userInput);
+						}
+						boolean checkLocalPT = true;
+						boolean checkDisPT = true;
+						
+						if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
+						{
+							checkLocalPT = localPT.developPhysicalTopology(false);
+						}
+						if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
+						{
+							checkDisPT = disPT.developPhysicalTopology(true);
+						}
+						
+						if(!checkDisPT || !checkLocalPT)
+						{
+							logger.error("Error creating physical topology!");
+							endProgram(PSTBError.M_TOPO_PHY, userInput);
+						}
+						
+						logger.info("Beginning experiment...");
+						boolean successfulExperiment = true;
+						
+						if(localPT.doAnyObjectsExist())
+						{
+							successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(),
+																		benchmarkRules.getNumRunsPerExperiment());
+						}
+						if(disPT.doAnyObjectsExist())
+						{
+							successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(),
+																		benchmarkRules.getNumRunsPerExperiment());
+						}
+						
+						if(!successfulExperiment)
+						{
+							logger.error("Error conducting the experiment!");
+							endProgram(PSTBError.M_EXPERIMENT, userInput);
+						}
+					}
 				}
-				catch (UnknownHostException e)
-				{
-					logger.error("Couldn't create PhysicalTopolgies: ", e);
-					endProgram(PSTBError.M_TOPO_PHY, userInput);
-				}
-				boolean checkLocalPT = true;
-				boolean checkDisPT = true;
 				
-				if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
-				{
-					checkLocalPT = localPT.developPhysicalTopology(false);
-				}
-				if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
-				{
-					checkDisPT = disPT.developPhysicalTopology(true);
-				}
-				
-				if(!checkDisPT || !checkLocalPT)
-				{
-					logger.error("Error creating physical topology!");
-					endProgram(PSTBError.M_TOPO_PHY, userInput);
-				}
-				
-				logger.info("Beginning experiment...");
-				boolean successfulExperiment = true;
-				
-				if(localPT.doAnyObjectsExist())
-				{
-					successfulExperiment = conductExperiment(localPT, benchmarkRules.getRunLengths(),
-																benchmarkRules.getNumRunsPerExperiment());
-				}
-				if(disPT.doAnyObjectsExist())
-				{
-					successfulExperiment = conductExperiment(disPT, benchmarkRules.getRunLengths(),
-																benchmarkRules.getNumRunsPerExperiment());
-				}
-				
-				if(!successfulExperiment)
-				{
-					logger.error("Error conducting the experiment!");
-					endProgram(PSTBError.M_EXPERIMENT, userInput);
-				}
 			}
+			
+			
 		}
 		
 		// Analysis
@@ -413,7 +442,7 @@ public class PSTB {
 	/**
 	 * Given a set of parameters, conducts a particular Benchmark Experiment 
 	 * 
-	 * @param givenPT - the Experiment's PhysicalTopolgy
+	 * @param givenPT - the Experiment's PhysicalTopology
 	 * @param givenRLs - the length a given run of the Experiment should be
 	 * @param givenNumberOfRunsPerExperiment - the number of times an Experiment should run, given its other parameters
 	 * @param givenWorkload - the Experiment's Workload

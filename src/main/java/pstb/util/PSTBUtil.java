@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.Logger;
 
@@ -44,10 +43,11 @@ public class PSTBUtil {
 	public static final String START = "start";
 	
 	/**
-	 * Sees if a given string is an Integer
-	 * @param s - the string to look at
+	 * Sees if a given String is an Integer
+	 * 
+	 * @param s - the String to look at
 	 * @param log - a boolean that determines if we should log or not
-	 * @return null if the string is an Integer; the value otherwise
+	 * @return null if the String is an Integer; the value otherwise
 	 */
 	public static Integer checkIfInteger(String s, boolean log, Logger logger) 
 	{
@@ -60,23 +60,24 @@ public class PSTBUtil {
 		{
 			if(log)
 			{
-				logger.error("isInt: " + s + " is not an integer", ex);
+				logger.error("isInt: " + s + " is not an integer: ", ex);
 			}
 		}
 		
 		if(num != null && log)
 		{
-			logger.debug("isInt: " + s + " is an integer");
+			logger.debug("isInt: " + s + " is an integer.");
 		}
 		
 		return num;
 	}
 	
 	/**
-	 * Sees if a given string is a Long
+	 * Sees if a given String is a Long
+	 * 
 	 * @param s - the string to look at
 	 * @param log - a boolean that determines if we should log or not
-	 * @return null if the string is a Long; the value otherwise
+	 * @return null if the String is a Long; the value otherwise
 	 */
 	public static Long checkIfLong(String s, boolean log, Logger logger) 
 	{
@@ -89,13 +90,43 @@ public class PSTBUtil {
 		{
 			if(log)
 			{
-				logger.error("isLong: " + s + " is not a long", ex);
+				logger.error("isLong: " + s + " is not a long: ", ex);
 			}
 		}
 		
 		if(num != null && log)
 		{
-			logger.debug("isLong: " + s + " is a long");
+			logger.debug("isLong: " + s + " is a long.");
+		}
+		
+		return num;
+	}
+	
+	/**
+	 * Sees if a given String is a Double
+	 * 
+	 * @param s - the String to look at
+	 * @param log - a boolean that determines if we should log or not
+	 * @return null if the String is a Long; the value otherwise
+	 */
+	public static Double checkIfDouble(String s, boolean log, Logger logger) 
+	{
+		Double num = null;
+		try
+		{
+			num = Double.parseDouble(s);
+		}
+		catch (NumberFormatException ex)
+		{
+			if(log)
+			{
+				logger.error("isDouble: " + s + " is not a double: ", ex);
+			}
+		}
+		
+		if(num != null && log)
+		{
+			logger.debug("isLong: " + s + " is a double.");
 		}
 		
 		return num;
@@ -103,6 +134,7 @@ public class PSTBUtil {
 	
 	/**
 	 * Turns a String[] into a ArrayList<String>
+	 * 
 	 * @param input - the String[]
 	 * @return the resulting ArrayList<String>
 	 */
@@ -121,6 +153,19 @@ public class PSTBUtil {
 	public static boolean isWithinRangeInclusive(int testVariable, int lowerBound, int upperBound)
 	{
 		return (testVariable >= lowerBound) && (testVariable <= upperBound);
+	}
+	
+	/**
+	 * Gets the file extension of a given File String.
+	 * NOTE: This will also return the '.' as part of the extension.
+	 * 
+	 * @param givenFileString - the File String to get the extension from
+	 * @return the extension
+	 */
+	public static String getFileExtension(String givenFileString)
+	{
+		int dot = givenFileString.lastIndexOf(".");
+	    return givenFileString.substring(dot);
 	}
 	
 	/**
@@ -186,27 +231,6 @@ public class PSTBUtil {
 		PrintWriter out = new PrintWriter(givenOutputStream, true);
 		out.println(givenString);
 		
-		return true;
-	}
-	
-	/**
-	 * Makes sure a given file extension is proper
-	 * 
-	 * @param fileExtension - the file extension to check
-	 * @param logger - the log associated with the function that called this 
-	 * (that way if things go wrong we know where to log it)
-	 * @param logHeader - the log header associated with that log
-	 * @return true if it works; false it it can't
-	 */
-	public static boolean checkFileExtension(String fileExtension, Logger logger, String logHeader)
-	{
-		// Check File Ending
-		Pattern fileEndingTest = Pattern.compile(".\\w+");
-		if(!fileEndingTest.matcher(fileExtension).matches())
-		{
-			logger.error(logHeader + "Improper fileExtension");
-			return false;
-		}
 		return true;
 	}
 	

@@ -6,7 +6,7 @@ import pstb.creation.server.padres.PADRESServer;
 import pstb.startup.config.PADRESNetworkProtocol;
 import pstb.startup.topology.ClientNotes;
 import pstb.startup.topology.LogicalTopology;
-import pstb.startup.workload.PADRESAction;
+import pstb.startup.workload.PSAction;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class PADRESTopology extends PhysicalTopology {
 	// Variables given by user on creation
-	private HashMap<String, ArrayList<PADRESAction>> masterWorkload;
+	private HashMap<String, ArrayList<PSAction>> masterWorkload;
 	private PADRESNetworkProtocol protocol;
 	
 	//Objects
@@ -53,7 +53,7 @@ public class PADRESTopology extends PhysicalTopology {
 	 */
 	public PADRESTopology(LogicalTopology givenTopo, String givenUser, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
 			String givenTFS, String givenBST,
-			HashMap<String, ArrayList<PADRESAction>> givenWorkload, PADRESNetworkProtocol givenProtocol) throws UnknownHostException
+			HashMap<String, ArrayList<PSAction>> givenWorkload, PADRESNetworkProtocol givenProtocol) throws UnknownHostException
 	{
 		super(givenTopo, givenUser, givenHostsAndPorts, givenTFS, givenBST);
 		
@@ -272,7 +272,7 @@ public class PADRESTopology extends PhysicalTopology {
 			ArrayList<String> clientIConnections = clientINotes.getConnections();
 			
 			String workloadFileString = clientINotes.getRequestedWorkload();
-			ArrayList<PADRESAction> clientIWorkload = masterWorkload.get(workloadFileString);
+			ArrayList<PSAction> clientIWorkload = masterWorkload.get(workloadFileString);
 			if(clientIWorkload == null)
 			{
 				logger.error(logHeader + "Client " + clientIName + " is requesting a non-existant workload!");

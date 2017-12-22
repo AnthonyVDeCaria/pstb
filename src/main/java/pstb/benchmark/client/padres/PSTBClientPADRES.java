@@ -26,7 +26,7 @@ import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.client.PhysicalClient;
 import pstb.util.PSTBUtil;
 import pstb.startup.config.PADRESNetworkProtocol;
-import pstb.startup.workload.PADRESAction;
+import pstb.startup.workload.PSAction;
 import pstb.startup.workload.PSActionType;
 
 /**
@@ -46,7 +46,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	private String clientName;
 	private ArrayList<String> brokerURIs;
 	
-	private ArrayList<PADRESAction> workload;
+	private ArrayList<PSAction> workload;
 	private Long runLength;
 	private Integer runNumber;
 	
@@ -82,7 +82,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 		clientName = new String();
 		brokerURIs = new ArrayList<String>();
 		
-		workload = new ArrayList<PADRESAction>();
+		workload = new ArrayList<PSAction>();
 		runLength = INIT_RUN_LENGTH;
 		runNumber = INIT_RUN_NUMBER;
 		
@@ -119,7 +119,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * 
 	 * @param clientIWorkload - the given Workload
 	 */
-	public void setWorkload(ArrayList<PADRESAction> clientIWorkload)
+	public void setWorkload(ArrayList<PSAction> clientIWorkload)
 	{
 		workload = clientIWorkload;
 	}
@@ -463,7 +463,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 		}
 		// We do
 		
-		ArrayList<PADRESAction> activeList = new ArrayList<PADRESAction>();
+		ArrayList<PSAction> activeList = new ArrayList<PSAction>();
 		
 		PSTBUtil.synchronizeRun();
 		
@@ -479,7 +479,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 			
 			if(i < workload.size())
 			{
-				PADRESAction actionI = workload.get(i);
+				PSAction actionI = workload.get(i);
 				PSActionType actionIsActionType = actionI.getActionType();
 				
 				clientLog.debug(logHeader + "Attempting to send " + actionIsActionType + " " + actionI.getAttributes() + ".");
@@ -574,7 +574,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * @param givenActiveList - the ActiveList to look over
 	 * @return false on any error; true if successful
 	 */
-	private boolean updateActiveList(ArrayList<PADRESAction> givenActiveList)
+	private boolean updateActiveList(ArrayList<PSAction> givenActiveList)
 	{	
 		int numActiveActions = givenActiveList.size();
 		ArrayList<Integer> nodesToRemove = new ArrayList<Integer>();
@@ -603,7 +603,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 		 */
 		for(int i = 0 ; i < numActiveActions ; i++)
 		{
-			PADRESAction activeActionI = givenActiveList.get(i);
+			PSAction activeActionI = givenActiveList.get(i);
 			PSActionType aAIActionType = activeActionI.getActionType();
 			String aAIAttributes = activeActionI.getAttributes();
 			clientLog.trace(logHeader + "Accessing entry " + aAIAttributes + ".");
@@ -655,7 +655,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 		for(int i = 0 ; i < nodesToRemove.size() ; i++)
 		{
 			int j = nodesToRemove.get(i);
-			PADRESAction inactionActionJ = givenActiveList.get(j);
+			PSAction inactionActionJ = givenActiveList.get(j);
 			
 			clientLog.debug(logHeader + "Removing " + inactionActionJ.getActionType().toString() + " " + inactionActionJ.getAttributes()
 							+ " from ActiveList");
@@ -673,13 +673,13 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * @param activeList - the list of all remaining Ads and Subs
 	 * @return false on failure; true otherwise
 	 */
-	private boolean cleanup(ArrayList<PADRESAction> activeList)
+	private boolean cleanup(ArrayList<PSAction> activeList)
 	{
 		int sizeAL = activeList.size();
 		clientLog.debug(logHeader + "Undoing " + sizeAL + " 'infinite' actions."); 
 		for(int i = 0 ; i < sizeAL ; i++)
 		{
-			PADRESAction activeActionI = activeList.get(i);
+			PSAction activeActionI = activeList.get(i);
 			
 			if(activeActionI.getActionType().equals(PSActionType.A))
 			{
@@ -718,7 +718,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * @param givenAction - the given Action
 	 * @return true if the action was recorded; false on error
 	 */
-	private boolean launchAction(PSActionType selectedAction, PADRESAction givenAction)
+	private boolean launchAction(PSActionType selectedAction, PSAction givenAction)
 	{
 		clientLog.debug(logHeader + "Preparing to record " + selectedAction + " " + givenAction.getAttributes());
 		
@@ -839,7 +839,7 @@ public class PSTBClientPADRES implements java.io.Serializable
 	 * @param givenAction - the Action itself
 	 * @return the proper message on success; null on failure
 	 */
-	private Message executeAction(PSActionType selectedAction, PADRESAction givenAction) 
+	private Message executeAction(PSActionType selectedAction, PSAction givenAction) 
 	{
 		String generalLog = "Attempting to ";
 		Message result = null;

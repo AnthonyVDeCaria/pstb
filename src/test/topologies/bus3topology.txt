@@ -5,7 +5,7 @@ B2	B	B3
 B3	B	B2
 
 #Clients
-P0	C	B0	etc/sample.txt
-S0	C	B1	etc/sampleSub.txt
-S1	C	B2	etc/sampleSub.txt
-S2	C	B3	etc/sampleSub.txt
+P0	C	B0	src/test/workloads/testpub2.cna
+S0	C	B1	src/test/workloads/testsub.pdrs
+S1	C	B2	src/test/workloads/testsub.pdrs
+S2	C	B3	src/test/workloads/testsub.pdrs

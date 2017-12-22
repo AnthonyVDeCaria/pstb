@@ -10,38 +10,62 @@ public class PSAction implements java.io.Serializable
 	
 	private PSActionType actionType;
 	private Long actionDelay;	// nanoseconds
-
+	private String attributes;
 	private Integer payloadSize;	// bytes
 	private Long timeActive;	// nanoseconds
 	
-	/**
-	 * Empty Constructor
-	 */
 	public PSAction()
 	{
 		actionType = null;
-		actionDelay = new Long(-1);
-		payloadSize = new Integer(-1);
-		timeActive = new Long(0);
+		actionDelay = null;
+		attributes = null;
+		payloadSize = null;
+		timeActive = null;
 	}
 	
 	/**
-	 * ActionType Constructor
+	 * Sets the action Type of this action
+	 * @param nPSAT - the given action type
 	 */
-	public PSAction(PSActionType givenAT)
+	public void setActionType(PSActionType nPSAT)
 	{
-		actionType = givenAT;
-		actionDelay = new Long(-1);
-		payloadSize = new Integer(-1);
-		timeActive = new Long(0);
+		this.actionType = nPSAT;
 	}
 	
-	public PSAction(PSActionType givenAT, Long givenAD)
+	/**
+	 * Sets the delay between actions
+	 * @param nAD - the given delay
+	 */
+	public void setActionDelay(Long nAD)
 	{
-		actionType = givenAT;
-		actionDelay = givenAD;
-		payloadSize = new Integer(-1);
-		timeActive = new Long(0);
+		this.actionDelay = nAD;
+	}
+	
+	/**
+	 * Sets the attributes
+	 * @param nAttri - the attributes to be set
+	 */
+	public void setAttributes(String nAttri) 
+	{
+		this.attributes = nAttri;
+	}
+	
+	/**
+	 * Sets the payload size
+	 * @param nPS - the new payload size
+	 */
+	public void setPayloadSize(Integer nPS) 
+	{
+		this.payloadSize = nPS;
+	}
+	
+	/**
+	 * Sets the time active
+	 * @param nTA - the new time active
+	 */
+	public void setTimeActive(Long nTA) 
+	{
+		this.timeActive = nTA;
 	}
 	
 	/**
@@ -64,6 +88,15 @@ public class PSAction implements java.io.Serializable
 	}
 	
 	/**
+	 * Gets the attributes
+	 * @return the attributes
+	 */
+	public String getAttributes() 
+	{
+		return attributes;
+	}
+	
+	/**
 	 * Gets the payload size (bytes)
 	 * @return the payload size
 	 */
@@ -81,39 +114,5 @@ public class PSAction implements java.io.Serializable
 		return timeActive;
 	}
 	
-	/**
-	 * Sets the action Type of this action
-	 * @param nPSAT - the given action type
-	 */
-	public void setActionType(PSActionType nPSAT)
-	{
-		this.actionType = nPSAT;
-	}
-	
-	/**
-	 * Sets the delay between actions
-	 * @param nAD - the given delay
-	 */
-	public void setActionDelay(Long nAD)
-	{
-		this.actionDelay = nAD;
-	}
-	
-	/**
-	 * Sets the payload size
-	 * @param nPS - the new payload size
-	 */
-	public void setPayloadSize(Integer nPS) 
-	{
-		this.payloadSize = nPS;
-	}
-	
-	/**
-	 * Sets the time active
-	 * @param nTA - the new time active
-	 */
-	public void setTimeActive(Long nTA) 
-	{
-		this.timeActive = nTA;
-	}
+
 }

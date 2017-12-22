@@ -13,6 +13,7 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
+import pstb.startup.config.SupportedEngines.SupportedEngine;
 import pstb.util.PSTBUtil;
 
 public class BenchmarkConfig {
@@ -20,8 +21,8 @@ public class BenchmarkConfig {
 	private final String tfsString = "startup.topologyFilesStrings";
 	private final String distributedString = "startup.distributed";
 	private final String dfsString = "startup.distributedFileString";
-	private final String pPprotocolsString = "startup.pProtocols";
-	private final String sPprotocolsString = "startup.sProtocols";
+	private final String pProtocolsString = "startup.pProtocols";
+	private final String sProtocolsString = "startup.sProtocols";
 	private final String runLengthsString = "startup.runLengths";
 	private final String nrpeString = "startup.numRunsPerExperiment";
 	private final String wfsString = "startup.workloadFilesStrings";
@@ -34,7 +35,9 @@ public class BenchmarkConfig {
 	private boolean wantDistributed;
 	private String distributedFileString;
 	
+	private boolean wantPADRES;
 	private ArrayList<PADRESNetworkProtocol> pProtocols;
+	private boolean wantSIENA;
 	private ArrayList<SIENANetworkProtocol> sProtocols;
 	private ArrayList<Long> runLengths; // Milliseconds
 	private Integer numRunsPerExperiment;
@@ -59,7 +62,9 @@ public class BenchmarkConfig {
 		distributed = new HashMap<String, DistributedState>();
 		wantDistributed = false;
 		distributedFileString = new String();
+		wantPADRES = false;
 		pProtocols = new ArrayList<PADRESNetworkProtocol>();
+		wantSIENA = false;
 		sProtocols = new ArrayList<SIENANetworkProtocol>();
 		runLengths = new ArrayList<Long>();
 		numRunsPerExperiment = new Integer(0);
@@ -93,10 +98,10 @@ public class BenchmarkConfig {
 				for(int i = 0 ; i < numRE ; i++ )
 				{
 					String stringEI = splitEngines[i];
+					SupportedEngine eI = null;
 					try
 					{
-						SupportedEngine eI = SupportedEngine.valueOf(stringEI);
-						requestedEngines.add(eI);
+						eI = SupportedEngine.valueOf(stringEI);
 					}
 					catch(IllegalArgumentException e)
 					{
@@ -105,6 +110,15 @@ public class BenchmarkConfig {
 						logger.error(logHeader + stringEI + " is not a Supported Engine: ", e);
 						break;
 					}
+					if(eI.equals(SupportedEngine.PADRES))
+					{
+						wantPADRES = true;
+					}
+					else if(eI.equals(SupportedEngine.SIENA))
+					{
+						wantSIENA = true;
+					}
+					requestedEngines.add(eI);
 				}
 			}
 			else
@@ -181,78 +195,85 @@ public class BenchmarkConfig {
 		}
 		
 		// PADRES Protocols
-		String unsplitPProtocols = givenProperty.getProperty(pPprotocolsString);
-		ArrayList<PADRESNetworkProtocol> requestedPProtocols = new ArrayList<PADRESNetworkProtocol>();
-		if(unsplitPProtocols != null)
+		if(wantPADRES)
 		{
-			String[] splitPProtocols = unsplitPProtocols.split(PSTBUtil.ITEM_SEPARATOR);
-			int numPProtocols = splitPProtocols.length;
-			if(numPProtocols <= PADRESNetworkProtocol.values().length)
+			String unsplitPProtocols = givenProperty.getProperty(pProtocolsString);
+			ArrayList<PADRESNetworkProtocol> requestedPProtocols = new ArrayList<PADRESNetworkProtocol>();
+			if(unsplitPProtocols != null)
 			{
-				for(int i = 0 ; i < numPProtocols ; i++ )
+				String[] splitPProtocols = unsplitPProtocols.split(PSTBUtil.ITEM_SEPARATOR);
+				int numPProtocols = splitPProtocols.length;
+				if(numPProtocols <= PADRESNetworkProtocol.values().length)
 				{
-					String stringPPI = splitPProtocols[i];
-					try
+					for(int i = 0 ; i < numPProtocols ; i++ )
 					{
-						PADRESNetworkProtocol ppI = PADRESNetworkProtocol.valueOf(stringPPI);
-						requestedPProtocols.add(ppI);
+						String stringPPI = splitPProtocols[i];
+						try
+						{
+							PADRESNetworkProtocol ppI = PADRESNetworkProtocol.valueOf(stringPPI);
+							requestedPProtocols.add(ppI);
+						}
+						catch(IllegalArgumentException e)
+						{
+							everythingisProper = false;
+							requestedPProtocols.clear();
+							logger.error(logHeader + stringPPI + " is not a valid Protocol: ", e);
+							break;
+						}
 					}
-					catch(IllegalArgumentException e)
-					{
-						everythingisProper = false;
-						requestedPProtocols.clear();
-						logger.error(logHeader + stringPPI + " is not a valid Protocol: ", e);
-						break;
-					}
+				}
+				else
+				{
+					everythingisProper = false;
 				}
 			}
 			else
 			{
 				everythingisProper = false;
 			}
+			setPProtocols(requestedPProtocols);
 		}
-		else
-		{
-			everythingisProper = false;
-		}
-		setPProtocols(requestedPProtocols);
 		
-		// Protocols
-		String unsplitSProtocols = givenProperty.getProperty(sPprotocolsString);
-		ArrayList<SIENANetworkProtocol> requestedSProtocols = new ArrayList<SIENANetworkProtocol>();
-		if(unsplitSProtocols != null)
+		
+		// SIENA Protocols
+		if(wantSIENA)
 		{
-			String[] splitSProtocols = unsplitSProtocols.split(PSTBUtil.ITEM_SEPARATOR);
-			int numSProtocols = splitSProtocols.length;
-			if(numSProtocols <= SIENANetworkProtocol.values().length)
+			String unsplitSProtocols = givenProperty.getProperty(sProtocolsString);
+			ArrayList<SIENANetworkProtocol> requestedSProtocols = new ArrayList<SIENANetworkProtocol>();
+			if(unsplitSProtocols != null)
 			{
-				for(int i = 0 ; i < numSProtocols ; i++ )
+				String[] splitSProtocols = unsplitSProtocols.split(PSTBUtil.ITEM_SEPARATOR);
+				int numSProtocols = splitSProtocols.length;
+				if(numSProtocols <= SIENANetworkProtocol.values().length)
 				{
-					String stringSPI = splitSProtocols[i];
-					try
+					for(int i = 0 ; i < numSProtocols ; i++ )
 					{
-						SIENANetworkProtocol spI = SIENANetworkProtocol.valueOf(stringSPI);
-						requestedSProtocols.add(spI);
+						String stringSPI = splitSProtocols[i];
+						try
+						{
+							SIENANetworkProtocol spI = SIENANetworkProtocol.valueOf(stringSPI);
+							requestedSProtocols.add(spI);
+						}
+						catch(IllegalArgumentException e)
+						{
+							everythingisProper = false;
+							requestedSProtocols.clear();
+							logger.error(logHeader + stringSPI + " is not a valid Protocol: ", e);
+							break;
+						}
 					}
-					catch(IllegalArgumentException e)
-					{
-						everythingisProper = false;
-						requestedSProtocols.clear();
-						logger.error(logHeader + stringSPI + " is not a valid Protocol: ", e);
-						break;
-					}
+				}
+				else
+				{
+					everythingisProper = false;
 				}
 			}
 			else
 			{
 				everythingisProper = false;
 			}
+			setSProtocols(requestedSProtocols);
 		}
-		else
-		{
-			everythingisProper = false;
-		}
-		setSProtocols(requestedSProtocols);
 		
 		// runLengths
 		String unsplitRL = givenProperty.getProperty(runLengthsString);
@@ -327,7 +348,6 @@ public class BenchmarkConfig {
 	{
 		engines = nE;
 	}
-	
 	
 	/**
 	 * Sets the topologyFilesStrings
@@ -460,6 +480,16 @@ public class BenchmarkConfig {
 	}
 	
 	/**
+	 * Gets the wantPADRES value
+	 * 
+	 * @return wantPADRES - NOTE: this value is false if setBenchmarkConfig isn't run
+	 */
+	public boolean padresRequested() 
+	{
+		return wantPADRES;
+	}
+	
+	/**
 	 * Gets the PADRES protocols
 	 * 
 	 * @return protocols - the list of PADRES protocols to be use in different runs
@@ -467,6 +497,16 @@ public class BenchmarkConfig {
 	public ArrayList<PADRESNetworkProtocol> getPProtocols()
 	{
 		return pProtocols;
+	}
+	
+	/**
+	 * Gets the wantSIENA value
+	 * 
+	 * @return wantSIENA - NOTE: this value is false if setBenchmarkConfig isn't run
+	 */
+	public boolean sienaRequested() 
+	{
+		return wantSIENA;
 	}
 	
 	/**
@@ -510,7 +550,7 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Prints all of the Benchmark Variables
+	 * Prints all of the Benchmark variables
 	 */
 	public void printAllFields()
 	{
@@ -562,7 +602,12 @@ public class BenchmarkConfig {
 			logger.error(logHeader + " No Distributed File String was given!");
 			anyFieldNull = true;
 		}
-		if(pProtocols.isEmpty())
+		if(wantPADRES && pProtocols.isEmpty())
+		{
+			logger.error(logHeader + "No Protocol(s) were given!");
+			anyFieldNull = true;
+		}
+		if(wantSIENA && sProtocols.isEmpty())
 		{
 			logger.error(logHeader + "No Protocol(s) were given!");
 			anyFieldNull = true;

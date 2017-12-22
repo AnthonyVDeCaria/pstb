@@ -3,7 +3,7 @@ B1	B	B0
 B2	B	B0
 B3	B	B0
 
-P0	C	B0	etc/sample.txt
-S0	C	B1	etc/sampleSub.txt
-S1	C	B2	etc/sampleSub.txt
-S2	C	B3	etc/sampleSub.txt
+P0	C	B0	etc/sample.pdrs
+S0	C	B1	etc/sampleSub.pdrs
+S1	C	B2	etc/sampleSub.pdrs
+S2	C	B3	etc/sampleSub.pdrs

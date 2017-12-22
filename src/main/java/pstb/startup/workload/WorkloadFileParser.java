@@ -12,13 +12,12 @@ import java.util.ArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.startup.config.SupportedEngines;
+import pstb.startup.config.SupportedEngines.SupportedEngine;
 import pstb.util.PSTBUtil;
 
 public class WorkloadFileParser {
-	private String workloadFileString;
-	private ArrayList<PADRESAction> workloadP;
-	private ArrayList<SIENAAction> workloadS;
-	
+	// Constants
 	private final int MINSEGMENTSNUM = 3;
 	private final int MAXSEGMENTSNUM = 4;
 	private final int LOC_ACTION_DELAY = 0;
@@ -27,6 +26,14 @@ public class WorkloadFileParser {
 	private final int LOC_PAYLOAD_TIME_ACTIVE = 3;
 	
 	private final int NO_PAYLOAD = 0;
+	
+	// Given
+	private String workloadFileString;
+	private ArrayList<SupportedEngine> requestedEngines;
+	
+	// Produced
+	private ArrayList<PSAction> workloadP;
+	private ArrayList<PSAction> workloadS;
 	
 	private final String logHeader = "Workload Parser: ";
 	private Logger logger = LogManager.getRootLogger();
@@ -39,13 +46,19 @@ public class WorkloadFileParser {
 	public WorkloadFileParser()
 	{
 		workloadFileString = new String();
-		workloadP = new ArrayList<PADRESAction>();
+		requestedEngines = new ArrayList<SupportedEngine>();
+		
+		workloadP = new ArrayList<PSAction>();
+		workloadS = new ArrayList<PSAction>();
 	}
 	
-	public WorkloadFileParser(String givenWorkloadFileString)
+	public WorkloadFileParser(String givenWorkloadFileString, ArrayList<SupportedEngine> givenEngines)
 	{
 		workloadFileString = givenWorkloadFileString;
-		workloadP = new ArrayList<PADRESAction>();
+		requestedEngines = givenEngines;
+		
+		workloadP = new ArrayList<PSAction>();
+		workloadS = new ArrayList<PSAction>();
 	}
 	
 	/**
@@ -59,11 +72,21 @@ public class WorkloadFileParser {
 	}
 	
 	/**
+	 * Sets the Requested Engines
+	 * 
+	 * @param givenRE - a ArrayList<> of the engines the user wishes to test
+	 */
+	public void setRequestedEngines(ArrayList<SupportedEngine> givenRE)
+	{
+		requestedEngines = givenRE;
+	}
+	
+	/**
 	 * Gets the workload as detailed by PADRES
 	 * 
 	 * @return the PADRESAction ArrayList
 	 */
-	public ArrayList<PADRESAction> getPADRESWorkload()
+	public ArrayList<PSAction> getPADRESWorkload()
 	{
 		return workloadP;
 	}
@@ -73,7 +96,7 @@ public class WorkloadFileParser {
 	 * 
 	 * @return theSIENAAction ArrayList
 	 */
-	public ArrayList<SIENAAction> getSIENAWorkload()
+	public ArrayList<PSAction> getSIENAWorkload()
 	{
 		return workloadS;
 	}
@@ -91,6 +114,17 @@ public class WorkloadFileParser {
 		if(workloadFileString.isEmpty())
 		{
 			logger.error(logHeader + "No workload file was given!");
+			return false;
+		}
+		if(requestedEngines.isEmpty())
+		{
+			logger.error(logHeader + "No engine information was given!");
+			return false;
+		}
+		
+		if(!SupportedEngines.checkProperWorkloadFileEndings(workloadFileString))
+		{
+			logger.error(logHeader + "Improper file extension on this workload file!");
 			return false;
 		}
 		
@@ -247,9 +281,10 @@ public class WorkloadFileParser {
 	 */
 	private boolean addActionToWorkload(Long actionDelay, PSActionType actionType, String attributes, Long timeActive, Integer payloadSize)
 	{
-		PADRESAction newPAction = new PADRESAction(actionType, actionDelay);
-		SIENAAction newSAction = new SIENAAction(actionType, actionDelay);
-		newPAction.setAttributes(attributes);
+		PSAction newAction = new PSAction();
+		
+		newAction.setActionDelay(actionDelay);
+		newAction.setActionType(actionType);
 		
 		if(actionType.equals(PSActionType.A) || actionType.equals(PSActionType.S))
 		{
@@ -259,8 +294,7 @@ public class WorkloadFileParser {
 				{
 					timeActive *= PSTBUtil.MILLISEC_TO_NANOSEC;
 				}
-				newPAction.setTimeActive(timeActive);
-				newSAction.setTimeActive(timeActive);
+				newAction.setTimeActive(timeActive);
 			}
 			else
 			{
@@ -272,7 +306,7 @@ public class WorkloadFileParser {
 		{
 			if(payloadSize != null)
 			{
-				newPAction.setPayloadSize(payloadSize);
+				newAction.setPayloadSize(payloadSize);
 			}
 			else
 			{
@@ -281,22 +315,52 @@ public class WorkloadFileParser {
 			}
 		}
 		
-		workloadP.add(newPAction);
+		String fileType = PSTBUtil.getFileExtension(workloadFileString);
+		if(requestedEngines.contains(SupportedEngine.PADRES))
+		{
+			if(fileType.equals(SupportedEngines.WORKLOAD_FILE_TYPE_PADRES))
+			{
+				newAction.setAttributes(attributes);
+			}
+			else if(fileType.equals(SupportedEngines.WORKLOAD_FILE_TYPE_SIENA))
+			{
+				String convertedAttributes = SupportedEngines.convertSIENAAttributesToPADRES(attributes);
+				if(convertedAttributes == null)
+				{
+					logger.error(logHeader + "This SIENA file contains an operator not supported by PADRES!");
+					return false;
+				}
+				newAction.setAttributes(convertedAttributes);
+				
+			}
+			else
+			{
+				// ignore for now
+			}
+			
+			workloadP.add(newAction);
+		}
+		
+		if(requestedEngines.contains(SupportedEngine.SIENA))
+		{
+			if(fileType.equals(SupportedEngines.WORKLOAD_FILE_TYPE_PADRES))
+			{
+				String properAttributes = SupportedEngines.convertPADRESAttributesToSIENA(attributes);
+				newAction.setAttributes(properAttributes);
+			}
+			else if(fileType.equals(SupportedEngines.WORKLOAD_FILE_TYPE_SIENA))
+			{
+				newAction.setAttributes(attributes);
+			}
+			else
+			{
+				// ignore for now
+			}
+			
+			workloadS.add(newAction);
+		}
+		
 		return true;
 	}
 	
-//	private boolean checkIfAttributesAreCorrect(ClientAction givenCA, String unsplitAttributes)
-//	{
-//		boolean areAttributesCorrect = false;
-//		
-//		String[] splitAttri = unsplitAttributes.split("],");
-//		
-//		if(!splitAttri[0].equals("[class,eq,\"oneITS\"]") && !splitAttri[0].equals("[class,eq,'oneITS']"))
-//		{
-//			areAttributesCorrect = false;
-//			logger.error(logHeader + "First attribute isn't [class,eq,\"oneITS\"] or [class,eq,'oneITS']");
-//		}
-//		
-//		return areAttributesCorrect;
-//	}
 }
