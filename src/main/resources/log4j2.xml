@@ -22,7 +22,7 @@
         <Routing name="Broker">
 	        <Routes pattern="${ctx:broker}">
 	            <Route>
-	                <File name="${ctx:broker}" fileName="logs/${ctx:broker}.log" immediateFlush="false" append="false">
+	                <File name="${ctx:broker}" fileName="logs/Brokers/${ctx:broker}.log" immediateFlush="false" append="false">
 	                   <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
 	                </File>
 	            </Route>
@@ -32,7 +32,17 @@
 	    <Routing name="Client">
 	        <Routes pattern="${ctx:client}">
 	            <Route>
-	                <File name="${ctx:client}" fileName="logs/${ctx:client}.log" immediateFlush="false" append="false">
+	                <File name="${ctx:client}" fileName="logs/Clients/${ctx:client}.log" immediateFlush="false" append="false">
+	                   <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+	                </File>
+	            </Route>
+	        </Routes>
+	    </Routing>
+	    
+	    <Routing name="Node">
+	        <Routes pattern="${ctx:node}">
+	            <Route>
+	                <File name="${ctx:node}" fileName="logs/Nodes/${ctx:node}.log" immediateFlush="false" append="false">
 	                   <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
 	                </File>
 	            </Route>
@@ -120,10 +130,13 @@
         <Logger name="pstb.creation.server.PSTBServer" level="debug" additivity="false">
         	<AppenderRef ref="Server"/>
         </Logger>
-        <Logger name="pstb.benchmark.broker.PhysicalBroker" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.PSTBProcess" level="debug" additivity="false">
+        	<AppenderRef ref="Node"/>
+        </Logger>
+        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="debug" additivity="false">
         	<AppenderRef ref="Broker"/>
         </Logger>
-        <Logger name="pstb.benchmark.client.PhysicalClient" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="debug" additivity="false">
         	<AppenderRef ref="Client"/>
         </Logger>
         <Logger name="SystemError" level="warn" additivity="false">

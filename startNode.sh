@@ -1,56 +1,77 @@
 #!/bin/bash
+. scripts/functions.sh
 
-dis=$1
-isBroker=$2
-memory=$3
-name=$4
-context=$5
-master=$6
-port=$7
-user=$8
+error() 
+{ 
+	echo "ERROR:	Not enough arguments provided! "
+	echo "<memory> <name> <context> <ipAddress> <objectPort> <engine> <nodetype>"
+	echo "(OPTIONAL) -d <username> (this is distributed)"
+	exit 10 #N_ARGS 
+}
 
-if [ $# -ne 8 ]; 
+if [ $# -lt 7 ]; 
 then
-    echo "[Error] Not enough arguments provided! <isDistributed> <isBroker> <memory> <name> <context> <master> <port> <user>"
-    exit 10 #N_ARGS
+    error
 fi
 
-if [ $isBroker -eq 1 ];
+memory=$1
+shift
+
+name=$1
+shift
+
+context=$1
+shift
+
+ipAddress=$1
+shift
+
+objectPort=$1
+shift
+
+engine=$1
+shift
+
+nodetype=$1
+shift
+
+while getopts "d:" opt; do
+    case "${opt}" in
+        d)
+        	username=${OPTARG}
+            ;;
+        \?)
+        	error
+        	;;
+    esac
+done
+
+
+checkIfInt $memory
+memCheck=$?
+if [[ $memCheck -ne 0 ]] ; 
 then
-	echo "Starting broker $name"
-	
-	java -Xmx"$memory"M \
+   echo "ERROR:	Memory is not an integer!"
+   exit 10 #N_ARGS
+fi
+
+checkIfInt $objectPort
+opCheck=$?
+if [[ $opCheck -ne 0 ]] ; 
+then
+   echo "ERROR:	ObjectPort is not an integer!"
+   exit 10 #N_ARGS
+fi
+
+java -Xmx"$memory"M \
 			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
 			-Djava.rmi.server.codebase=file:target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
 			-Djava.security.policy=etc/java.policy \
 			-Djava.awt.headless=true \
-			pstb.benchmark.broker.PhysicalBroker \
-			-n $name \
-			-c $context \
-			-m $master \
-			-p $port \
-			-d $dis \
-			-u $user
+			pstb.benchmark.process.PSTBProcess \
+			$name $context $ipAddress $objectPort $engine $nodetype $username
 	
-	exitVal=$?
-	echo "$exitVal"
-	exit $exitVal
-else
-	echo "Starting client $name"
-	
-	java -Xmx"$memory"M \
-			-cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
-			-Xverify:none \
-			pstb.benchmark.client.PhysicalClient \
-			-n $name \
-			-c $context \
-			-m $master \
-			-p $port \
-			-d $dis \
-			-u $user
-			
-	exitVal=$?
-	echo "$exitVal"
-	exit $exitVal
-fi
+exitVal=$?
+echo "$exitVal"
+exit $exitVal
 

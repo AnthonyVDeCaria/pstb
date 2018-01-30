@@ -17,10 +17,10 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
-import pstb.analysis.diary.DistributedFlagValue;
 import pstb.analysis.diary.DiaryEntry.DiaryHeader;
-import pstb.benchmark.client.padres.PSTBClientPADRES;
-import pstb.startup.config.PADRESNetworkProtocol;
+import pstb.benchmark.object.client.padres.PSClientPADRES;
+import pstb.analysis.diary.DistributedFlagValue;
+import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
@@ -33,48 +33,80 @@ import pstb.util.PSTBUtil;
  * as well as key analysis functions.
  */
 public class Analyzer {
-	private static final Logger logger = LogManager.getRootLogger();
-	private static final String logHeader = "Analysis: ";
+	// Constants - Startup
+	private final static int NUM_ARGS = 2;
+	private final static int LOC_PRNT = 0;
+	private final static int LOC_FILE = 1;
 	
-	private static final int NUM_STRINGS = 6;
-	private static final int LOC_TOPO_FILE_PATH = 0;
-	private static final int LOC_DISTRIBUTED_FLAG = 1;
-	private static final int LOC_PROTOCOL = 2;
-	private static final int LOC_RUN_LENGTH = 3;
-	private static final int LOC_RUN_NUMBER = 4;
-	private static final int LOC_CLIENT_NAME = 5;
+	// Constants - Diary Names
+	private static final int NUM_STRINGS = 7;
+	private static final int LOC_BENCHMARK_START_TIME = 0;
+	private static final int LOC_TOPO_FILE_PATH = 1;
+	private static final int LOC_DISTRIBUTED_FLAG = 2;
+	private static final int LOC_PROTOCOL = 3;
+	private static final int LOC_RUN_LENGTH = 4;
+	private static final int LOC_RUN_NUMBER = 5;
+	private static final int LOC_CLIENT_NAME = 6;
 	
-	private static HashMap<String, ClientDiary> bookshelf = new HashMap<String, ClientDiary>();
-	private static ArrayList<Object> analyzedInformation = new ArrayList<Object>();
-	private static ArrayList<AnalysisType> analyzedCheck = new ArrayList<AnalysisType>();
-	
+	// Constants - Folder Names
 	private static final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
 	private static final String diariesStub = "diaries/";
 	private static final String analyzedStub = "analyzed/";
 	private static final String histogramStub = "histogram/";
 	private static final String avgDelayStub = "avgDelay/";
 	
+	// Variables - Key Components
+	private static HashMap<String, ClientDiary> bookshelf = new HashMap<String, ClientDiary>();
+	private static ArrayList<Object> analyzedInformation = new ArrayList<Object>();
+	private static ArrayList<AnalysisType> analyzedCheck = new ArrayList<AnalysisType>();
+	
+	// Variables - Folder Strings
 	private static String analyzedFolderString;
 	private static String diariesFolderString;
 	private static String histogramFolderString;
 	private static String avgDelayFolderString;
 	
+	// Logger
+	private static final Logger logger = LogManager.getRootLogger();
+	private static final String logHeader = "Analysis: ";
+	
 	public static void main(String[] args)
 	{
-		String analysisFileString = new String(); 
+		// Input parsing
+		int numArgs = args.length;
+		boolean conductAnalysis = true;
+		Boolean printDiaries = null;
+		String analysisFileString = null;
 		
-		for (int i = 0; i < args.length; i++) 
+		if(numArgs != NUM_ARGS) 
 		{
-			if (args[i].equals("-f")) 
-			{
-				analysisFileString = args[i + 1];
-			}
+			logger.info(logHeader + "Not enough arguments provided!");
+			System.exit(PSTBError.A_ARGS);
 		}
 		
-		if(analysisFileString.isEmpty())
+		String printFlag = args[LOC_PRNT];
+		if(printFlag.equals("true"))
 		{
-			logger.error(logHeader + "no analysis file was given!");
+			printDiaries = new Boolean(true);
+		}
+		else if(printFlag.equals("false"))
+		{
+			printDiaries = new Boolean(false);
+		}
+		else
+		{
+			logger.info(logHeader + "The Print flag was not set properly!");
 			System.exit(PSTBError.A_ARGS);
+		}
+		
+		String argsFile = args[LOC_FILE];
+		if(argsFile.equals("null"))
+		{
+			conductAnalysis = false;
+		}
+		else
+		{
+			analysisFileString = argsFile;
 		}
 		
 		logger.info(logHeader + "Beginning analysis...");
@@ -96,44 +128,50 @@ public class Analyzer {
 		}
 		logger.info("All diaries collected.");
 		
-		logger.info("Printing all diaries to file...");
-		boolean recordDiaryCheck = recordAllDiaries();
-		if(!recordDiaryCheck)
+		if(printDiaries.booleanValue())
 		{
-			logger.error(logHeader + "Couldn't record the diary files!"); 
-			System.exit(PSTBError.A_RECORD_DIARY);
-		}
-		logger.info("All diaries now in files!");
-		
-		logger.info("Parsing analysis file...");
-		AnalysisFileParser brainReader = new AnalysisFileParser();
-		brainReader.setAnalysisFileString(analysisFileString);
-		boolean analysisParseCheck = brainReader.parse();
-		if(!analysisParseCheck)
-		{
-			logger.error("Error parsing the analysis file!");
-			System.exit(PSTBError.A_ANALYSIS_FILE_PARSE);
-		}
-		logger.info("Got requested analysises.");
-		
-		logger.info("Beginning to execute these analysises...");
-		boolean analysisCheck = executeAnalysis(brainReader.getRequestedAnalysis());
-		if(!analysisCheck)
-		{
-			logger.error("Analysis Failed!");
-			System.exit(PSTBError.A_ANALYSIS);
+			logger.info("Printing all diaries to file...");
+			boolean recordDiaryCheck = recordAllDiaries();
+			if(!recordDiaryCheck)
+			{
+				logger.error(logHeader + "Couldn't record the diary files!"); 
+				System.exit(PSTBError.A_RECORD_DIARY);
+			}
+			logger.info("All diaries now in files!");
 		}
 		
-		logger.info("Analysis complete.");
-		
-		logger.info("Storing this analysis into a file...");
-		boolean recordAnalysisCheck = recordAllAnalyzedInformation();
-		if(!recordAnalysisCheck)
+		if(conductAnalysis)
 		{
-			logger.error(logHeader + "Couldn't record the analysis to a file!"); 
-			System.exit(PSTBError.A_RECORD_ANALYSIS);
+			logger.info("Parsing analysis file...");
+			AnalysisFileParser brainReader = new AnalysisFileParser();
+			brainReader.setAnalysisFileString(analysisFileString);
+			boolean analysisParseCheck = brainReader.parse();
+			if(!analysisParseCheck)
+			{
+				logger.error("Error parsing the analysis file!");
+				System.exit(PSTBError.A_ANALYSIS_FILE_PARSE);
+			}
+			logger.info("Got requested analysises.");
+			
+			logger.info("Beginning to execute these analysises...");
+			boolean analysisCheck = executeAnalysis(brainReader.getRequestedAnalysis());
+			if(!analysisCheck)
+			{
+				logger.error("Analysis Failed!");
+				System.exit(PSTBError.A_ANALYSIS);
+			}
+			
+			logger.info("Analysis complete.");
+			
+			logger.info("Storing this analysis into a file...");
+			boolean recordAnalysisCheck = recordAllAnalyzedInformation();
+			if(!recordAnalysisCheck)
+			{
+				logger.error(logHeader + "Couldn't record the analysis to a file!"); 
+				System.exit(PSTBError.A_RECORD_ANALYSIS);
+			}
+			logger.info("All analysis in files.");
 		}
-		logger.info("All analsys in files.");
 	}
 	
 	/**
@@ -142,16 +180,18 @@ public class Analyzer {
 	 * - a collection of ClientDiaries
 	 * 
 	 * @param diaryName - the name associated the diary object
-	 * @see PSTBClientPADRES
+	 * @see PSClientPADRES
 	 * @return an ArrayList of diaries if everything works properly; null otherwise
 	 */
 	private static boolean collectDiaries()
 	{
+		// Get the diary files
 		File diaryFolder = new File(System.getProperty("user.dir"));
 		File[] listFiles = diaryFolder.listFiles((d, s) -> {
 			return s.endsWith(".dia");
 		});
 		
+		// Loop through the files and add them to the "Bookshelf"
 		for(int i = 0 ; i < listFiles.length ; i++)
 		{
 			File diaryI = listFiles[i];
@@ -195,24 +235,13 @@ public class Analyzer {
 	}
 	
 	/**
-	 * Adds a Diary to the Bookshelf
-	 * (Basically a fancy HashMap put())
-	 * 
-	 * @param diaryName - the ClientDiary object's name
-	 * @param givenDiary - the ClientDiary object itself
-	 */
-//	public void addDiaryToBookshelf(String diaryName, ClientDiary givenDiary)
-//	{
-//		bookshelf.put(diaryName, givenDiary);
-//	}
-	
-	/**
 	 * Prints all the diaries on the bookshelf into files
 	 * 
 	 * @return false on an error; true otherwise
 	 */
 	private static boolean recordAllDiaries()
 	{	
+		// Try to create a diaries folder
 		Path diaryFolderPath = Paths.get(diariesFolderString);
 		if(Files.notExists(diaryFolderPath))
 		{
@@ -222,11 +251,12 @@ public class Analyzer {
 			} 
 			catch (IOException e) 
 			{
-				logger.error(logHeader + "error creating diaries folder", e);
+				logger.error(logHeader + "Couldn't create a diaries folder: ", e);
 				return false;
 			}
 		}
 		
+		// Try to record diaries to this file
 		try
 		{
 			bookshelf.forEach((diaryName, diary)->
@@ -234,13 +264,14 @@ public class Analyzer {
 				String diaryFileString = diariesFolderString + diaryName + ".txt";
 				Path diaryFilePath = Paths.get(diaryFileString);
 				
+				// If any old diaries exist here - delete them
 				try 
 				{
 					Files.deleteIfExists(diaryFilePath);
 				} 
 				catch (IOException e)
 				{
-					throw new IllegalArgumentException("IO couldn't delete file " + diaryFileString);
+					throw new IllegalArgumentException("IO couldn't delete file " + diaryFileString + "!");
 				}
 				
 				boolean check = diary.recordDiary(diaryFilePath, logger);
@@ -252,7 +283,7 @@ public class Analyzer {
 		}
 		catch(IllegalArgumentException e)
 		{
-			logger.error(logHeader + "error printing all diaries", e);
+			logger.error(logHeader + "Couldn't records all of the diaries to a file: ", e);
 			return false;
 		}
 		
@@ -268,6 +299,7 @@ public class Analyzer {
 	 */
 	private static boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis)
 	{
+		// Loop through each line of the AnalysisFile
 		for(int i = 0 ; i < requestedAnalysis.size(); i++)
 		{
 			HashMap<AnalysisInput, ArrayList<Object>> analysisI = requestedAnalysis.get(i);
@@ -276,6 +308,7 @@ public class Analyzer {
 			ArrayList<Object> requestedPSATList =  analysisI.get(AnalysisInput.PSActionType);
 			ArrayList<Object> requestedDHList =  analysisI.get(AnalysisInput.DiaryHeader);
 			
+			// There should be only one AnalysisType/PSActionType/DiaryHeader selected for each line of the AnalysisFile
 			if(requestedATList.size() != 1)
 			{
 				logger.error(logHeader + "There are multiple requested AnalysisTypes!"); 
@@ -296,6 +329,7 @@ public class Analyzer {
 			PSActionType requestedPSAT = (PSActionType) analysisI.get(AnalysisInput.PSActionType).get(0);
 			DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader).get(0);
 			
+			ArrayList<Object> requestedBST = analysisI.get(AnalysisInput.BenchmarkStartTime);
 			ArrayList<Object> requestedTPF = analysisI.get(AnalysisInput.TopologyFilePath);
 			ArrayList<Object> requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
 			ArrayList<Object> requestedP = analysisI.get(AnalysisInput.Protocol);
@@ -303,9 +337,11 @@ public class Analyzer {
 			ArrayList<Object> requestedRN = analysisI.get(AnalysisInput.RunNumber);
 			ArrayList<Object> requestedCN = analysisI.get(AnalysisInput.ClientName);
 			
-			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedTPF, requestedDFV, requestedP, 
-																				requestedRL, requestedRN, requestedCN);
+			// From the given lists of options, get the related diary's names 
+			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedBST, requestedTPF, requestedDFV, requestedP, 
+					requestedRL, requestedRN, requestedCN);
 			
+			// Now that we have all of the names, let's do the actual analysis
 			Object objectI = null;
 			switch(requestedAT)
 			{
@@ -325,6 +361,7 @@ public class Analyzer {
 					return false;
 			}
 			
+			// Let's add this analyzed object to the list, along with recording what analysis we accomplished
 			analyzedInformation.add(objectI);
 			analyzedCheck.add(requestedAT);
 		}
@@ -345,6 +382,7 @@ public class Analyzer {
 		Path histogramFolderPath = Paths.get(histogramFolderString);
 		Path avgDelayFolderPath = Paths.get(avgDelayFolderString);
 		
+		// If the folders don't exist - create them
 		if(Files.notExists(histogramFolderPath))
 		{
 			try 
@@ -371,6 +409,9 @@ public class Analyzer {
 			}
 		}
 		
+		// For each analysis we did, call its affiliated "record" function
+		// NOTE:	this function assumes that analyzedCheck[i] is the analysis that resulted in object analyzedInformation[i]
+		// 		i.e. if analyzedCheck[7] is DelayHistogram, then analyzedInformation[7] is a PSTBHistogram Object
 		for(int i = 0 ; i < analyzedCheck.size() ; i++)
 		{
 			switch(analyzedCheck.get(i))
@@ -378,7 +419,6 @@ public class Analyzer {
 				case DelayHistogram:
 				{
 					PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
-					
 					String histogramFileString = histogramFolderString + temp.getHistogramName() + "-" + numHistograms + ".txt";
 					Path histogramFilePath = Paths.get(histogramFileString);
 					
@@ -433,13 +473,19 @@ public class Analyzer {
 	 * @param requestedCN - the ClientName associated with these Diaries
 	 * @return the list of matching diary names
 	 */
-	private static ArrayList<String> getAffiliatedDiaryNames(ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
+	private static ArrayList<String> getAffiliatedDiaryNames(ArrayList<Object> requestedBST,
+														ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
 														ArrayList<Object> requestedP, ArrayList<Object> requestedRL, 
 														ArrayList<Object> requestedRN, ArrayList<Object> requestedCN)
-	{		
+	{	
+		// NOTE:	null here means that we want all references to that variable
+		// 		Example - if requestedTPF is null, then we want all to look at all the topology files that these diary files have 
+		
 		ArrayList<String> retVal = new ArrayList<String>();
 		String[] nameTestArray = new String[NUM_STRINGS];
 		
+		// Which lists are null?
+		boolean nullBST = requestedBST == null;
 		boolean nullTPF = requestedTPF == null;
 		boolean nullDFV = requestedDFV == null;
 		boolean nullP = requestedP == null;
@@ -447,6 +493,7 @@ public class Analyzer {
 		boolean nullRN = requestedRN == null;
 		boolean nullCN = requestedCN == null;
 		
+		int numBST = 1;
 		int numTPF = 1;
 		int numDFV = 1;
 		int numP = 1;
@@ -455,6 +502,10 @@ public class Analyzer {
 		int numCN = 1;
 		
 		// Set nums
+		if(!nullBST)
+		{
+			numBST = requestedBST.size();
+		}
 		if(!nullTPF)
 		{
 			numTPF = requestedTPF.size();
@@ -480,84 +531,96 @@ public class Analyzer {
 			numCN = requestedCN.size();
 		}
 		
-		// Loop through them all
-		for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
+		// Loop through "all lists" to add its String to the Regex
+		for(int iBST = 0 ; iBST < numBST ; iBST++)
 		{
-			if(nullTPF)
+			if(nullBST)
 			{
-				nameTestArray[LOC_TOPO_FILE_PATH] = "\\w+";
+				nameTestArray[LOC_BENCHMARK_START_TIME] = PSTBUtil.DATE_REGEX;
 			}
 			else
 			{
-				nameTestArray[LOC_TOPO_FILE_PATH] = (String) requestedTPF.get(iTPF);
+				nameTestArray[LOC_BENCHMARK_START_TIME] = (String) requestedBST.get(iBST);
 			}
 			
-			for(int iDFV = 0 ; iDFV < numDFV ; iDFV++)
+			for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
 			{
-				if(nullDFV)
+				if(nullTPF)
 				{
-					nameTestArray[LOC_DISTRIBUTED_FLAG] = "\\w+";
+					nameTestArray[LOC_TOPO_FILE_PATH] = "\\w+";
 				}
 				else
 				{
-					nameTestArray[LOC_DISTRIBUTED_FLAG] = ((DistributedFlagValue) requestedDFV.get(iDFV)).toString();
+					nameTestArray[LOC_TOPO_FILE_PATH] = (String) requestedTPF.get(iTPF);
 				}
 				
-				for(int iP = 0 ; iP < numP ; iP++)
+				for(int iDFV = 0 ; iDFV < numDFV ; iDFV++)
 				{
-					if(nullP)
+					if(nullDFV)
 					{
-						nameTestArray[LOC_PROTOCOL] = "\\w+";
+						nameTestArray[LOC_DISTRIBUTED_FLAG] = "\\w+";
 					}
 					else
 					{
-						nameTestArray[LOC_PROTOCOL] = ((PADRESNetworkProtocol) requestedP.get(iP)).toString();
+						nameTestArray[LOC_DISTRIBUTED_FLAG] = ((DistributedFlagValue) requestedDFV.get(iDFV)).toString();
 					}
 					
-					for(int iRL = 0 ; iRL < numRL ; iRL++)
+					for(int iP = 0 ; iP < numP ; iP++)
 					{
-						if(nullRL)
+						if(nullP)
 						{
-							nameTestArray[LOC_RUN_LENGTH] = "\\w+";
+							nameTestArray[LOC_PROTOCOL] = "\\w+";
 						}
 						else
 						{
-							nameTestArray[LOC_RUN_LENGTH] = ((Long) requestedRL.get(iRL)).toString();
+							nameTestArray[LOC_PROTOCOL] = ((NetworkProtocol) requestedP.get(iP)).toString();
 						}
 						
-						for(int iRN = 0 ; iRN < numRN ; iRN++)
+						for(int iRL = 0 ; iRL < numRL ; iRL++)
 						{
-							if(nullRN)
+							if(nullRL)
 							{
-								nameTestArray[LOC_RUN_NUMBER] = "\\w+";
+								nameTestArray[LOC_RUN_LENGTH] = "\\w+";
 							}
 							else
 							{
-								nameTestArray[LOC_RUN_NUMBER] = ((Long) requestedRN.get(iRN)).toString();
+								nameTestArray[LOC_RUN_LENGTH] = ((Long) requestedRL.get(iRL)).toString();
 							}
 							
-							for(int iCN = 0 ; iCN < numCN ; iCN++)
+							for(int iRN = 0 ; iRN < numRN ; iRN++)
 							{
-								if(nullCN)
+								if(nullRN)
 								{
-									nameTestArray[LOC_CLIENT_NAME] = "\\w+";
+									nameTestArray[LOC_RUN_NUMBER] = "\\w+";
 								}
 								else
 								{
-									nameTestArray[LOC_CLIENT_NAME] = (String) requestedCN.get(iCN);
+									nameTestArray[LOC_RUN_NUMBER] = ((Long) requestedRN.get(iRN)).toString();
 								}
 								
-								String nameTestString = String.join(PSTBUtil.DIARY_SEPARATOR, nameTestArray);
-								
-								Pattern nameTest = Pattern.compile(nameTestString);
-								Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
-								
-								for( ; bookshelfIt.hasNext() ; )
+								for(int iCN = 0 ; iCN < numCN ; iCN++)
 								{
-									String diaryNameI = bookshelfIt.next(); 
-									if(nameTest.matcher(diaryNameI).matches())
+									if(nullCN)
 									{
-										retVal.add(diaryNameI);
+										nameTestArray[LOC_CLIENT_NAME] = "\\w+";
+									}
+									else
+									{
+										nameTestArray[LOC_CLIENT_NAME] = (String) requestedCN.get(iCN);
+									}
+									
+									String nameTestString = String.join(PSTBUtil.DIARY_SEPARATOR, nameTestArray);
+									
+									Pattern nameTest = Pattern.compile(nameTestString);
+									Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
+									
+									for( ; bookshelfIt.hasNext() ; )
+									{
+										String diaryNameI = bookshelfIt.next(); 
+										if(nameTest.matcher(diaryNameI).matches())
+										{
+											retVal.add(diaryNameI);
+										}
 									}
 								}
 							}
@@ -639,7 +702,7 @@ public class Analyzer {
 	 * Determines the average delay for a given delay type
 	 * NOTE: Certain delays only exist for certain PSActionTypes
 	 * The MessageDelay is only for R PSActions
-	 * While R PSActions do NOT have an ActionDelay - everyone else does.
+	 * ALL other PSActions have an ActionDelay.
 	 * 
 	 * @param diaryNames - a list of diaries that will be combed over
 	 * @param typeToAnalyse - the type of PSActionType requested to look at

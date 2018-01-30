@@ -1,23 +1,25 @@
 #!/bin/bash
 
-machine=$1
-isBroker=$2
+user=$1
+machine=$2
 memory=$3
 name=$4
 context=$5
-master=$6
-port=$7
-user=$8
+ipAddress=$6
+objectPort=$7
+engine=$8
+nodetype=$9
 
-if [ $# -ne 8 ]; 
+if [ $# -ne 9 ]; 
 then
-    echo "[Error] Not enough arguments provided! <machine> <isBroker> <memory> <name> <context> <master> <port> <user>"
+	echo "ERROR:	Not enough arguments provided! "
+	echo "<username> <machine> <memory> <name> <context> <ipAddress> <objectPort> <engine> <nodetype>"
     exit 10 #N_ARGS
 fi
 
 ssh -t -t $user@$machine <<-EOF
 	cd ~/PSTB
-	./startNode.sh "true" $isBroker $memory $name $context $master $port $user
+	./startNode.sh $memory $name $context $ipAddress $objectPort $engine $nodetype -d $user
 	exit
 EOF
 

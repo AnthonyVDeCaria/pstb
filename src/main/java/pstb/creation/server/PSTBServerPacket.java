@@ -7,11 +7,11 @@ package pstb.creation.server;
  * @author padres-dev-4187
  *
  */
-public class ServerPacket {
+public class PSTBServerPacket {
 	private Object node;
 	private boolean client;
 	
-	public ServerPacket(Object accessedNode, boolean isClient)
+	public PSTBServerPacket(Object accessedNode, boolean isClient)
 	{
 		node = accessedNode;
 		client = isClient;

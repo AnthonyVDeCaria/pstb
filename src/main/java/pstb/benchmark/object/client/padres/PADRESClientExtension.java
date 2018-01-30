@@ -1,4 +1,4 @@
-package pstb.benchmark.client.padres;
+package pstb.benchmark.object.client.padres;
 
 import ca.utoronto.msrg.padres.client.Client;
 import ca.utoronto.msrg.padres.client.ClientConfig;
@@ -13,12 +13,12 @@ import ca.utoronto.msrg.padres.common.message.Message;
  */
 public class PADRESClientExtension extends Client  
 {
-	PSTBClientPADRES hiddenClient;
+	PSClientPADRES hiddenClient;
 	
 	/**
 	 * Constructor
 	 */
-	public PADRESClientExtension(ClientConfig givenCConfig, PSTBClientPADRES givenClient) throws ClientException
+	public PADRESClientExtension(ClientConfig givenCConfig, PSClientPADRES givenClient) throws ClientException
 	{
 		super(givenCConfig);
 		hiddenClient = givenClient;

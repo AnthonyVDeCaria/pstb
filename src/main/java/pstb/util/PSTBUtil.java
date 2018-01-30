@@ -22,8 +22,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 
 import pstb.analysis.diary.ClientDiary;
-import pstb.benchmark.broker.PhysicalBroker;
-import pstb.benchmark.client.PhysicalClient;
+import pstb.benchmark.process.broker.PSTBBrokerProcess;
+import pstb.benchmark.process.client.PSTBClientProcess;
 
 public class PSTBUtil {
 	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
@@ -31,6 +31,7 @@ public class PSTBUtil {
 	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
 	
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd-HH:mm:ss.SSS");
+	public static final String DATE_REGEX = "\\d{4}-\\d{2}-\\d{2}-\\d{2}:\\d{2}:\\d{2}.\\d{3}";
 	
 	public static final String COLUMN_SEPARATOR = "	";
 	public static final String ITEM_SEPARATOR = ",";
@@ -41,6 +42,7 @@ public class PSTBUtil {
 	
 	public static final String INIT = "On your command.";
 	public static final String START = "start";
+	public static final String LINK = "connect";
 	
 	/**
 	 * Sees if a given String is an Integer
@@ -171,8 +173,8 @@ public class PSTBUtil {
 	/**
 	 * Serializes the given Object and stores it in a file
 	 * Allowing the processes after to access these objects and their functions
-	 * @see PhysicalBroker
-	 * @see PhysicalClient
+	 * @see PSTBBrokerProcess
+	 * @see PSTBClientProcess
 	 * 
 	 * @param givenObject - the Object to be stored in a file
 	 * @param givenObjectName - the name of said Object

@@ -4,18 +4,18 @@
 package pstb.analysis;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.analysis.diary.DistributedFlagValue;
 import pstb.analysis.diary.DiaryEntry.DiaryHeader;
-import pstb.startup.config.PADRESNetworkProtocol;
+import pstb.analysis.diary.DistributedFlagValue;
+import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 
@@ -30,16 +30,17 @@ public class AnalysisFileParser {
 	private ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis;
 	private String analysisFileString;
 	
-	private final int NUM_SEGMENTS = 9;
+	private final int NUM_SEGMENTS = 10;
 	private final int LOC_ANALYSIS_TYPE = 0;
 	private final int LOC_DIARY_HEADER = 1;
 	private final int LOC_PS_ACTION_TYPE = 2;
-	private final int LOC_TOPO_FILE_PATH = 3;
-	private final int LOC_DISTRIBUTED_FLAG = 4;
-	private final int LOC_PROTOCOL = 5;
-	private final int LOC_RUN_LENGTH = 6;
-	private final int LOC_RUN_NUMBER = 7;
-	private final int LOC_CLIENT_NAME = 8;
+	private final int LOC_BENCHMARK_START_TIME = 3;
+	private final int LOC_TOPO_FILE_PATH = 4;
+	private final int LOC_DISTRIBUTED_FLAG = 5;
+	private final int LOC_PROTOCOL = 6;
+	private final int LOC_RUN_LENGTH = 7;
+	private final int LOC_RUN_NUMBER = 8;
+	private final int LOC_CLIENT_NAME = 9;
 	
 	String logHeader = "Analysis Parser: ";
 	Logger log = LogManager.getRootLogger();
@@ -157,6 +158,7 @@ public class AnalysisFileParser {
 		ArrayList<Object> listAnalysisType = new ArrayList<Object>();
 		ArrayList<Object> listDiaryHeader = new ArrayList<Object>();
 		ArrayList<Object> listPSActionType = new ArrayList<Object>();
+		ArrayList<Object> listBenchmark = new ArrayList<Object>();
 		ArrayList<Object> listTopology = new ArrayList<Object>();
 		ArrayList<Object> listDistributed = new ArrayList<Object>();
 		ArrayList<Object> listProtocol = new ArrayList<Object>();
@@ -164,6 +166,7 @@ public class AnalysisFileParser {
 		ArrayList<Object> listRunNumber = new ArrayList<Object>();
 		ArrayList<Object> listClientName = new ArrayList<Object>();
 		
+		String benchmarkSTs = splitLine[LOC_BENCHMARK_START_TIME];
 		String topologies = splitLine[LOC_TOPO_FILE_PATH];
 		String distributedFlags = splitLine[LOC_DISTRIBUTED_FLAG];
 		String protocols = splitLine[LOC_PROTOCOL];
@@ -171,6 +174,7 @@ public class AnalysisFileParser {
 		String runNumbers = splitLine[LOC_RUN_NUMBER];
 		String clientNames = splitLine[LOC_CLIENT_NAME];
 		
+		String[] splitBSTs = benchmarkSTs.split(",");
 		String[] splitTopologies = topologies.split(",");
 		String[] splitDistributedFlags = distributedFlags.split(",");
 		String[] splitProtocols = protocols.split(",");
@@ -231,6 +235,34 @@ public class AnalysisFileParser {
 		}
 		tempObject = null;
 		
+		// Benchmark Start Times
+		int numBSTs = splitBSTs.length;
+		if(numBSTs == 1 && splitBSTs[0].equals("null"))
+		{
+			retVal.put(AnalysisInput.BenchmarkStartTime, null);
+		}
+		else
+		{
+			Pattern bstTest = Pattern.compile(PSTBUtil.DATE_REGEX);
+			
+			for(int i = 0 ; i < numBSTs ; i++)
+			{
+				String bstI = splitBSTs[i];
+				if(bstTest.matcher(bstI).matches())
+				{
+					listBenchmark.add(bstI);
+				}
+				else
+				{
+					log.error(logHeader + "Given BenchmarkStartTime " + bstI + " is not a valid timestamp!");
+					listBenchmark.clear();
+					error = true;
+				}
+			}
+			
+			retVal.put(AnalysisInput.BenchmarkStartTime, listBenchmark);
+		}
+		
 		// Topologies
 		int numTopologies = splitTopologies.length;
 		if(numTopologies == 1 && splitTopologies[0] == null)
@@ -249,16 +281,7 @@ public class AnalysisFileParser {
 				}
 				else
 				{
-					if(new File(topologyI).isFile()) // This should be changed to seeing if it's in the BenchmarkConfig
-					{
-						listTopology.add(PSTBUtil.cleanTFS(splitTopologies[i]));
-					}
-					else
-					{
-						log.error(logHeader + "Cannot find given TopologyFile " + i + " in the system!");
-						listTopology.clear();
-						error = true;
-					}
+					listTopology.add(PSTBUtil.cleanTFS(topologyI));
 				}
 			}
 			
@@ -310,7 +333,7 @@ public class AnalysisFileParser {
 		
 		// Protocols
 		int numProtocols = splitProtocols.length;
-		if(numProtocols == PADRESNetworkProtocol.values().length)
+		if(numProtocols == NetworkProtocol.values().length)
 		{
 			log.warn(logHeader + "This was not necessary - typing null would have sufficed.");
 			retVal.put(AnalysisInput.Protocol, null);
@@ -327,7 +350,7 @@ public class AnalysisFileParser {
 				
 				try
 				{
-					tempObject = PADRESNetworkProtocol.valueOf(splitProtocols[i]);
+					tempObject = NetworkProtocol.valueOf(splitProtocols[i]);
 					listProtocol.add(tempObject);
 				}
 				catch(Exception e)
@@ -449,7 +472,6 @@ public class AnalysisFileParser {
 				}
 				else
 				{
-					// This should be changed to seeing if it's in the BenchmarkConfig
 					listClientName.add(clientNameI);
 				}
 			}

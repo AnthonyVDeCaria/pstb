@@ -10,5 +10,6 @@ package pstb.analysis;
  * Only these types of inputs are allowed.
  */
 public enum AnalysisInput {
-	AnalysisType, DiaryHeader, PSActionType, TopologyFilePath, DistributedFlag, Protocol, RunLength, RunNumber, ClientName
+	AnalysisType, DiaryHeader, PSActionType, 
+	BenchmarkStartTime, TopologyFilePath, DistributedFlag, Protocol, RunLength, RunNumber, ClientName
 }

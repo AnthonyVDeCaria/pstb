@@ -13,7 +13,9 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.config.SupportedEngines.SupportedEngine;
+import pstb.creation.topology.PADRESTopology;
+import pstb.creation.topology.SIENATopology;
+import pstb.startup.config.SupportedEngines.PSEngine;
 import pstb.util.PSTBUtil;
 
 public class BenchmarkConfig {
@@ -21,13 +23,12 @@ public class BenchmarkConfig {
 	private final String tfsString = "startup.topologyFilesStrings";
 	private final String distributedString = "startup.distributed";
 	private final String dfsString = "startup.distributedFileString";
-	private final String pProtocolsString = "startup.pProtocols";
-	private final String sProtocolsString = "startup.sProtocols";
+	private final String protocolsString = "startup.protocols";
 	private final String runLengthsString = "startup.runLengths";
 	private final String nrpeString = "startup.numRunsPerExperiment";
 	private final String wfsString = "startup.workloadFilesStrings";
 	
-	private ArrayList<SupportedEngine> engines;
+	private ArrayList<PSEngine> engines;
 	
 	private ArrayList<String> topologyFilesStrings;
 	
@@ -36,9 +37,8 @@ public class BenchmarkConfig {
 	private String distributedFileString;
 	
 	private boolean wantPADRES;
-	private ArrayList<PADRESNetworkProtocol> pProtocols;
 	private boolean wantSIENA;
-	private ArrayList<SIENANetworkProtocol> sProtocols;
+	private ArrayList<NetworkProtocol> protocols;
 	private ArrayList<Long> runLengths; // Milliseconds
 	private Integer numRunsPerExperiment;
 	
@@ -57,15 +57,14 @@ public class BenchmarkConfig {
 	{
 		logger = log;
 		
-		engines = new ArrayList<SupportedEngine>();
+		engines = new ArrayList<PSEngine>();
 		topologyFilesStrings = new ArrayList<String>();
 		distributed = new HashMap<String, DistributedState>();
 		wantDistributed = false;
 		distributedFileString = new String();
+		protocols = new ArrayList<NetworkProtocol>();
 		wantPADRES = false;
-		pProtocols = new ArrayList<PADRESNetworkProtocol>();
 		wantSIENA = false;
-		sProtocols = new ArrayList<SIENANetworkProtocol>();
 		runLengths = new ArrayList<Long>();
 		numRunsPerExperiment = new Integer(0);
 		workloadFilesStrings = new ArrayList<String>();
@@ -88,20 +87,20 @@ public class BenchmarkConfig {
 		
 		// Engines
 		String unsplitEngines = givenProperty.getProperty(enginesString);
-		ArrayList<SupportedEngine> requestedEngines = new ArrayList<SupportedEngine>();
+		ArrayList<PSEngine> requestedEngines = new ArrayList<PSEngine>();
 		if(unsplitEngines != null)
 		{
 			String[] splitEngines = unsplitEngines.split(PSTBUtil.ITEM_SEPARATOR);
 			int numRE = splitEngines.length;
-			if(numRE <= SupportedEngine.values().length)
+			if(numRE <= PSEngine.values().length)
 			{
 				for(int i = 0 ; i < numRE ; i++ )
 				{
 					String stringEI = splitEngines[i];
-					SupportedEngine eI = null;
+					PSEngine eI = null;
 					try
 					{
-						eI = SupportedEngine.valueOf(stringEI);
+						eI = PSEngine.valueOf(stringEI);
 					}
 					catch(IllegalArgumentException e)
 					{
@@ -110,11 +109,11 @@ public class BenchmarkConfig {
 						logger.error(logHeader + stringEI + " is not a Supported Engine: ", e);
 						break;
 					}
-					if(eI.equals(SupportedEngine.PADRES))
+					if(eI.equals(PSEngine.PADRES))
 					{
 						wantPADRES = true;
 					}
-					else if(eI.equals(SupportedEngine.SIENA))
+					else if(eI.equals(PSEngine.SIENA))
 					{
 						wantSIENA = true;
 					}
@@ -194,86 +193,65 @@ public class BenchmarkConfig {
 			}
 		}
 		
-		// PADRES Protocols
-		if(wantPADRES)
+		// Protocols
+		String unsplitProtocols = givenProperty.getProperty(protocolsString);
+		ArrayList<NetworkProtocol> requestedProtocols = new ArrayList<NetworkProtocol>();
+		if(unsplitProtocols != null)
 		{
-			String unsplitPProtocols = givenProperty.getProperty(pProtocolsString);
-			ArrayList<PADRESNetworkProtocol> requestedPProtocols = new ArrayList<PADRESNetworkProtocol>();
-			if(unsplitPProtocols != null)
+			String[] splitProtocols = unsplitProtocols.split(PSTBUtil.ITEM_SEPARATOR);
+			int numProtocols = splitProtocols.length;
+			if(numProtocols <= PADRESTopology.SUPPORTED_PROTOCOLS.size() + SIENATopology.SUPPORTED_PROTOCOLS.size())
 			{
-				String[] splitPProtocols = unsplitPProtocols.split(PSTBUtil.ITEM_SEPARATOR);
-				int numPProtocols = splitPProtocols.length;
-				if(numPProtocols <= PADRESNetworkProtocol.values().length)
+				int givenPADRESProtocols = 0;
+				int givenSIENAProtocols = 0;
+				
+				for(int i = 0 ; i < numProtocols ; i++ )
 				{
-					for(int i = 0 ; i < numPProtocols ; i++ )
+					String stringPI = splitProtocols[i];
+					NetworkProtocol pI = NetworkProtocol.valueOf(stringPI);
+					
+					boolean validPADRES = wantPADRES && PADRESTopology.SUPPORTED_PROTOCOLS.contains(pI);
+					boolean validSIENA = wantSIENA && SIENATopology.SUPPORTED_PROTOCOLS.contains(pI);
+					
+					if(validPADRES)
 					{
-						String stringPPI = splitPProtocols[i];
-						try
-						{
-							PADRESNetworkProtocol ppI = PADRESNetworkProtocol.valueOf(stringPPI);
-							requestedPProtocols.add(ppI);
-						}
-						catch(IllegalArgumentException e)
-						{
-							everythingisProper = false;
-							requestedPProtocols.clear();
-							logger.error(logHeader + stringPPI + " is not a valid Protocol: ", e);
-							break;
-						}
+						givenPADRESProtocols++;
+					}
+					if(validSIENA)
+					{
+						givenSIENAProtocols++;
+					}
+					
+					if(validPADRES || validSIENA)
+					{
+						requestedProtocols.add(pI);
+					}
+					else
+					{
+						everythingisProper = false;
+						requestedProtocols.clear();
+						logger.error(logHeader + stringPI + " is not a valid Protocol!");
+						break;
 					}
 				}
-				else
+				
+				if((wantPADRES && givenPADRESProtocols == 0) || (wantSIENA && givenSIENAProtocols == 0))
 				{
 					everythingisProper = false;
+					requestedProtocols.clear();
+					logger.error(logHeader + " not enough protocols were given for the requested engines!");
 				}
 			}
 			else
 			{
 				everythingisProper = false;
 			}
-			setPProtocols(requestedPProtocols);
 		}
-		
-		
-		// SIENA Protocols
-		if(wantSIENA)
+		else
 		{
-			String unsplitSProtocols = givenProperty.getProperty(sProtocolsString);
-			ArrayList<SIENANetworkProtocol> requestedSProtocols = new ArrayList<SIENANetworkProtocol>();
-			if(unsplitSProtocols != null)
-			{
-				String[] splitSProtocols = unsplitSProtocols.split(PSTBUtil.ITEM_SEPARATOR);
-				int numSProtocols = splitSProtocols.length;
-				if(numSProtocols <= SIENANetworkProtocol.values().length)
-				{
-					for(int i = 0 ; i < numSProtocols ; i++ )
-					{
-						String stringSPI = splitSProtocols[i];
-						try
-						{
-							SIENANetworkProtocol spI = SIENANetworkProtocol.valueOf(stringSPI);
-							requestedSProtocols.add(spI);
-						}
-						catch(IllegalArgumentException e)
-						{
-							everythingisProper = false;
-							requestedSProtocols.clear();
-							logger.error(logHeader + stringSPI + " is not a valid Protocol: ", e);
-							break;
-						}
-					}
-				}
-				else
-				{
-					everythingisProper = false;
-				}
-			}
-			else
-			{
-				everythingisProper = false;
-			}
-			setSProtocols(requestedSProtocols);
+			everythingisProper = false;
 		}
+		setProtocols(requestedProtocols);
 		
 		// runLengths
 		String unsplitRL = givenProperty.getProperty(runLengthsString);
@@ -344,7 +322,7 @@ public class BenchmarkConfig {
 	 * 
 	 * @param nE - the new engines
 	 */
-	private void setEngines(ArrayList<SupportedEngine> nE)
+	private void setEngines(ArrayList<PSEngine> nE)
 	{
 		engines = nE;
 	}
@@ -380,23 +358,13 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Sets the PADRES protocols
+	 * Sets the protocols
 	 * 
-	 * @param nPProto - the new PADRES protocols
+	 * @param nProto - the new protocols
 	 */
-	private void setPProtocols(ArrayList<PADRESNetworkProtocol> nPProto)
+	private void setProtocols(ArrayList<NetworkProtocol> nProto)
 	{
-		pProtocols = nPProto;
-	}
-	
-	/**
-	 * Sets the SIENA protocols
-	 * 
-	 * @param nSProto - the new SIENA protocols
-	 */
-	private void setSProtocols(ArrayList<SIENANetworkProtocol> nSProto)
-	{
-		sProtocols = nSProto;
+		protocols = nProto;
 	}
 	
 	/**
@@ -434,7 +402,7 @@ public class BenchmarkConfig {
 	 * 
 	 * @return engines - the list of engines to be used
 	 */
-	public ArrayList<SupportedEngine> getEngines()
+	public ArrayList<PSEngine> getEngines()
 	{
 		return engines;
 	}
@@ -490,13 +458,13 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Gets the PADRES protocols
+	 * Gets the protocols
 	 * 
-	 * @return protocols - the list of PADRES protocols to be use in different runs
+	 * @return protocols - the list of protocols to be used in different runs
 	 */
-	public ArrayList<PADRESNetworkProtocol> getPProtocols()
+	public ArrayList<NetworkProtocol> getProtocols()
 	{
-		return pProtocols;
+		return protocols;
 	}
 	
 	/**
@@ -507,16 +475,6 @@ public class BenchmarkConfig {
 	public boolean sienaRequested() 
 	{
 		return wantSIENA;
-	}
-	
-	/**
-	 * Gets the SIENA protocols
-	 * 
-	 * @return protocols - the list of SIENA protocols to be use in different runs
-	 */
-	public ArrayList<SIENANetworkProtocol> getSProtocols()
-	{
-		return sProtocols;
 	}
 	
 	/**
@@ -566,7 +524,7 @@ public class BenchmarkConfig {
 		{
 			logger.info(logHeader + "Distributed systems not requested.");
 		}
-		logger.info(logHeader + "protocols = " + Arrays.toString(pProtocols.toArray()) + ".");
+		logger.info(logHeader + "protocols = " + Arrays.toString(protocols.toArray()) + ".");
 		logger.info(logHeader + "runLength = " + Arrays.toString(runLengths.toArray()) + ".");
 		logger.info(logHeader + "numRunsPerExperiment = " + numRunsPerExperiment + ".");
 		logger.info(logHeader + "workloadFilesStrings = " + Arrays.toString(workloadFilesStrings.toArray()) + ".");
@@ -602,12 +560,7 @@ public class BenchmarkConfig {
 			logger.error(logHeader + " No Distributed File String was given!");
 			anyFieldNull = true;
 		}
-		if(wantPADRES && pProtocols.isEmpty())
-		{
-			logger.error(logHeader + "No Protocol(s) were given!");
-			anyFieldNull = true;
-		}
-		if(wantSIENA && sProtocols.isEmpty())
+		if((wantPADRES || wantSIENA) && protocols.isEmpty())
 		{
 			logger.error(logHeader + "No Protocol(s) were given!");
 			anyFieldNull = true;

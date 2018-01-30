@@ -1,109 +1,109 @@
-#AnalysisType	DiaryHeader	PSActionType	TopologyFilePath	DistributedFlag	Protocol	RunLength	RunNumber	ClientName
+#AnalysisType	DiaryHeader	PSActionType	BenchmarkStartTime	TopologyFilePath	DistributedFlag	Protocol	RunLength	RunNumber	ClientName
 
-DelayHistogram	ActionDelay	A	etc/star3topology.txt	null	null	null	0	null
-DelayHistogram	ActionDelay	A	etc/star3topology.txt	null	null	null	1	null
-DelayHistogram	ActionDelay	A	etc/star3topology.txt	null	null	null	2	null
-DelayHistogram	ActionDelay	A	etc/star3topology.txt	null	null	null	3	null
-DelayHistogram	ActionDelay	A	etc/star3topology.txt	null	null	null	4	null
-DelayHistogram	ActionDelay	A	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	A	etc/star3topology.txt	null	null	null	0	null
-AverageDelay	ActionDelay	A	etc/star3topology.txt	null	null	null	1	null
-AverageDelay	ActionDelay	A	etc/star3topology.txt	null	null	null	2	null
-AverageDelay	ActionDelay	A	etc/star3topology.txt	null	null	null	3	null
-AverageDelay	ActionDelay	A	etc/star3topology.txt	null	null	null	4	null
-AverageDelay	ActionDelay	A	etc/star3topology.txt	null	null	null	null	null
+DelayHistogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	0	null
+DelayHistogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	1	null
+DelayHistogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	2	null
+DelayHistogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	3	null
+DelayHistogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	4	null
+DelayHistogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	0	null
+AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	1	null
+AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	2	null
+AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	3	null
+AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	4	null
+AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	V	etc/star3topology.txt	null	null	null	0	null
-DelayHistogram	ActionDelay	V	etc/star3topology.txt	null	null	null	1	null
-DelayHistogram	ActionDelay	V	etc/star3topology.txt	null	null	null	2	null
-DelayHistogram	ActionDelay	V	etc/star3topology.txt	null	null	null	3	null
-DelayHistogram	ActionDelay	V	etc/star3topology.txt	null	null	null	4	null
-DelayHistogram	ActionDelay	V	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	V	etc/star3topology.txt	null	null	null	0	null
-AverageDelay	ActionDelay	V	etc/star3topology.txt	null	null	null	1	null
-AverageDelay	ActionDelay	V	etc/star3topology.txt	null	null	null	2	null
-AverageDelay	ActionDelay	V	etc/star3topology.txt	null	null	null	3	null
-AverageDelay	ActionDelay	V	etc/star3topology.txt	null	null	null	4	null
-AverageDelay	ActionDelay	V	etc/star3topology.txt	null	null	null	null	null
+DelayHistogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	0	null
+DelayHistogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	1	null
+DelayHistogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	2	null
+DelayHistogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	3	null
+DelayHistogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	4	null
+DelayHistogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	0	null
+AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	1	null
+AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	2	null
+AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	3	null
+AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	4	null
+AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	S	etc/star3topology.txt	null	null	null	0	null
-DelayHistogram	ActionDelay	S	etc/star3topology.txt	null	null	null	1	null
-DelayHistogram	ActionDelay	S	etc/star3topology.txt	null	null	null	2	null
-DelayHistogram	ActionDelay	S	etc/star3topology.txt	null	null	null	3	null
-DelayHistogram	ActionDelay	S	etc/star3topology.txt	null	null	null	4	null
-DelayHistogram	ActionDelay	S	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	S	etc/star3topology.txt	null	null	null	0	null
-AverageDelay	ActionDelay	S	etc/star3topology.txt	null	null	null	1	null
-AverageDelay	ActionDelay	S	etc/star3topology.txt	null	null	null	2	null
-AverageDelay	ActionDelay	S	etc/star3topology.txt	null	null	null	3	null
-AverageDelay	ActionDelay	S	etc/star3topology.txt	null	null	null	4	null
-AverageDelay	ActionDelay	S	etc/star3topology.txt	null	null	null	null	null
+DelayHistogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	0	null
+DelayHistogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	1	null
+DelayHistogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	2	null
+DelayHistogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	3	null
+DelayHistogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	4	null
+DelayHistogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	0	null
+AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	1	null
+AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	2	null
+AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	3	null
+AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	4	null
+AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	U	etc/star3topology.txt	null	null	null	0	null
-DelayHistogram	ActionDelay	U	etc/star3topology.txt	null	null	null	1	null
-DelayHistogram	ActionDelay	U	etc/star3topology.txt	null	null	null	2	null
-DelayHistogram	ActionDelay	U	etc/star3topology.txt	null	null	null	3	null
-DelayHistogram	ActionDelay	U	etc/star3topology.txt	null	null	null	4	null
-DelayHistogram	ActionDelay	U	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	U	etc/star3topology.txt	null	null	null	0	null
-AverageDelay	ActionDelay	U	etc/star3topology.txt	null	null	null	1	null
-AverageDelay	ActionDelay	U	etc/star3topology.txt	null	null	null	2	null
-AverageDelay	ActionDelay	U	etc/star3topology.txt	null	null	null	3	null
-AverageDelay	ActionDelay	U	etc/star3topology.txt	null	null	null	4	null
-AverageDelay	ActionDelay	U	etc/star3topology.txt	null	null	null	null	null
+DelayHistogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	0	null
+DelayHistogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	1	null
+DelayHistogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	2	null
+DelayHistogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	3	null
+DelayHistogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	4	null
+DelayHistogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	0	null
+AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	1	null
+AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	2	null
+AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	3	null
+AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	4	null
+AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	P	etc/star3topology.txt	null	null	null	0	null
-DelayHistogram	ActionDelay	P	etc/star3topology.txt	null	null	null	1	null
-DelayHistogram	ActionDelay	P	etc/star3topology.txt	null	null	null	2	null
-DelayHistogram	ActionDelay	P	etc/star3topology.txt	null	null	null	3	null
-DelayHistogram	ActionDelay	P	etc/star3topology.txt	null	null	null	4	null
-DelayHistogram	ActionDelay	P	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	P	etc/star3topology.txt	null	null	null	0	null
-AverageDelay	ActionDelay	P	etc/star3topology.txt	null	null	null	1	null
-AverageDelay	ActionDelay	P	etc/star3topology.txt	null	null	null	2	null
-AverageDelay	ActionDelay	P	etc/star3topology.txt	null	null	null	3	null
-AverageDelay	ActionDelay	P	etc/star3topology.txt	null	null	null	4	null
-AverageDelay	ActionDelay	P	etc/star3topology.txt	null	null	null	null	null
+DelayHistogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	0	null
+DelayHistogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	1	null
+DelayHistogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	2	null
+DelayHistogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	3	null
+DelayHistogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	4	null
+DelayHistogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	0	null
+AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	1	null
+AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	2	null
+AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	3	null
+AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	4	null
+AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S0
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S1
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S2
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	0	null
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	1	S0
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	1	S1
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	1	S2
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	1	null
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	2	S0
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	2	S1
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	2	S2
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	2	null
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	3	S0
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	3	S1
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	3	S2
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	3	null
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	4	S0
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	4	S1
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	4	S2
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	4	null
-DelayHistogram	MessageDelay	R	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S0
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S1
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	0	S2
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	0	null
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	1	S0
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	1	S1
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	1	S2
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	1	null
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	2	S0
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	2	S1
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	2	S2
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	2	null
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	3	S0
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	3	S1
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	3	S2
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	3	null
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	4	S0
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	4	S1
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	4	S2
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	4	null
-AverageDelay	MessageDelay	R	etc/star3topology.txt	null	null	null	null	null
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	S0
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	S1
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	S2
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	null
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	S0
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	S1
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	S2
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	null
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	S0
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	S1
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	S2
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	null
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	S0
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	S1
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	S2
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	null
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	S0
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	S1
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	S2
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	null
+DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	S0
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	S1
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	S2
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	0	null
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	S0
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	S1
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	S2
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	1	null
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	S0
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	S1
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	S2
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	2	null
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	S0
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	S1
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	S2
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	3	null
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	S0
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	S1
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	S2
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	4	null
+AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null

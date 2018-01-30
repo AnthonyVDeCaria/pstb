@@ -11,7 +11,7 @@ import siena.Op;
  *
  */
 public class SupportedEngines {
-	public enum SupportedEngine {
+	public enum PSEngine {
 		PADRES, SIENA
 	}
 	

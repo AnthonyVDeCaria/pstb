@@ -13,7 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import pstb.startup.config.SupportedEngines;
-import pstb.startup.config.SupportedEngines.SupportedEngine;
+import pstb.startup.config.SupportedEngines.PSEngine;
 import pstb.util.PSTBUtil;
 
 public class WorkloadFileParser {
@@ -29,7 +29,7 @@ public class WorkloadFileParser {
 	
 	// Given
 	private String workloadFileString;
-	private ArrayList<SupportedEngine> requestedEngines;
+	private ArrayList<PSEngine> requestedEngines;
 	
 	// Produced
 	private ArrayList<PSAction> workloadP;
@@ -46,13 +46,13 @@ public class WorkloadFileParser {
 	public WorkloadFileParser()
 	{
 		workloadFileString = new String();
-		requestedEngines = new ArrayList<SupportedEngine>();
+		requestedEngines = new ArrayList<PSEngine>();
 		
 		workloadP = new ArrayList<PSAction>();
 		workloadS = new ArrayList<PSAction>();
 	}
 	
-	public WorkloadFileParser(String givenWorkloadFileString, ArrayList<SupportedEngine> givenEngines)
+	public WorkloadFileParser(String givenWorkloadFileString, ArrayList<PSEngine> givenEngines)
 	{
 		workloadFileString = givenWorkloadFileString;
 		requestedEngines = givenEngines;
@@ -76,7 +76,7 @@ public class WorkloadFileParser {
 	 * 
 	 * @param givenRE - a ArrayList<> of the engines the user wishes to test
 	 */
-	public void setRequestedEngines(ArrayList<SupportedEngine> givenRE)
+	public void setRequestedEngines(ArrayList<PSEngine> givenRE)
 	{
 		requestedEngines = givenRE;
 	}
@@ -316,7 +316,7 @@ public class WorkloadFileParser {
 		}
 		
 		String fileType = PSTBUtil.getFileExtension(workloadFileString);
-		if(requestedEngines.contains(SupportedEngine.PADRES))
+		if(requestedEngines.contains(PSEngine.PADRES))
 		{
 			if(fileType.equals(SupportedEngines.WORKLOAD_FILE_TYPE_PADRES))
 			{
@@ -341,7 +341,7 @@ public class WorkloadFileParser {
 			workloadP.add(newAction);
 		}
 		
-		if(requestedEngines.contains(SupportedEngine.SIENA))
+		if(requestedEngines.contains(PSEngine.SIENA))
 		{
 			if(fileType.equals(SupportedEngines.WORKLOAD_FILE_TYPE_PADRES))
 			{
