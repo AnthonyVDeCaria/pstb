@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.TreeMap;
 
 import org.apache.logging.log4j.Logger;
@@ -108,14 +107,20 @@ public class PSTBDelayCounter {
 	}
 	
 	/**
-	 * Writes this PSTB Frequency Counter into a file - including providing unit help.
+	 * Writes this PSTBDelayCounter into a file.
 	 * 
 	 * @param givenFilePath - the Path we are to write to
 	 * @param log - the Logger file we should use if there are errors
 	 * @return false on failure; true otherwise
 	 */
-	public boolean recordPSTBFC(Path givenFilePath, Logger log)
+	public boolean recordPSTBDC(Path givenFilePath, Logger log)
 	{
+		if(type == null)
+		{
+			log.error(logHeader + "No PSActionType has been set yet!");
+			return false;
+		}
+		
 		try
 		{
 			Files.deleteIfExists(givenFilePath);
@@ -123,12 +128,11 @@ public class PSTBDelayCounter {
 		}
 		catch(IOException e)
 		{
-			log.error(logHeader + "Error writing to file:", e);
+			log.error(logHeader + "Couldn't recreate file " + givenFilePath + ": ", e);
 			return false;
 		}
 		
 		Long[] sortedTimes = frequency.keySet().toArray(new Long[frequency.size()]);
-		Arrays.sort(sortedTimes);
 		for(int i = 0 ; i < sortedTimes.length ; i++)
 		{
 			Long timeI = sortedTimes[i];

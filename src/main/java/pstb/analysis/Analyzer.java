@@ -421,7 +421,7 @@ public class Analyzer {
 					String histogramFileString = counterFolderString + temp.getName() + "-" + numHistograms + ".txt";
 					Path histogramFilePath = Paths.get(histogramFileString);
 					
-					boolean check = temp.recordPSTBFC(histogramFilePath, logger);
+					boolean check = temp.recordPSTBDC(histogramFilePath, logger);
 					if(!check)
 					{
 						logger.error(logHeader + "Error printing Histogram " + i);
