@@ -417,11 +417,11 @@ public class Analyzer {
 			{
 				case DelayCounter:
 				{
-					PSTBFC temp = (PSTBFC) analyzedInformation.get(i);
+					PSTBDelayCounter temp = (PSTBDelayCounter) analyzedInformation.get(i);
 					String histogramFileString = counterFolderString + temp.getName() + "-" + numHistograms + ".txt";
 					Path histogramFilePath = Paths.get(histogramFileString);
 					
-					boolean check = temp.recordPSTBHistogram(histogramFilePath, logger);
+					boolean check = temp.recordPSTBFC(histogramFilePath, logger);
 					if(!check)
 					{
 						logger.error(logHeader + "Error printing Histogram " + i);
@@ -643,7 +643,7 @@ public class Analyzer {
 	 * @param delayType - the type of delay: Action or Message
 	 * @return the associated frequency counter
 	 */
-	private static PSTBFC developDelayCounter(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	private static PSTBDelayCounter developDelayCounter(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
@@ -651,7 +651,7 @@ public class Analyzer {
 			return null;
 		}
 		
-		PSTBFC retVal = new PSTBFC();
+		PSTBDelayCounter retVal = new PSTBDelayCounter();
 		retVal.setName(typeToAnalyse.toString() + "-" + delayType.toString());
 		retVal.setType(typeToAnalyse);
 				
@@ -678,7 +678,7 @@ public class Analyzer {
 						if(pageJ.containsKey(delayType))
 						{
 							Long associatedDelay = pageJ.getDelay(delayType);
-							retVal.addOccurrence(associatedDelay.toString());
+							retVal.addOccurrence(associatedDelay);
 						}
 						else
 						{
