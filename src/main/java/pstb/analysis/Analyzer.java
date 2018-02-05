@@ -52,7 +52,7 @@ public class Analyzer {
 	private static final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
 	private static final String diariesStub = "diaries/";
 	private static final String analyzedStub = "analyzed/";
-	private static final String histogramStub = "histogram/";
+	private static final String frequencyCounterStub = "freqCounter/";
 	private static final String avgDelayStub = "avgDelay/";
 	
 	// Variables - Key Components
@@ -63,7 +63,7 @@ public class Analyzer {
 	// Variables - Folder Strings
 	private static String analyzedFolderString;
 	private static String diariesFolderString;
-	private static String histogramFolderString;
+	private static String counterFolderString;
 	private static String avgDelayFolderString;
 	
 	// Logger
@@ -116,7 +116,7 @@ public class Analyzer {
 		
 		analyzedFolderString = analysisFolderString + currFolderString + analyzedStub;
 		diariesFolderString = analysisFolderString + currFolderString + diariesStub;
-		histogramFolderString = analyzedFolderString + histogramStub;
+		counterFolderString = analyzedFolderString + frequencyCounterStub;
 		avgDelayFolderString = analyzedFolderString + avgDelayStub;
 		
 		logger.info("Collecting diaries...");
@@ -160,7 +160,6 @@ public class Analyzer {
 				logger.error("Analysis Failed!");
 				System.exit(PSTBError.A_ANALYSIS);
 			}
-			
 			logger.info("Analysis complete.");
 			
 			logger.info("Storing this analysis into a file...");
@@ -345,9 +344,9 @@ public class Analyzer {
 			Object objectI = null;
 			switch(requestedAT)
 			{
-				case DelayHistogram:
+				case DelayCounter:
 				{
-					objectI = developDelayHistogram(requestedDiaryNames, requestedPSAT, requestedDH);
+					objectI = developDelayCounter(requestedDiaryNames, requestedPSAT, requestedDH);
 					break;
 				}
 				case AverageDelay:
@@ -379,7 +378,7 @@ public class Analyzer {
 		int numHistograms = 0;
 		int numAvgDelays = 0;
 		
-		Path histogramFolderPath = Paths.get(histogramFolderString);
+		Path histogramFolderPath = Paths.get(counterFolderString);
 		Path avgDelayFolderPath = Paths.get(avgDelayFolderString);
 		
 		// If the folders don't exist - create them
@@ -416,10 +415,10 @@ public class Analyzer {
 		{
 			switch(analyzedCheck.get(i))
 			{
-				case DelayHistogram:
+				case DelayCounter:
 				{
-					PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
-					String histogramFileString = histogramFolderString + temp.getHistogramName() + "-" + numHistograms + ".txt";
+					PSTBFC temp = (PSTBFC) analyzedInformation.get(i);
+					String histogramFileString = counterFolderString + temp.getName() + "-" + numHistograms + ".txt";
 					Path histogramFilePath = Paths.get(histogramFileString);
 					
 					boolean check = temp.recordPSTBHistogram(histogramFilePath, logger);
@@ -474,9 +473,9 @@ public class Analyzer {
 	 * @return the list of matching diary names
 	 */
 	private static ArrayList<String> getAffiliatedDiaryNames(ArrayList<Object> requestedBST,
-														ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
-														ArrayList<Object> requestedP, ArrayList<Object> requestedRL, 
-														ArrayList<Object> requestedRN, ArrayList<Object> requestedCN)
+			ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
+			ArrayList<Object> requestedP, ArrayList<Object> requestedRL, 
+			ArrayList<Object> requestedRN, ArrayList<Object> requestedCN)
 	{	
 		// NOTE:	null here means that we want all references to that variable
 		// 		Example - if requestedTPF is null, then we want all to look at all the topology files that these diary files have 
@@ -485,13 +484,13 @@ public class Analyzer {
 		String[] nameTestArray = new String[NUM_STRINGS];
 		
 		// Which lists are null?
-		boolean nullBST = requestedBST == null;
-		boolean nullTPF = requestedTPF == null;
-		boolean nullDFV = requestedDFV == null;
-		boolean nullP = requestedP == null;
-		boolean nullRL = requestedRL == null;
-		boolean nullRN = requestedRN == null;
-		boolean nullCN = requestedCN == null;
+		boolean nullBST = (requestedBST == null);
+		boolean nullTPF = (requestedTPF == null);
+		boolean nullDFV = (requestedDFV == null);
+		boolean nullP = (requestedP == null);
+		boolean nullRL = (requestedRL == null);
+		boolean nullRN = (requestedRN == null);
+		boolean nullCN = (requestedCN == null);
 		
 		int numBST = 1;
 		int numTPF = 1;
@@ -634,7 +633,7 @@ public class Analyzer {
 	}
 	
 	/**
-	 * Develops a delay histogram
+	 * Develops a delay frequency counter
 	 * NOTE: Certain delays only exist for certain PSActionTypes
 	 * The MessageDelay is only for R PSActions
 	 * While R PSActions do NOT have an ActionDelay - everyone else does.
@@ -642,9 +641,9 @@ public class Analyzer {
 	 * @param diaryNames - a list of diaries that will be combed over
 	 * @param typeToAnalyse - the type of PSActionType requested to look at
 	 * @param delayType - the type of delay: Action or Message
-	 * @return the associated histogram
+	 * @return the associated frequency counter
 	 */
-	private static PSTBHistogram developDelayHistogram(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	private static PSTBFC developDelayCounter(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
@@ -652,9 +651,9 @@ public class Analyzer {
 			return null;
 		}
 		
-		PSTBHistogram retVal = new PSTBHistogram();
-		retVal.setHistogramName(typeToAnalyse.toString() + "-" + delayType.toString());
-		retVal.setHistogramType(typeToAnalyse);
+		PSTBFC retVal = new PSTBFC();
+		retVal.setName(typeToAnalyse.toString() + "-" + delayType.toString());
+		retVal.setType(typeToAnalyse);
 				
 		for(int i = 0 ; i < diaryNames.size() ; i++)
 		{
@@ -673,11 +672,13 @@ public class Analyzer {
 				DiaryEntry pageJ = diaryI.getDiaryEntryI(j);
 				if(pageJ.containsKey(DiaryHeader.PSActionType))
 				{
-					if(pageJ.getPSActionType().equals(typeToAnalyse))
+					PSActionType pageJsActionType = pageJ.getPSActionType();
+					if(pageJsActionType.equals(typeToAnalyse))
 					{
 						if(pageJ.containsKey(delayType))
 						{
-							retVal.addOccurrence(pageJ.getDelay(delayType).doubleValue());
+							Long associatedDelay = pageJ.getDelay(delayType);
+							retVal.addOccurrence(associatedDelay.toString());
 						}
 						else
 						{

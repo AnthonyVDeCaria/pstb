@@ -13,19 +13,18 @@ import org.apache.logging.log4j.Logger;
  * @author padres-dev-4187
  * 
  * A tool that can record the number of times a specific event occurs.
- * For example, it can keep track of how many trees in a forest are 10 feet tall, or 11 feet tall, etc.
  */
-public class Histogram 
+public class FrequencyCounter 
 {
-	private HashMap<Double, Integer> freq;   // freq.get(i) = # occurrences of value i
-	private final String logHeader = "Histogram: ";
+	private HashMap<String, Integer> freq;   // freq.get(i) = # occurrences of value i
+	private final String logHeader = "FrequencyCounter: ";
 
 	/**
 	 * 	Empty Constructor 
 	 */
-	public Histogram() 
+	public FrequencyCounter() 
 	{
-		freq = new HashMap<Double, Integer>();
+		freq = new HashMap<String, Integer>();
 	}
 
 	/**
@@ -33,7 +32,7 @@ public class Histogram
 	 * 
 	 * @param dataPoint - the data point to add
 	 */
-	public void addOccurrence(Double dataPoint)
+	public void addOccurrence(String dataPoint)
 	{
 		if(freq.containsKey(dataPoint))
 		{
@@ -53,7 +52,7 @@ public class Histogram
 	 * @param dataPoint - the data point requested
 	 * @return the number of occurrences
 	 */
-	public Integer getOccurrences(Double dataPoint)
+	public Integer getOccurrences(String dataPoint)
 	{
 		return freq.get(dataPoint);
 	}
@@ -65,7 +64,7 @@ public class Histogram
 	 * @param log - the Logger we record to if there's an error
 	 * @return false if there's a failure; true otherwise
 	 */
-	public boolean recordHistogram(Path givenFilePath, Logger log)
+	public boolean record(Path givenFilePath, Logger log)
 	{
 		if(!Files.exists(givenFilePath))
 		{
@@ -105,10 +104,10 @@ public class Histogram
 	}
 	
 	/**
-	 * Does a certain action on each entry of the Histogram
+	 * Do a certain action to each data point 
 	 * (A port of the HashMap forEach)
 	 */
-	public void forEach(BiConsumer<? super Double, ? super Integer> action)
+	public void forEach(BiConsumer<? super String, ? super Integer> action)
 	{
 		freq.forEach(action);
 	}

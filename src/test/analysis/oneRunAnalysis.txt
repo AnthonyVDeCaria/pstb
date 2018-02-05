@@ -1,24 +1,24 @@
 #AnalysisType	DiaryHeader	PSActionType	TopologyFilePath	DistributedFlag	Protocol	RunLength	RunNumber	ClientName
 
-DelayHistogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
+DelayCounter	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
 AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
+DelayCounter	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
 AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
+DelayCounter	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
 AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
+DelayCounter	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
 AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
+DelayCounter	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
 AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
 
-DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
-DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
-DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
-DelayHistogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null
+DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
+DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
+DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
+DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null
 AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
 AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
 AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
