@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.logging.log4j.Logger;
@@ -23,7 +24,7 @@ import pstb.util.PSTBUtil.TimeType;
  * as well as identifying units when recording into a file.
  * @see FrequencyCounter
  */
-public class PSTBDelayCounter {
+public class PSTBDataCounter {
 	private String name;
 	private PSActionType type;
 	private TreeMap<Long, Integer> frequency;
@@ -33,7 +34,7 @@ public class PSTBDelayCounter {
 	/**
 	 * Empty Constructor
 	 */
-	public PSTBDelayCounter()
+	public PSTBDataCounter()
 	{
 		frequency = new TreeMap<Long, Integer>();
 		name = null;
@@ -107,13 +108,14 @@ public class PSTBDelayCounter {
 	}
 	
 	/**
-	 * Writes this PSTBDelayCounter into a file.
+	 * Writes this PSTBDataCounter into a file.
 	 * 
 	 * @param givenFilePath - the Path we are to write to
 	 * @param log - the Logger file we should use if there are errors
+	 * @param byValue - do we want this data written by value as opposed to by key?
 	 * @return false on failure; true otherwise
 	 */
-	public boolean recordPSTBDC(Path givenFilePath, Logger log)
+	public boolean recordPSTBDC(Path givenFilePath, Logger log, boolean byValue)
 	{
 		if(type == null)
 		{
@@ -132,7 +134,17 @@ public class PSTBDelayCounter {
 			return false;
 		}
 		
-		Long[] sortedTimes = frequency.keySet().toArray(new Long[frequency.size()]);
+		Long[] sortedTimes = null;
+		if(byValue)
+		{
+			Map<Long, Integer> sortedFrequency = PSTBUtil.sortGivenMapByValue(frequency);
+			sortedTimes = sortedFrequency.keySet().toArray(new Long[sortedFrequency.size()]);
+		}
+		else
+		{
+			sortedTimes = frequency.keySet().toArray(new Long[frequency.size()]);
+		}
+		
 		for(int i = 0 ; i < sortedTimes.length ; i++)
 		{
 			Long timeI = sortedTimes[i];

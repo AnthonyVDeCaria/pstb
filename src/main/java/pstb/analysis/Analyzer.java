@@ -52,6 +52,7 @@ public class Analyzer {
 	private static final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
 	private static final String diariesStub = "diaries/";
 	private static final String analyzedStub = "analyzed/";
+	private static final String delayCounterStub = "delayCounter/";
 	private static final String frequencyCounterStub = "freqCounter/";
 	private static final String avgDelayStub = "avgDelay/";
 	
@@ -63,7 +64,8 @@ public class Analyzer {
 	// Variables - Folder Strings
 	private static String analyzedFolderString;
 	private static String diariesFolderString;
-	private static String counterFolderString;
+	private static String delayFolderString;
+	private static String frequencyFolderString;
 	private static String avgDelayFolderString;
 	
 	// Logger
@@ -116,7 +118,8 @@ public class Analyzer {
 		
 		analyzedFolderString = analysisFolderString + currFolderString + analyzedStub;
 		diariesFolderString = analysisFolderString + currFolderString + diariesStub;
-		counterFolderString = analyzedFolderString + frequencyCounterStub;
+		delayFolderString = analyzedFolderString + delayCounterStub;
+		frequencyFolderString = analyzedFolderString + frequencyCounterStub;
 		avgDelayFolderString = analyzedFolderString + avgDelayStub;
 		
 		logger.info("Collecting diaries...");
@@ -346,7 +349,12 @@ public class Analyzer {
 			{
 				case DelayCounter:
 				{
-					objectI = developDelayCounter(requestedDiaryNames, requestedPSAT, requestedDH);
+					objectI = developDataCounter(requestedDiaryNames, requestedPSAT, requestedDH);
+					break;
+				}
+				case FrequencyCounter:
+				{
+					objectI = developDataCounter(requestedDiaryNames, requestedPSAT, requestedDH);
 					break;
 				}
 				case AverageDelay:
@@ -355,7 +363,7 @@ public class Analyzer {
 					break;
 				}
 				default:
-					logger.error(logHeader + "Invalid AnalysisType requested");
+					logger.error(logHeader + "Invalid AnalysisType requested - execution!");
 					analyzedInformation.clear();
 					return false;
 			}
@@ -375,22 +383,37 @@ public class Analyzer {
 	 */
 	private static boolean recordAllAnalyzedInformation()
 	{
-		int numHistograms = 0;
+		int numDCs = 0;
+		int numFCs = 0;
 		int numAvgDelays = 0;
 		
-		Path histogramFolderPath = Paths.get(counterFolderString);
+		Path delayFolderPath = Paths.get(delayFolderString);
+		Path frequencyFolderPath = Paths.get(frequencyFolderString);
 		Path avgDelayFolderPath = Paths.get(avgDelayFolderString);
 		
 		// If the folders don't exist - create them
-		if(Files.notExists(histogramFolderPath))
+		if(Files.notExists(delayFolderPath))
 		{
 			try 
 			{
-				Files.createDirectories(histogramFolderPath);
+				Files.createDirectories(delayFolderPath);
 			} 
 			catch (IOException e) 
 			{
-				logger.error(logHeader + "error creating histogram folder", e);
+				logger.error(logHeader + "Couldn't create delay counter folder: ", e);
+				return false;
+			}
+		}
+		
+		if(Files.notExists(frequencyFolderPath))
+		{
+			try 
+			{
+				Files.createDirectories(frequencyFolderPath);
+			} 
+			catch (IOException e) 
+			{
+				logger.error(logHeader + "Couldn't create frequency counter folder: ", e);
 				return false;
 			}
 		}
@@ -403,7 +426,7 @@ public class Analyzer {
 			} 
 			catch (IOException e) 
 			{
-				logger.error(logHeader + "error creating average delay folder", e);
+				logger.error(logHeader + "Couldn't create average delay folder: ", e);
 				return false;
 			}
 		}
@@ -417,18 +440,34 @@ public class Analyzer {
 			{
 				case DelayCounter:
 				{
-					PSTBDelayCounter temp = (PSTBDelayCounter) analyzedInformation.get(i);
-					String histogramFileString = counterFolderString + temp.getName() + "-" + numHistograms + ".txt";
-					Path histogramFilePath = Paths.get(histogramFileString);
+					PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
+					String delayFileString = delayFolderString + temp.getName() + "-" + numDCs + ".txt";
+					Path delayFilePath = Paths.get(delayFileString);
 					
-					boolean check = temp.recordPSTBDC(histogramFilePath, logger);
+					boolean check = temp.recordPSTBDC(delayFilePath, logger, false);
 					if(!check)
 					{
-						logger.error(logHeader + "Error printing Histogram " + i);
+						logger.error(logHeader + "Couldn't print DelayCounter " + i + "!");
 						return false;
 					}
 					
-					numHistograms++;
+					numDCs++;
+					break;
+				}
+				case FrequencyCounter:
+				{
+					PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
+					String frequencyFileString = frequencyFolderString + temp.getName() + "-" + numFCs + ".txt";
+					Path frequencyFilePath = Paths.get(frequencyFileString);
+					
+					boolean check = temp.recordPSTBDC(frequencyFilePath, logger, true);
+					if(!check)
+					{
+						logger.error(logHeader + "Couldn't print FrequencyCounter " + i + "!");
+						return false;
+					}
+					
+					numFCs++;
 					break;
 				}
 				case AverageDelay:
@@ -440,7 +479,7 @@ public class Analyzer {
 					boolean check = temp.recordAvgDelay(avgDelayFilePath, logger);
 					if(!check)
 					{
-						logger.error(logHeader + "Error printing Average Delay " + i);
+						logger.error(logHeader + "Couldn't print Average Delay " + i + "!");
 						return false;
 					}
 					
@@ -449,7 +488,7 @@ public class Analyzer {
 				}
 				default:
 				{
-					logger.error(logHeader + "Invalid AnalysisType requested");
+					logger.error(logHeader + "Invalid AnalysisType requested - recording data!");
 					return false;
 				}
 			}
@@ -643,7 +682,7 @@ public class Analyzer {
 	 * @param delayType - the type of delay: Action or Message
 	 * @return the associated frequency counter
 	 */
-	private static PSTBDelayCounter developDelayCounter(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	private static PSTBDataCounter developDataCounter(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
 	{
 		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
 		{
@@ -651,7 +690,7 @@ public class Analyzer {
 			return null;
 		}
 		
-		PSTBDelayCounter retVal = new PSTBDelayCounter();
+		PSTBDataCounter retVal = new PSTBDataCounter();
 		retVal.setName(typeToAnalyse.toString() + "-" + delayType.toString());
 		retVal.setType(typeToAnalyse);
 				
