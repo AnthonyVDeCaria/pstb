@@ -3,19 +3,29 @@
  */
 package pstb.benchmark.object.client.siena;
 
+import java.io.IOException;
+
 import pstb.analysis.diary.DiaryEntry;
 import pstb.benchmark.object.client.PSClient;
-import pstb.startup.workload.PSActionType;
+import pstb.startup.config.NetworkProtocol;
+import pstb.util.PSTBUtil;
 import siena.Filter;
 import siena.Notification;
 import siena.Op;
 import siena.SienaException;
 import siena.ThinClient;
 import siena.comm.InvalidSenderException;
+import siena.comm.KAPacketReceiver;
+import siena.comm.PacketReceiver;
+import siena.comm.TCPPacketReceiver;
+import siena.comm.UDPPacketReceiver;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * This class handles the functions associated with a SIENA Client
+ * @see PSClient
+ * @see PSClientPADRES
  */
 public class PSClientSIENA extends PSClient
 {
@@ -38,6 +48,11 @@ public class PSClientSIENA extends PSClient
 		logHeader = "SClient: ";
 	}
 	
+	/**
+	 * Sets up the PSClientSIENA.
+	 * 
+	 * @return true if the startup completes successfully; false if there are any errors
+	 */
 	public boolean setupClient()
 	{
 		if(!variableCheck())
@@ -57,25 +72,31 @@ public class PSClientSIENA extends PSClient
 			nodeLog.error("Couldn't create the ThinClient Object: ", e);
 			return false;
 		}
+		nodeLog.info(logHeader + "ThinClient created.");
 		
-		String context = generateContext();
-		actualSub = new SIENAListener(diary, diaryLock, context);
-		
-		return true;
-	}
-	
-	public boolean startClient()
-	{
-		if(actualClient == null)
+		nodeLog.debug(logHeader + "Attempting to create and attach a receiver to the new ThinClient...");
+		PacketReceiver neededReceiver = generateReceiver();
+		if(neededReceiver == null)
 		{
-			nodeLog.error(logHeader + "No SIENA client exists!");
+			nodeLog.info(logHeader + "Couldn't create a receiver!");
 			return false;
 		}
+		actualClient.setReceiver(neededReceiver);
+		nodeLog.info(logHeader + "Receiver attached.");
 		
-		actualClient.run();
+		nodeLog.debug(logHeader + "Creating a subscriber listener...");
+		String context = generateContext();
+		actualSub = new SIENAListener(diary, diaryLock, context);
+		nodeLog.info(logHeader + "Listener created.");
+		
 		return true;
 	}
 	
+	/**
+	 * Shuts down the PSClientSIENA
+	 * 
+	 * @return false if there is an error; true otherwise
+	 */
 	public boolean shutdownClient()
 	{
 		if(actualClient == null)
@@ -115,9 +136,7 @@ public class PSClientSIENA extends PSClient
 	@Override
 	protected boolean unadvertise(String givenAttributes, DiaryEntry resultingEntry)
 	{
-		DiaryEntry associatedAd = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, givenAttributes);
-		String associatedAdsAttributes = associatedAd.getAttributes();
-		Filter unAdI = generateFilterFromAttributes(associatedAdsAttributes);
+		Filter unAdI = generateFilterFromAttributes(givenAttributes);
 		if(unAdI == null)
 		{
 			nodeLog.error(logHeader + "Couldn't create unad filter!");
@@ -128,7 +147,7 @@ public class PSClientSIENA extends PSClient
 		{
 			actualClient.unadvertise(unAdI, nodeName);
 		}
-		catch (SienaException e) 
+		catch (Exception e) 
 		{
 			nodeLog.error(logHeader + "Couldn't unadvertise " + givenAttributes + ": ", e);
 			return false;
@@ -164,10 +183,8 @@ public class PSClientSIENA extends PSClient
 	
 	@Override
 	protected boolean unsubscribe(String givenAttributes, DiaryEntry resultingEntry)
-	{
-		DiaryEntry associatedAd = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, givenAttributes);
-		String associatedAdsAttributes = associatedAd.getAttributes();
-		Filter unSubI = generateFilterFromAttributes(associatedAdsAttributes);
+	{		
+		Filter unSubI = generateFilterFromAttributes(givenAttributes);
 		if(unSubI == null)
 		{
 			nodeLog.error(logHeader + "Couldn't create unsub filter!");
@@ -178,7 +195,7 @@ public class PSClientSIENA extends PSClient
 		{
 			actualClient.unsubscribe(unSubI, actualSub);
 		}
-		catch (SienaException e) 
+		catch (Exception e) 
 		{
 			nodeLog.error(logHeader + "Couldn't unsubscribe from " + givenAttributes + ": ", e);
 			return false;
@@ -212,6 +229,13 @@ public class PSClientSIENA extends PSClient
 		return true;
 	}
 	
+	/**
+	 * Creates a SIENA Filter from a given attribute String.
+	 * 
+	 * @see siena.Filter
+	 * @param attributes - the given attributes
+	 * @return the resulting Filter
+	 */
 	private Filter generateFilterFromAttributes(String attributes)
 	{
 		Filter retVal = new Filter();
@@ -233,12 +257,27 @@ public class PSClientSIENA extends PSClient
 				value = null;
 			}
 			
-			retVal.addConstraint(key, opValue, value);
+			Double doubleCheck = PSTBUtil.checkIfDouble(value, false, null);
+			if(doubleCheck == null)
+			{
+				retVal.addConstraint(key, opValue, value);
+			}
+			else
+			{
+				retVal.addConstraint(key, opValue, doubleCheck);
+			}
 		}
 		
 		return retVal;
 	}
 	
+	/**
+	 * Creates a SIENA Notification from a given attribute String.
+	 * 
+	 * @see siena.Notification
+	 * @param attributes - the given attributes
+	 * @return the resulting Notification
+	 */
 	private Notification generateNotificationFromAttributes(String attributes)
 	{
 		Notification retVal = new Notification();
@@ -252,9 +291,52 @@ public class PSClientSIENA extends PSClient
 			String key = segmentIComponets[0];
 			String value = segmentIComponets[1];
 			
-			retVal.putAttribute(key, value);
+			Double doubleCheck = PSTBUtil.checkIfDouble(value, false, null);
+			if(doubleCheck == null)
+			{
+				retVal.putAttribute(key, value);
+			}
+			else
+			{
+				retVal.putAttribute(key, doubleCheck);
+			}
 		}
 		
 		return retVal;
+	}
+	
+	/**
+	 * Creates a SIENA PacketReceiver depending on the given protocol
+	 * 
+	 * @return the generated PacketReceiver
+	 */
+	private PacketReceiver generateReceiver()
+	{
+		try
+		{
+			if(protocol.equals(NetworkProtocol.ka))
+			{
+				return new KAPacketReceiver();
+			}
+			else if(protocol.equals(NetworkProtocol.tcp))
+			{
+				return new TCPPacketReceiver(0);
+			}
+			else if(protocol.equals(NetworkProtocol.udp))
+			{
+				return new UDPPacketReceiver(0);
+			}
+			else
+			{
+				nodeLog.error(logHeader + "Improper protocol!");
+				return null;
+			}
+		}
+		catch(IOException e)
+		{
+			nodeLog.error(logHeader + "Couldn't generate a new receiver: ", e);
+			return null;
+		}
+		
 	}
 }

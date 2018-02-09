@@ -41,16 +41,8 @@ public class SIENAClientProcess extends PSTBClientProcess {
 			log.error(logHeader + "Couldn't setup client " + nodeName);
 			return false;
 		}
+		
 		log.info(logHeader + nodeName + " setup.");
-		
-		boolean startCheck = actualNode.startClient();
-		if(!startCheck)
-		{
-			log.error(logHeader + "Couldn't start client " + nodeName);
-			return false;
-		}
-		log.info(logHeader + nodeName + " started.");
-		
 		return true;
 	}
 	

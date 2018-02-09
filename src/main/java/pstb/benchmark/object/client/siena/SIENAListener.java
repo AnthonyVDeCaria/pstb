@@ -29,7 +29,7 @@ public class SIENAListener implements Notifiable
 	private String diaryName;
 	
 	// Logger
-	private final String logHeader = "SClient: ";
+	private final String logHeader = "SListener: ";
 	private final Logger clientLog = LogManager.getLogger(PSTBClientProcess.class);
 	
 	public SIENAListener(ClientDiary givenDiary, ReentrantLock givenLock, String givenDiaryName)
@@ -62,7 +62,7 @@ public class SIENAListener implements Notifiable
 			diaryLock.unlock();
 		}
 		
-		clientLog.debug(logHeader + "new publication received " + attributes);
+		clientLog.debug(logHeader + "New publication received " + attributes + ".");
 	}
 
 	@Override

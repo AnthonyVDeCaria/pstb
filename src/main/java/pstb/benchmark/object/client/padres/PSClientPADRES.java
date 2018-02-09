@@ -251,8 +251,13 @@ public class PSClientPADRES extends PSClient
 	protected boolean unadvertise(String givenAttributes, DiaryEntry resultingEntry)
 	{
 		DiaryEntry originalAd = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, givenAttributes);
-		String originalAdID = originalAd.getMessageID();
+		if(originalAd == null)
+		{
+			nodeLog.error(logHeader + "Couldn't find original advertisement!");
+			return false;
+		}
 		
+		String originalAdID = originalAd.getMessageID();
 		Message result = null;
 		try
 		{
@@ -311,8 +316,13 @@ public class PSClientPADRES extends PSClient
 	protected boolean unsubscribe(String givenAttributes, DiaryEntry resultingEntry)
 	{
 		DiaryEntry originalSub = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, givenAttributes);
-		String originalSubID = originalSub.getMessageID();
+		if(originalSub == null)
+		{
+			nodeLog.error(logHeader + "Couldn't find original subscription!");
+			return false;
+		}
 		
+		String originalSubID = originalSub.getMessageID();
 		Message result = null;
 		try
 		{

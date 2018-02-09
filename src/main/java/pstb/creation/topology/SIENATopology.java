@@ -24,7 +24,7 @@ import pstb.startup.workload.PSAction;
  */
 public class SIENATopology extends PhysicalTopology {
 	// Constants - Supported Protocols
-	public static final Set<NetworkProtocol> SUPPORTED_PROTOCOLS = EnumSet.of(NetworkProtocol.ka, NetworkProtocol.tfp, NetworkProtocol.ufp);
+	public static final Set<NetworkProtocol> SUPPORTED_PROTOCOLS = EnumSet.of(NetworkProtocol.ka, NetworkProtocol.tcp, NetworkProtocol.udp);
 	
 	/**
 	 * SIENATopology Constructor

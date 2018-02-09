@@ -11,7 +11,9 @@ import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * The base class of the Node Objects.
+ * 
  */
 public abstract class PSNode implements java.io.Serializable
 {

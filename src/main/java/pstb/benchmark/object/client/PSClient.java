@@ -18,9 +18,14 @@ import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * The Base Client Class. 
+ * It contains all the functionality all clients need. 
+ * Such as - handling the broker URIs, detailing how a run is executed, ...
+ * except how Advertising, Unadvertising, Subscribing, Unsubscribing, Publishing are actually implemented. 
+ * That is handled by child classes, as they all have their own functions to handle these actions.
  */
-public abstract class PSClient extends PSNode implements java.io.Serializable
+public abstract class PSClient extends PSNode
 {
 	// Constants
 	protected static final long serialVersionUID = 1L;
