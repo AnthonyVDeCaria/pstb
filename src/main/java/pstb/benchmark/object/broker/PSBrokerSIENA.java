@@ -8,8 +8,9 @@ import java.util.HashMap;
 import pstb.startup.config.NetworkProtocol;
 
 /**
+ * The SIENA Broker
+ * 
  * @author padres-dev-4187
- *
  */
 public class PSBrokerSIENA extends PSBroker {
 	// Constants
