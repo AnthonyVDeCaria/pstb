@@ -10,8 +10,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.logging.log4j.Logger;
-
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 import pstb.util.PSTBUtil.TimeType;
@@ -24,21 +22,20 @@ import pstb.util.PSTBUtil.TimeType;
  * as well as identifying units when recording into a file.
  * @see FrequencyCounter
  */
-public class PSTBDataCounter {
-	private String name;
-	private PSActionType type;
+public class PSTBDataCounter extends PSTBAnalysisObject{
+	// Variables
 	private TreeMap<Long, Integer> frequency;
-	
-	private final String logHeader = "PSTBDC: ";
+	private boolean recordByKey;
 	
 	/**
 	 * Empty Constructor
 	 */
 	public PSTBDataCounter()
 	{
+		super();
 		frequency = new TreeMap<Long, Integer>();
-		name = null;
-		type = null;
+		recordByKey = true;
+		logHeader = "PSTBDC: ";
 	}
 	
 	/**
@@ -61,6 +58,22 @@ public class PSTBDataCounter {
 	}
 	
 	/**
+	 * Changes the recordByKey variable to false
+	 */
+	public void recordByValues()
+	{
+		recordByKey = false;
+	}
+	
+	/**
+	 * Changes the recordByKey variable to true
+	 */
+	public void recordByKeys()
+	{
+		recordByKey = true;
+	}
+	
+	/**
 	 * Gets the occurrences of a certain dataPoint
 	 * 
 	 * @param dataPoint - the data point requested
@@ -70,72 +83,18 @@ public class PSTBDataCounter {
 	{
 		return frequency.get(dataPoint);
 	}
-
-	/**
-	 * Sets the name
-	 * 
-	 * @param givenName - the new name
-	 */
-	public void setName(String givenName) {
-		name = givenName;
-	}
 	
-	/**
-	 * Sets the type
-	 * 
-	 * @param givenType - the new PSActionType
-	 */
-	public void setType(PSActionType givenType) {
-		type = givenType;
-	}
-	
-	/**
-	 * Gets the name
-	 * 
-	 * @return the name
-	 */
-	public String getName() {
-		return name;
-	}
-
-	/**
-	 * Gets the type
-	 * 
-	 * @return the type
-	 */
-	public PSActionType getType() {
-		return type;
-	}
-	
-	/**
-	 * Writes this PSTBDataCounter into a file.
-	 * 
-	 * @param givenFilePath - the Path we are to write to
-	 * @param log - the Logger file we should use if there are errors
-	 * @param byValue - do we want this data written by value as opposed to by key?
-	 * @return false on failure; true otherwise
-	 */
-	public boolean recordPSTBDC(Path givenFilePath, Logger log, boolean byValue)
+	@Override
+	public boolean completeRecord(Path givenFilePath)
 	{
-		if(type == null)
+		if(frequency.isEmpty())
 		{
-			log.error(logHeader + "No PSActionType has been set yet!");
-			return false;
-		}
-		
-		try
-		{
-			Files.deleteIfExists(givenFilePath);
-			Files.createFile(givenFilePath);
-		}
-		catch(IOException e)
-		{
-			log.error(logHeader + "Couldn't recreate file " + givenFilePath + ": ", e);
+			log.error(logHeader + "No data exists to be printed!");
 			return false;
 		}
 		
 		Long[] sortedTimes = null;
-		if(byValue)
+		if(!recordByKey)
 		{
 			Map<Long, Integer> sortedFrequency = PSTBUtil.sortGivenMapByValue(frequency);
 			sortedTimes = sortedFrequency.keySet().toArray(new Long[sortedFrequency.size()]);
@@ -175,4 +134,8 @@ public class PSTBDataCounter {
 		return true;
 	}
 
+	@Override
+	public void handleDataPoint(Long givenDataPoint) {
+		addOccurrence(givenDataPoint);
+	}
 }

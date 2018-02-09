@@ -13,6 +13,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -605,5 +607,22 @@ public class PSTBUtil {
 	    		.stream()
 	    		.sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
 	    		.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+	}
+	
+	public static boolean createFolder(Path givenFolderPath, Logger givenLogger, String givenLogHeader)
+	{
+		if(Files.notExists(givenFolderPath))
+		{
+			try 
+			{
+				Files.createDirectories(givenFolderPath);
+			} 
+			catch (IOException e) 
+			{
+				givenLogger.error(givenLogHeader + "Couldn't create requested folder: ", e);
+				return false;
+			}
+		}
+		return true;
 	}
 }

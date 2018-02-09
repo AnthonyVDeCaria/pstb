@@ -18,8 +18,8 @@ import org.apache.logging.log4j.Logger;
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DiaryEntry.DiaryHeader;
-import pstb.benchmark.object.client.padres.PSClientPADRES;
 import pstb.analysis.diary.DistributedFlagValue;
+import pstb.benchmark.object.client.padres.PSClientPADRES;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBError;
@@ -55,10 +55,11 @@ public class Analyzer {
 	private static final String delayCounterStub = "delayCounter/";
 	private static final String frequencyCounterStub = "freqCounter/";
 	private static final String avgDelayStub = "avgDelay/";
+	private static final String histogramStub = "histogram/";
 	
 	// Variables - Key Components
 	private static HashMap<String, ClientDiary> bookshelf = new HashMap<String, ClientDiary>();
-	private static ArrayList<Object> analyzedInformation = new ArrayList<Object>();
+	private static ArrayList<PSTBAnalysisObject> analyzedInformation = new ArrayList<PSTBAnalysisObject>();
 	private static ArrayList<AnalysisType> analyzedCheck = new ArrayList<AnalysisType>();
 	
 	// Variables - Folder Strings
@@ -67,6 +68,7 @@ public class Analyzer {
 	private static String delayFolderString;
 	private static String frequencyFolderString;
 	private static String avgDelayFolderString;
+	private static String histogramFolderString;
 	
 	// Logger
 	private static final Logger logger = LogManager.getRootLogger();
@@ -121,6 +123,7 @@ public class Analyzer {
 		delayFolderString = analyzedFolderString + delayCounterStub;
 		frequencyFolderString = analyzedFolderString + frequencyCounterStub;
 		avgDelayFolderString = analyzedFolderString + avgDelayStub;
+		histogramFolderString = analyzedFolderString + histogramStub;
 		
 		logger.info("Collecting diaries...");
 		boolean collectCheck = collectDiaries();
@@ -331,6 +334,24 @@ public class Analyzer {
 			PSActionType requestedPSAT = (PSActionType) analysisI.get(AnalysisInput.PSActionType).get(0);
 			DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader).get(0);
 			
+			if(!requestedDH.equals(DiaryHeader.ActionDelay) && !requestedDH.equals(DiaryHeader.MessageDelay))
+			{
+				logger.error(logHeader + "That DiaryHeader is not a delay value.");
+				return false;
+			}
+			
+			if(requestedDH.equals(DiaryHeader.ActionDelay) && requestedPSAT.equals(PSActionType.R))
+			{
+				logger.error(logHeader + "Type mismatch - R's don't have an ActionDelay");
+				return false;
+			}
+			
+			if(requestedDH.equals(DiaryHeader.MessageDelay) && !requestedPSAT.equals(PSActionType.R))
+			{
+				logger.error(logHeader + "Type mismatch - only R has a MessageDelay");
+				return false;
+			}
+			
 			ArrayList<Object> requestedBST = analysisI.get(AnalysisInput.BenchmarkStartTime);
 			ArrayList<Object> requestedTPF = analysisI.get(AnalysisInput.TopologyFilePath);
 			ArrayList<Object> requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
@@ -344,154 +365,71 @@ public class Analyzer {
 					requestedRL, requestedRN, requestedCN);
 			
 			// Now that we have all of the names, let's do the actual analysis
-			Object objectI = null;
-			switch(requestedAT)
+			PSTBAnalysisObject analysisObjectI = null;
+			if(requestedAT.equals(AnalysisType.DelayCounter) || requestedAT.equals(AnalysisType.FrequencyCounter))
 			{
-				case DelayCounter:
+				analysisObjectI = new PSTBDataCounter();
+			}
+			else if(requestedAT.equals(AnalysisType.AverageDelay))
+			{
+				analysisObjectI = new PSTBAvgDelay();
+			}
+			else if(requestedAT.equals(AnalysisType.Histogram))
+			{
+				analysisObjectI = new PSTBHistogram();
+			}
+			else
+			{
+				logger.error(logHeader + "Invalid AnalysisType requested - execution!");
+				analyzedInformation.clear();
+				return false;
+			}
+			
+			analysisObjectI.setName(requestedPSAT + "-" + requestedDH);
+			analysisObjectI.setType(requestedPSAT);
+			
+			for(int j = 0 ; j < requestedDiaryNames.size() ; j++)
+			{
+				String diaryNameJ = requestedDiaryNames.get(j);
+				
+				if(!bookshelf.containsKey(diaryNameJ))
 				{
-					objectI = developDataCounter(requestedDiaryNames, requestedPSAT, requestedDH);
-					break;
-				}
-				case FrequencyCounter:
-				{
-					objectI = developDataCounter(requestedDiaryNames, requestedPSAT, requestedDH);
-					break;
-				}
-				case AverageDelay:
-				{
-					objectI = developAverageDelay(requestedDiaryNames, requestedPSAT, requestedDH);
-					break;
-				}
-				default:
-					logger.error(logHeader + "Invalid AnalysisType requested - execution!");
-					analyzedInformation.clear();
+					logger.error(logHeader + diaryNameJ + " isn't in the bookshelf!");
 					return false;
+				}
+				
+				ClientDiary diaryI = bookshelf.get(diaryNameJ);
+				
+				for(int k = 0 ; k < diaryI.size() ; k++)
+				{
+					DiaryEntry pageK = diaryI.getDiaryEntryI(k);
+					PSActionType pageKsActionType = pageK.getPSActionType();
+					
+					if(pageKsActionType == null)
+					{
+						logger.error(logHeader + "Diary Page is missing an associated Action Type!");
+						return false;
+					}
+					else if(pageKsActionType.equals(requestedPSAT))
+					{
+						if(pageK.containsKey(requestedDH))
+						{
+							Long associatedDelay = pageK.getDelay(requestedDH);
+							analysisObjectI.handleDataPoint(associatedDelay);
+						}
+						else
+						{
+							logger.error(logHeader + "There is a page where there is no " + requestedDH
+									+ " data for Action Type " + requestedPSAT + "!");
+							return false;
+						}
+					}
+				}
 			}
 			
 			// Let's add this analyzed object to the list, along with recording what analysis we accomplished
-			analyzedInformation.add(objectI);
+			analyzedInformation.add(analysisObjectI);
 			analyzedCheck.add(requestedAT);
-		}
-		
-		return true;
-	}
-	
-	/**
-	 * Prints the information contained within the analyzedInformation object to a file
-	 * 
-	 * @return false on an error; true otherwise
-	 */
-	private static boolean recordAllAnalyzedInformation()
-	{
-		int numDCs = 0;
-		int numFCs = 0;
-		int numAvgDelays = 0;
-		
-		Path delayFolderPath = Paths.get(delayFolderString);
-		Path frequencyFolderPath = Paths.get(frequencyFolderString);
-		Path avgDelayFolderPath = Paths.get(avgDelayFolderString);
-		
-		// If the folders don't exist - create them
-		if(Files.notExists(delayFolderPath))
-		{
-			try 
-			{
-				Files.createDirectories(delayFolderPath);
-			} 
-			catch (IOException e) 
-			{
-				logger.error(logHeader + "Couldn't create delay counter folder: ", e);
-				return false;
-			}
-		}
-		
-		if(Files.notExists(frequencyFolderPath))
-		{
-			try 
-			{
-				Files.createDirectories(frequencyFolderPath);
-			} 
-			catch (IOException e) 
-			{
-				logger.error(logHeader + "Couldn't create frequency counter folder: ", e);
-				return false;
-			}
-		}
-		
-		if(Files.notExists(avgDelayFolderPath))
-		{
-			try 
-			{
-				Files.createDirectories(avgDelayFolderPath);
-			} 
-			catch (IOException e) 
-			{
-				logger.error(logHeader + "Couldn't create average delay folder: ", e);
-				return false;
-			}
-		}
-		
-		// For each analysis we did, call its affiliated "record" function
-		// NOTE:	this function assumes that analyzedCheck[i] is the analysis that resulted in object analyzedInformation[i]
-		// 		i.e. if analyzedCheck[7] is DelayHistogram, then analyzedInformation[7] is a PSTBHistogram Object
-		for(int i = 0 ; i < analyzedCheck.size() ; i++)
-		{
-			switch(analyzedCheck.get(i))
-			{
-				case DelayCounter:
-				{
-					PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
-					String delayFileString = delayFolderString + temp.getName() + "-" + numDCs + ".txt";
-					Path delayFilePath = Paths.get(delayFileString);
-					
-					boolean check = temp.recordPSTBDC(delayFilePath, logger, false);
-					if(!check)
-					{
-						logger.error(logHeader + "Couldn't print DelayCounter " + i + "!");
-						return false;
-					}
-					
-					numDCs++;
-					break;
-				}
-				case FrequencyCounter:
-				{
-					PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
-					String frequencyFileString = frequencyFolderString + temp.getName() + "-" + numFCs + ".txt";
-					Path frequencyFilePath = Paths.get(frequencyFileString);
-					
-					boolean check = temp.recordPSTBDC(frequencyFilePath, logger, true);
-					if(!check)
-					{
-						logger.error(logHeader + "Couldn't print FrequencyCounter " + i + "!");
-						return false;
-					}
-					
-					numFCs++;
-					break;
-				}
-				case AverageDelay:
-				{
-					PSTBAvgDelay temp = (PSTBAvgDelay) analyzedInformation.get(i);
-					String avgDelayFileString = avgDelayFolderString + temp.getName() +"-" + numAvgDelays + ".txt";
-					Path avgDelayFilePath = Paths.get(avgDelayFileString);
-					
-					boolean check = temp.recordAvgDelay(avgDelayFilePath, logger);
-					if(!check)
-					{
-						logger.error(logHeader + "Couldn't print Average Delay " + i + "!");
-						return false;
-					}
-					
-					numAvgDelays++;
-					break;
-				}
-				default:
-				{
-					logger.error(logHeader + "Invalid AnalysisType requested - recording data!");
-					return false;
-				}
-			}
 		}
 		
 		return true;
@@ -672,154 +610,101 @@ public class Analyzer {
 	}
 	
 	/**
-	 * Develops a delay frequency counter
-	 * NOTE: Certain delays only exist for certain PSActionTypes
-	 * The MessageDelay is only for R PSActions
-	 * While R PSActions do NOT have an ActionDelay - everyone else does.
+	 * Prints the information contained within the analyzedInformation object to a file
 	 * 
-	 * @param diaryNames - a list of diaries that will be combed over
-	 * @param typeToAnalyse - the type of PSActionType requested to look at
-	 * @param delayType - the type of delay: Action or Message
-	 * @return the associated frequency counter
+	 * @return false on an error; true otherwise
 	 */
-	private static PSTBDataCounter developDataCounter(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
+	private static boolean recordAllAnalyzedInformation()
 	{
-		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
+		int numDCs = 0;
+		int numFCs = 0;
+		int numAvgDelays = 0;
+		int numHistograms = 0;
+		
+		Path delayFolderPath = Paths.get(delayFolderString);
+		Path frequencyFolderPath = Paths.get(frequencyFolderString);
+		Path avgDelayFolderPath = Paths.get(avgDelayFolderString);
+		Path histogramFolderPath = Paths.get(histogramFolderString);
+		
+		// If the folders don't exist - create them
+		boolean delayCheck = PSTBUtil.createFolder(delayFolderPath, logger, logHeader);
+		if(!delayCheck)
 		{
-			logger.error(logHeader + "That DiaryHeader is not a delay value.");
-			return null;
+			logger.error(logHeader + "Couldn't create delay counter folder!");
+			return false;
 		}
 		
-		PSTBDataCounter retVal = new PSTBDataCounter();
-		retVal.setName(typeToAnalyse.toString() + "-" + delayType.toString());
-		retVal.setType(typeToAnalyse);
-				
-		for(int i = 0 ; i < diaryNames.size() ; i++)
+		boolean frequencyCheck = PSTBUtil.createFolder(frequencyFolderPath, logger, logHeader);
+		if(!frequencyCheck)
 		{
-			String diaryPathI = diaryNames.get(i);
+			logger.error(logHeader + "Couldn't create frequency counter folder!");
+			return false;
+		}
+		
+		boolean avgDelayCheck = PSTBUtil.createFolder(avgDelayFolderPath, logger, logHeader);
+		if(!avgDelayCheck)
+		{
+			logger.error(logHeader + "Couldn't create average delay folder!");
+			return false;
+		}
+		
+		boolean histogramCheck = PSTBUtil.createFolder(histogramFolderPath, logger, logHeader);
+		if(!histogramCheck)
+		{
+			logger.error(logHeader + "Couldn't create histogram folder!");
+			return false;
+		}
+		
+		// For each analysis we did, call its affiliated "record" function
+		// NOTE:	this function assumes that analyzedCheck[i] is the analysis that resulted in object analyzedInformation[i]
+		// 		i.e. if analyzedCheck[7] is DelayCounter, then analyzedInformation[7] is a PSTBDataCounter Object
+		for(int i = 0 ; i < analyzedCheck.size() ; i++)
+		{
+			PSTBAnalysisObject temp = analyzedInformation.get(i);
 			
-			if(!bookshelf.containsKey(diaryPathI))
+			String objectFileString = null;
+			switch(analyzedCheck.get(i))
 			{
-				logger.error(logHeader + "No diary exists from " + diaryPathI);
-				return null;
+				case DelayCounter:
+				{
+					objectFileString = delayFolderString + temp.getName() + "-" + numDCs + ".txt";
+					numDCs++;
+					break;
+				}
+				case FrequencyCounter:
+				{	
+					objectFileString = frequencyFolderString + temp.getName() + "-" + numFCs + ".txt";
+					numFCs++;
+					break;
+				}
+				case AverageDelay:
+				{
+					objectFileString = avgDelayFolderString + temp.getName() + "-" + numAvgDelays + ".txt";
+					numAvgDelays++;
+					break;
+				}
+				case Histogram:
+				{
+					objectFileString = histogramFolderString + temp.getName() + "-" + numHistograms + ".txt";
+					numHistograms++;
+					break;
+				}
+				default:
+				{
+					logger.error(logHeader + "Invalid AnalysisType requested - recording data!");
+					return false;
+				}
 			}
 			
-			ClientDiary diaryI = bookshelf.get(diaryPathI);
-			
-			for(int j = 0 ; j < diaryI.size() ; j++)
+			Path objectFilePath = Paths.get(objectFileString);
+			boolean check = temp.recordAO(objectFilePath);
+			if(!check)
 			{
-				DiaryEntry pageJ = diaryI.getDiaryEntryI(j);
-				if(pageJ.containsKey(DiaryHeader.PSActionType))
-				{
-					PSActionType pageJsActionType = pageJ.getPSActionType();
-					if(pageJsActionType.equals(typeToAnalyse))
-					{
-						if(pageJ.containsKey(delayType))
-						{
-							Long associatedDelay = pageJ.getDelay(delayType);
-							retVal.addOccurrence(associatedDelay);
-						}
-						else
-						{
-							logger.error(logHeader + "There is a page where there is no " + delayType.toString()
-										+ " data for Action Type " + typeToAnalyse.toString());
-							return null;
-						}
-					}
-				}
-				else
-				{
-					logger.error(logHeader + "Diary Page is missing an associated Action Type");
-					return null;
-				}
-			}
-		}
-		
-		return retVal;
-	}
-	
-	/**
-	 * Determines the average delay for a given delay type
-	 * NOTE: Certain delays only exist for certain PSActionTypes
-	 * The MessageDelay is only for R PSActions
-	 * ALL other PSActions have an ActionDelay.
-	 * 
-	 * @param diaryNames - a list of diaries that will be combed over
-	 * @param typeToAnalyse - the type of PSActionType requested to look at
-	 * @param delayType - the type of delay: Action or Message
-	 * @return the average delay
-	 */
-	private static PSTBAvgDelay developAverageDelay(ArrayList<String> diaryNames, PSActionType typeToAnalyse, DiaryHeader delayType)
-	{
-		if( !delayType.equals(DiaryHeader.ActionDelay) && !delayType.equals(DiaryHeader.MessageDelay) )
-		{
-			logger.error(logHeader + "That DiaryHeader is not a delay value.");
-			return null;
-		}
-		
-		if(delayType.equals(DiaryHeader.ActionDelay) && typeToAnalyse.equals(PSActionType.R))
-		{
-			logger.error(logHeader + "Type mismatch - R's don't have an ActionDelay");
-			return null;
-		}
-		
-		if(delayType.equals(DiaryHeader.MessageDelay) && !typeToAnalyse.equals(PSActionType.R))
-		{
-			logger.error(logHeader + "Type mismatch - only R has a MessageDelay");
-			return null;
-		}
-		
-		Long totalDelay = new Long(0L);
-		double instances = 0;
-		PSTBAvgDelay retVal = new PSTBAvgDelay();
-		retVal.setName(typeToAnalyse.toString() + "-" + delayType.toString());
-		retVal.setDelayType(typeToAnalyse);
-				
-		for(int i = 0 ; i < diaryNames.size() ; i++)
-		{
-			String diaryPathI = diaryNames.get(i);
-			
-			if(!bookshelf.containsKey(diaryPathI))
-			{
-				logger.error(logHeader + "No diary exists from " + diaryPathI);
-				return null;
-			}
-			
-			ClientDiary diaryI = bookshelf.get(diaryPathI);
-			
-			for(int j = 0 ; j < diaryI.size() ; j++)
-			{
-				DiaryEntry pageJ = diaryI.getDiaryEntryI(j);
-				if(pageJ.containsKey(DiaryHeader.PSActionType))
-				{
-					if(pageJ.getPSActionType() == typeToAnalyse)
-					{
-						if(pageJ.containsKey(delayType))
-						{
-							totalDelay += pageJ.getDelay(delayType);
-							instances++;
-						}
-						else
-						{
-							logger.error(logHeader + "There is a page where there is no " + delayType.toString()
-										+ " data for Action Type " + typeToAnalyse.toString());
-							return null;
-						}
-					}
-				}
-				else
-				{
-					logger.error(logHeader + "Diary Page is missing an associated Action Type");
-					return null;
-				}
+				logger.error(logHeader + "Couldn't print AnalysisObject " + i + "!");
+				return false;
 			}
 		}
 		
-		if(instances > 0)
-		{
-			retVal.setValue((long) (totalDelay / instances));
-		}
-		
-		return retVal;
+		return true;
 	}
 }

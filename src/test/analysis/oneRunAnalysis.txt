@@ -1,34 +1,45 @@
 #AnalysisType	DiaryHeader	PSActionType	TopologyFilePath	DistributedFlag	Protocol	RunLength	RunNumber	ClientName
 
+Histogram	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
+Histogram	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
+Histogram	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
+Histogram	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
+Histogram	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
+
+Histogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
+Histogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
+Histogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
+Histogram	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null
+
 DelayCounter	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
-FrequencyCounter	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
-
 DelayCounter	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
-FrequencyCounter	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
-
 DelayCounter	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
-FrequencyCounter	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
-
 DelayCounter	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
-FrequencyCounter	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
-
 DelayCounter	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
-FrequencyCounter	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
-AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
 
 DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
 DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
 DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
 DelayCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null
-FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
-FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
-FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
-FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null
+
+AverageDelay	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
+AverageDelay	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
+
 AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
 AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
 AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
 AverageDelay	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null
+
+FrequencyCounter	ActionDelay	A	null	etc/star3topology.txt	null	null	null	null	null
+FrequencyCounter	ActionDelay	V	null	etc/star3topology.txt	null	null	null	null	null
+FrequencyCounter	ActionDelay	S	null	etc/star3topology.txt	null	null	null	null	null
+FrequencyCounter	ActionDelay	U	null	etc/star3topology.txt	null	null	null	null	null
+FrequencyCounter	ActionDelay	P	null	etc/star3topology.txt	null	null	null	null	null
+
+FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S0
+FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S1
+FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	S2
+FrequencyCounter	MessageDelay	R	null	etc/star3topology.txt	null	null	null	null	null

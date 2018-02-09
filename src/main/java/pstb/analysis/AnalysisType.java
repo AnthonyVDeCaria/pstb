@@ -9,5 +9,5 @@ package pstb.analysis;
  * The types of analysis currently available
  */
 public enum AnalysisType {
-	DelayCounter, FrequencyCounter, AverageDelay
+	DelayCounter, FrequencyCounter, AverageDelay, Histogram
 }

@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.apache.logging.log4j.Logger;
-
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 import pstb.util.PSTBUtil.TimeType;
@@ -20,28 +18,22 @@ import pstb.util.PSTBUtil.TimeType;
  * and a name associated with it 
  * @see Analyzer
  */
-public class PSTBAvgDelay {
-	private String name;
+public class PSTBAvgDelay extends PSTBAnalysisObject {
 	private Long value;
-	private PSActionType delayType;
 	
-	private final String logHeader = "PSTBAvgDelay: ";
+	private Long sum;
+	private int instances;
 
 	/**
 	 * Constructor
 	 */
 	public PSTBAvgDelay() {
-		setName(new String());
-		setValue(new Long(0));
-	}
-
-	/**
-	 * Sets the name
-	 * 
-	 * @param name the name to set
-	 */
-	public void setName(String name) {
-		this.name = name;
+		super();
+		value = null;
+		logHeader = "PSTBAvgDelay: ";
+		
+		sum = 0L;
+		instances = 0;
 	}
 	
 	/**
@@ -49,24 +41,8 @@ public class PSTBAvgDelay {
 	 * 
 	 * @param value the value to set
 	 */
-	public void setValue(Long value) {
-		this.value = value;
-	}
-	
-	/**
-	 * @param delayType the delayType to set
-	 */
-	public void setDelayType(PSActionType delayType) {
-		this.delayType = delayType;
-	}
-	
-	/**
-	 * Gets the name of this Delay
-	 * 
-	 * @return the name
-	 */
-	public String getName() {
-		return name;
+	public void setValue(Long givenValue) {
+		value = givenValue;
 	}
 
 	/**
@@ -78,28 +54,18 @@ public class PSTBAvgDelay {
 		return value;
 	}
 	
-	/**
-	 * @return the delayType
-	 */
-	public PSActionType getDelayType() {
-		return delayType;
-	}
-	
-	/**
-	 * Prints the delay value
-	 * 
-	 * @param givenFilePath - the location to print to
-	 * @return false on failure; true otherwise
-	 */
-	public boolean recordAvgDelay(Path givenFilePath, Logger log)
+	@Override
+	public boolean completeRecord(Path givenFilePath)
 	{
+		if(value == null)
+		{
+			log.error(logHeader + "No average value exists!");
+			return false;
+		}
+		
 		String line = null;
 		
-		if(delayType.equals(null))
-		{
-			log.error(logHeader + "No delayType was set");
-		}
-		else if(delayType.equals(PSActionType.R))
+		if(type.equals(PSActionType.R))
 		{
 			line = PSTBUtil.createTimeString(value, TimeType.Milli);
 		}
@@ -120,6 +86,14 @@ public class PSTBAvgDelay {
 		}
 		
 		return true;
+	}
+
+	@Override
+	public void handleDataPoint(Long givenDataPoint) {
+		sum += givenDataPoint;
+		instances++;
+		
+		value = sum / instances;
 	}
 
 }
