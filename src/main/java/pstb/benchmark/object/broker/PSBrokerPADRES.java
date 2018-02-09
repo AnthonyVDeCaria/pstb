@@ -12,9 +12,9 @@ import ca.utoronto.msrg.padres.broker.brokercore.BrokerCoreException;
 import pstb.startup.config.NetworkProtocol;
 
 /**
- * The Broker Object
+ * The PADRES Broker
  * 
- * Handles everything regarding the Broker: Creating it, Accessing it's URI, and Starting it.
+ * Handles the Broker for the PADRES engine: Creating it, Accessing it's URI, and Starting it.
  * 
  * @author padres-dev-4187
  */

@@ -6,6 +6,12 @@ import pstb.benchmark.object.PSNode;
 import pstb.benchmark.process.broker.PSTBBrokerProcess;
 import pstb.startup.config.NetworkProtocol;
 
+/**
+ * @author adecaria
+ * 
+ * The base Broker class.
+ * All Broker engine extensions stem from this class. 
+ */
 public abstract class PSBroker extends PSNode implements java.io.Serializable 
 {
 	// Constants
@@ -16,6 +22,14 @@ public abstract class PSBroker extends PSNode implements java.io.Serializable
 	protected Integer port;
 	protected String[] neighbourURIs;
 	
+	/**
+	 * Constructor
+	 * 
+	 * @param givenProtocol - the protocol associated with this broker
+	 * @param givenHost - the host where this broker will reside
+	 * @param givenPort - the port this broker will use
+	 * @param givenName - the name / id of this broker
+	 */
 	public PSBroker(NetworkProtocol givenProtocol, String givenHost, Integer givenPort, String givenName)
 	{
 		super();
