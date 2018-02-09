@@ -12,8 +12,7 @@ import pstb.util.PSTBUtil;
 /**
  * @author padres-dev-4187
  * 
- * The base class of the Node Objects.
- * 
+ * The base class of the node Objects.
  */
 public abstract class PSNode implements java.io.Serializable
 {
@@ -230,5 +229,4 @@ public abstract class PSNode implements java.io.Serializable
 				+ runNumber.toString() + PSTBUtil.DIARY_SEPARATOR
 				+ nodeName;
 	}
-
 }
