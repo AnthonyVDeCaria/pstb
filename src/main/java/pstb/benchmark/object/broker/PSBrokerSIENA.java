@@ -1,6 +1,3 @@
-/**
- * 
- */
 package pstb.benchmark.object.broker;
 
 import java.util.HashMap;
@@ -10,6 +7,10 @@ import pstb.startup.config.NetworkProtocol;
 /**
  * The SIENA Broker
  * 
+ * Handles the broker for the SIENA engine.
+ * I.e. creating a link between its neighbour URIs and their associated BrokerIDs.
+ * Also details how its URI is constructed.
+ * 
  * @author padres-dev-4187
  */
 public class PSBrokerSIENA extends PSBroker {
@@ -18,7 +19,12 @@ public class PSBrokerSIENA extends PSBroker {
 	
 	// Link between URIs and BrokerIDs
 	private HashMap<String, String> neighbourURIsAndIds;
-
+	
+	/**
+	 * Constructor
+	 * 
+	 * @see PSBroker
+	 */
 	public PSBrokerSIENA(NetworkProtocol givenProtocol, String givenHost, Integer givenPort, String givenName) 
 	{
 		super(givenProtocol, givenHost, givenPort, givenName);

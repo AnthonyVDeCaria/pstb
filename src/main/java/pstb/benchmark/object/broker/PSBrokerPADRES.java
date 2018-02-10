@@ -1,7 +1,3 @@
-/**
- * @author padres-dev-4187
- *
- */
 package pstb.benchmark.object.broker;
 
 import java.util.Arrays;
@@ -14,7 +10,9 @@ import pstb.startup.config.NetworkProtocol;
 /**
  * The PADRES Broker
  * 
- * Handles the Broker for the PADRES engine: Creating it, Accessing it's URI, and Starting it.
+ * Handles the Broker for the PADRES engine.
+ * I.e. functions for creating it, and starting it.
+ * Also details how its URI is constructed.
  * 
  * @author padres-dev-4187
  */
@@ -52,8 +50,7 @@ public class PSBrokerPADRES extends PSBroker
 	}
 	
 	/**
-	 * Creates the PADRES BrokerCore
-	 * - arguably the actual Broker
+	 * Creates the PADRES BrokerCore - arguably the actual Broker
 	 * 
 	 * @return false if there's an error; true otherwise
 	 */

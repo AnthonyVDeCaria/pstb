@@ -1,6 +1,3 @@
-/**
- * 
- */
 package pstb.benchmark.object.client;
 
 import java.util.ArrayList;

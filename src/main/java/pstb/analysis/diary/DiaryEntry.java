@@ -14,7 +14,9 @@ import pstb.util.PSTBUtil.TimeType;
 
 /**
  * @author padres-dev-4187
- *
+ * 
+ * A record of what happened with regards to a particular PSAction: 
+ * When did we start this PSAction? How long did it take to finish? What are its attributes?
  */
 public class DiaryEntry  implements java.io.Serializable
 {
@@ -53,11 +55,21 @@ public class DiaryEntry  implements java.io.Serializable
 		page.put(DiaryHeader.PSActionType, givenPSAT.toString());
 	}
 	
+	/**
+	 * TimeActionStarted setter
+	 * 
+	 * @param givenTAS - the time the action started
+	 */
 	public void addTimeActionStarted(Long givenTAS)
 	{
 		page.put(DiaryHeader.TimeActionStarted, givenTAS.toString());
 	}
 	
+	/**
+	 * TimeBrokerFinished setter
+	 * 
+	 * @param givenTAS - the time the broker finished handling the action
+	 */
 	public void addTimeBrokerFinished(Long givenTBF)
 	{
 		page.put(DiaryHeader.TimeBrokerFinished, givenTBF.toString());

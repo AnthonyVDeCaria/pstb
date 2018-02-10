@@ -1,6 +1,3 @@
-/**
- * 
- */
 package pstb.benchmark.object;
 
 import org.apache.logging.log4j.Logger;

@@ -17,7 +17,10 @@ import pstb.startup.workload.PSActionType;
  */
 public class ClientDiary implements java.io.Serializable
 {
+	// Constants
 	private static final long serialVersionUID = 1L;
+	
+	// Key Variable
 	ArrayList<DiaryEntry> diary;
 	
 	/**
@@ -41,16 +44,16 @@ public class ClientDiary implements java.io.Serializable
 	/**
 	 * Gets a diary entry given it's associated Message ID
 	 * 
-	 * @param mID - the associated messageID
+	 * @param givenMID - the associated messageID
 	 * @return Either the given diary entry, or null
 	 */
-	public DiaryEntry getDiaryEntryGivenMessageID(String mID)
+	public DiaryEntry getDiaryEntryGivenMessageID(String givenMID)
 	{
 		DiaryEntry appropriateDiary = null;
 		for(int i = 0; i < diary.size() ; i++)
 		{
 			DiaryEntry iTHEntry = diary.get(i);
-			if(iTHEntry.containsValue(mID))
+			if(iTHEntry.containsValue(givenMID))
 			{
 				appropriateDiary = iTHEntry;
 				break;
@@ -62,17 +65,17 @@ public class ClientDiary implements java.io.Serializable
 	/**
 	 * Gets a diary entry given it's associated Action Type and Attributes
 	 * 
-	 * @param action - the associated PSActionType
-	 * @param attri - the associated attributes
+	 * @param givenAction - the associated PSActionType
+	 * @param givenAttri - the associated attributes
 	 * @return Either the given diary entry, or null
 	 */
-	public DiaryEntry getDiaryEntryGivenActionTypeNAttributes(PSActionType action, String attri)
+	public DiaryEntry getDiaryEntryGivenActionTypeNAttributes(PSActionType givenAction, String givenAttri)
 	{
 		DiaryEntry appropriateDiary = null;
 		for(int i = 0; i < diary.size() ; i++)
 		{
 			DiaryEntry iTHEntry = diary.get(i);
-			if(iTHEntry.containsValue(action.toString()) && iTHEntry.containsValue(attri))
+			if(iTHEntry.containsValue(givenAction.toString()) && iTHEntry.containsValue(givenAttri))
 			{
 				appropriateDiary = iTHEntry;
 				break;
