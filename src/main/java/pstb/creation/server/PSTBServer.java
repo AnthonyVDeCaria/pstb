@@ -28,42 +28,39 @@ public class PSTBServer extends Thread
 	private HashMap<String, PSNode> brokerData;
 	private HashMap<String, PSNode> clientData;
 	
-	private CountDownLatch startSignal;
+	private CountDownLatch start;
+	private CountDownLatch incompleteBrokers;
+	private CountDownLatch brokersLinked;
 	
 	private Integer port;
 	private ServerSocket objectConnection;
 	
+	private String benchmarkStartTime;
 	private int runNumber;
 	
 	private String logHeader = "PSTBServer: ";
 	private Logger serverLog = LogManager.getLogger(PSTBServer.class);
 	
-	public PSTBServer(int givenRunNumber)
+	public PSTBServer(HashMap<String, PSNode> brokerObjects, HashMap<String, PSNode> clientObjects, CountDownLatch startSignal, 
+			CountDownLatch brokersStartedSignal, CountDownLatch brokersLinkedSignal, String givenBST, int givenRunNumber)
 	{
-		brokerData = new HashMap<String, PSNode>();
-		clientData = new HashMap<String, PSNode>();
+		brokerData = brokerObjects;
+		clientData = clientObjects;
 		
-		startSignal = null;
+		start = startSignal;
+		incompleteBrokers = brokersStartedSignal;
+		brokersLinked = brokersLinkedSignal;
 		
 		port = null;
 		objectConnection = null;
 		
+		benchmarkStartTime = givenBST;
 		runNumber = givenRunNumber;
 	}
 	
-	public void setBrokerData(HashMap<String, PSNode> brokerObjects)
+	public int numBrokers()
 	{
-		brokerData = brokerObjects;
-	}
-	
-	public void setClientData(HashMap<String, PSNode> givenClients)
-	{
-		clientData = givenClients;
-	}
-	
-	public void setStartSignal(CountDownLatch givenStartSignal)
-	{
-		startSignal = givenStartSignal;
+		return brokerData.size();
 	}
 	
 	public Integer generatePort()
@@ -103,7 +100,7 @@ public class PSTBServer extends Thread
 	
 	public void run()
 	{
-		String serverName = "Server-" + runNumber; 
+		String serverName = "Server-" + benchmarkStartTime + "-" + runNumber; 
 		setName(serverName);
 		ThreadContext.put("server", serverName);
 		Thread.currentThread().setName(serverName);
@@ -134,8 +131,7 @@ public class PSTBServer extends Thread
 		int numBrokers = brokerData.size();
 		int numClients = clientData.size();
 		int numNodes = numBrokers + numClients;
-		CountDownLatch clientsNotWaiting = new CountDownLatch(numClients);
-		CountDownLatch brokersNotRunning = new CountDownLatch(numBrokers);
+		CountDownLatch incompleteClients = new CountDownLatch(numClients);
 		
 		int numConnectedNodes = 0;
 		while(numConnectedNodes < numNodes)
@@ -157,7 +153,7 @@ public class PSTBServer extends Thread
 				}
 			};
 			
-			NodeHandler oH = new NodeHandler(objectPipe, clientsNotWaiting, brokersNotRunning, startSignal, this);
+			NodeHandler oH = new NodeHandler(objectPipe, incompleteClients, incompleteBrokers, brokersLinked, start, this);
 			oH.setUncaughtExceptionHandler(nodeHandlerExceptionNet);		
 			oH.start();
 						
@@ -166,7 +162,7 @@ public class PSTBServer extends Thread
 		
 		try 
 		{
-			clientsNotWaiting.await();
+			incompleteClients.await();
 		} 
 		catch (InterruptedException e) 
 		{
@@ -175,7 +171,7 @@ public class PSTBServer extends Thread
 		serverLog.info(logHeader + "All objects sent - clients are now waiting for start.");
 		
 		serverLog.debug(logHeader + "Sending start signal...");
-		startSignal.countDown();
+		start.countDown();
 		serverLog.info(logHeader + "Start signal sent.");
 		
 		try 

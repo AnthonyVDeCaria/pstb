@@ -22,6 +22,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -624,5 +625,19 @@ public class PSTBUtil {
 			}
 		}
 		return true;
+	}
+	
+	/**
+	 * Returns a random String from a String[] from the Broker ("B") group
+	 * 
+	 * @param givenStrings - the given strings
+	 * @returns the selected string
+	 */
+	public static String randomlySelectString(String[] givenStrings)
+	{
+		Random generator = new Random();
+		int numStrings = givenStrings.length;
+		int i = generator.nextInt(numStrings);
+		return givenStrings[i];
 	}
 }

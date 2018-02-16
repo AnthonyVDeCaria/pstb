@@ -114,6 +114,7 @@ public abstract class PSClient extends PSNode
 		
 		defaultDelay = runLength / 10 / PSTBUtil.MILLISEC_TO_NANOSEC;
 		ArrayList<PSAction> activeList = new ArrayList<PSAction>();
+		int numActions = workload.size();
 		
 		PSTBUtil.synchronizeRun();
 		
@@ -129,7 +130,7 @@ public abstract class PSClient extends PSNode
 			updateActiveList(activeList);
 			nodeLog.info(logHeader + "Updated active lists.");
 			
-			if(i < workload.size())
+			if(i < numActions)
 			{
 				PSAction actionI = workload.get(i);
 				PSActionType actionIsActionType = actionI.getActionType();
@@ -147,6 +148,30 @@ public abstract class PSClient extends PSNode
 				if(actionIsActionType.equals(PSActionType.A) || actionIsActionType.equals(PSActionType.S))
 				{
 					activeList.add(actionI);
+				}
+				else if(actionIsActionType.equals(PSActionType.V) || actionIsActionType.equals(PSActionType.U))
+				{
+					String actionIAttr = actionI.getAttributes();
+					int j = 0, numActiveActions = activeList.size();
+					
+					while(j < numActiveActions)
+					{
+						PSAction actionJ = activeList.get(j);
+						String actionJAttr = actionJ.getAttributes();
+						PSActionType actionJType = actionJ.getActionType();
+						if(actionJAttr.equals(actionIAttr))
+						{
+							if(
+									(actionJType.equals(PSActionType.A) && actionIsActionType.equals(PSActionType.V))
+									|| (actionJType.equals(PSActionType.S) && actionIsActionType.equals(PSActionType.U))
+								)
+							{
+								activeList.remove(j);
+								break;
+							}
+						}
+						j++;
+					}
 				}
 				
 				i++;

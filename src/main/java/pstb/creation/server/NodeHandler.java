@@ -26,13 +26,14 @@ public class NodeHandler extends Thread
 	private Socket objectPipe;
 	
 	private CountDownLatch clientsNotWaiting;
-	private CountDownLatch brokersNotRunning;
+	private CountDownLatch brokersNotStarted;
+	private CountDownLatch brokersNotLinked;
 	private CountDownLatch start;
 	
 	private Boolean nodeIsClient;
 	
 	private enum ServerMode {
-		Object, Init, Link, Done; 
+		Object, Init, Done; 
 	}
 	
 	private ServerMode mode;
@@ -40,12 +41,13 @@ public class NodeHandler extends Thread
 	private final String logHeader = "NodeHandler: ";
 	private final Logger log = LogManager.getLogger(PSTBServer.class);
 	
-	public NodeHandler(Socket givenPipe, CountDownLatch clientsWaitingSignal, CountDownLatch brokersRunningSignal, 
-							CountDownLatch startSignal, PSTBServer givenServer)
+	public NodeHandler(Socket givenPipe, CountDownLatch clientsReadySignal, CountDownLatch brokersStartedSignal,
+			CountDownLatch brokersReadySignal, CountDownLatch startSignal, PSTBServer givenServer)
 	{
 		objectPipe = givenPipe;
-		clientsNotWaiting = clientsWaitingSignal;
-		brokersNotRunning = brokersRunningSignal;
+		clientsNotWaiting = clientsReadySignal;
+		brokersNotStarted = brokersStartedSignal;
+		brokersNotLinked = brokersReadySignal;
 		start = startSignal;
 		master = givenServer;
 		
@@ -95,7 +97,7 @@ public class NodeHandler extends Thread
 					{
 						try 
 						{
-							brokersNotRunning.await();
+							brokersNotLinked.await();
 						} 
 						catch (InterruptedException e) 
 						{
@@ -115,6 +117,7 @@ public class NodeHandler extends Thread
 					{
 						endFailedThread(logHeader + "Init not received from node " + nodeName + "!", null, false);
 					}
+					log.info(logHeader + "Init received from node " + nodeName + ".");
 					
 					if(nodeIsClient == null)
 					{
@@ -123,9 +126,7 @@ public class NodeHandler extends Thread
 					}
 					else if(!nodeIsClient.booleanValue())
 					{
-						PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.LINK, log, logHeader);
-						
-						mode = ServerMode.Link;
+						brokersNotStarted.countDown();
 					}
 					else
 					{
@@ -145,18 +146,7 @@ public class NodeHandler extends Thread
 						log.debug(logHeader + "Sending " + nodeName + " the start signal...");
 						PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.START, log, logHeader);
 						log.info(logHeader + "Start signal sent to " + nodeName + ".");
-						
-						mode = ServerMode.Done;
 					}
-				}
-				else if(mode.equals(ServerMode.Link))
-				{
-					if(!inputLine.equals(PSTBUtil.LINK))
-					{
-						endFailedThread(logHeader + "Link not received from node " + nodeName + "!", null, false);
-					}
-					
-					brokersNotRunning.countDown();
 					
 					mode = ServerMode.Done;
 				}
@@ -208,7 +198,7 @@ public class NodeHandler extends Thread
 			log.error("Error closing objectPipe: ", eIO);
 		}
 		
-		brokersNotRunning.countDown();
+		brokersNotStarted.countDown();
 		clientsNotWaiting.countDown();
 		
 		throw new RuntimeException(record, givenException);

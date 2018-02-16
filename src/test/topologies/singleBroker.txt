@@ -1,0 +1,5 @@
+B0	B	
+
+P0	C	B0	src/test/workloads/testpub2.cna
+S0	C	B0	src/test/workloads/testsub.cna
+S1	C	B0	src/test/workloads/testsub.cna

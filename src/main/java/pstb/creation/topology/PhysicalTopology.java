@@ -9,6 +9,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
@@ -71,6 +72,8 @@ public abstract class PhysicalTopology {
 	
 	// Server
 	protected PSTBServer masterServer;
+	protected CountDownLatch unstartedBrokers;
+	protected CountDownLatch linkedBrokers;
 	
 	// ProcessBuilders
 	protected HashMap<String, ProcessBuilder> brokerProcesses;
@@ -316,8 +319,7 @@ public abstract class PhysicalTopology {
 	private boolean developBrokers()
 	{
 		logger.debug(logHeader + "Attempting to develop PSBroker Objects...");
-		
-		HashMap<String, ArrayList<String>> brokerList = startingTopology.getBrokers();
+		TreeMap<String, ArrayList<String>> brokerList = startingTopology.getBrokers();
 		
 		// Loop through the brokerList -> that way we can create a bunch of unconnected brokerObjects
 		Iterator<String> iteratorBL = brokerList.keySet().iterator();
@@ -340,24 +342,34 @@ public abstract class PhysicalTopology {
 		{
 			String brokerIName = iteratorBO.next();
 			PSBroker brokerI = (PSBroker) brokerObjects.get(brokerIName);
-			ArrayList<String> neededURIs = new ArrayList<String>();
-			
 			ArrayList<String> bIConnectedNodes = brokerList.get(brokerIName);
-			for(int j = 0 ; j < bIConnectedNodes.size() ; j++)
+			if(bIConnectedNodes == null)
 			{
-				String brokerJName = bIConnectedNodes.get(j);
-				PSBroker actBrokerJ = (PSBroker) brokerObjects.get(brokerJName);
-				if(actBrokerJ == null)
+				int numBrokers = startingTopology.numBrokers();
+				if(numBrokers > 1)
 				{
-					logger.error(logHeader + "Couldn't find " + brokerJName + " that " + brokerIName + " is connected to!");
+					logger.error(logHeader + brokerIName + " isn't connected to anything, but other nodes exist!");
 					return false;
 				}
-				neededURIs.add(actBrokerJ.getBrokerURI());
 			}
-			
-			String[] nURIs = (String[]) neededURIs.toArray(new String[neededURIs.size()]);
-			
-			handleAdjacentBrokers(brokerI, bIConnectedNodes, nURIs);
+			else
+			{
+				ArrayList<String> neededURIs = new ArrayList<String>();
+				for(int j = 0 ; j < bIConnectedNodes.size() ; j++)
+				{
+					String brokerJName = bIConnectedNodes.get(j);
+					PSBroker actBrokerJ = (PSBroker) brokerObjects.get(brokerJName);
+					if(actBrokerJ == null)
+					{
+						logger.error(logHeader + "Couldn't find " + brokerJName + " that " + brokerIName + " is connected to!");
+						return false;
+					}
+					neededURIs.add(actBrokerJ.getBrokerURI());
+				}
+				
+				String[] nURIs = (String[]) neededURIs.toArray(new String[neededURIs.size()]);
+				handleAdjacentBrokers(brokerI, bIConnectedNodes, nURIs);
+			}
 			
 			brokerI.setBenchmarkStartTime(benchmarkStartTime);
 			brokerI.setTopologyFileString(topologyFileString);
@@ -451,7 +463,7 @@ public abstract class PhysicalTopology {
 	private boolean developClients()
 	{
 		logger.debug(logHeader + "Attempting to develop PSClient Objects...");
-		HashMap<String, ClientNotes> clientList = startingTopology.getClients();
+		TreeMap<String, ClientNotes> clientList = startingTopology.getClients();
 		Iterator<String> cliIterator = clientList.keySet().iterator();
 		
 		// Loop through the publisherList, creating every client that's there
@@ -593,11 +605,13 @@ public abstract class PhysicalTopology {
 	 */
 	private void setupServer(CountDownLatch givenStartSignal, int givenRunNumber)
 	{
-		masterServer = new PSTBServer(givenRunNumber);
+		unstartedBrokers = new CountDownLatch(brokerObjects.size());
+		linkedBrokers = new CountDownLatch(1);
+		
+		masterServer = new PSTBServer(brokerObjects, clientObjects, givenStartSignal, unstartedBrokers, linkedBrokers, 
+				benchmarkStartTime, givenRunNumber);
+		
 		masterServer.generatePort();
-		masterServer.setBrokerData(brokerObjects);
-		masterServer.setClientData(clientObjects);
-		masterServer.setStartSignal(givenStartSignal);
 	}
 	
 	/**
@@ -774,6 +788,25 @@ public abstract class PhysicalTopology {
 			return false;
 		}
 		
+		try
+		{
+			unstartedBrokers.await();
+		}
+		catch(InterruptedException e) 
+		{
+			logger.error(logHeader + "Couldn't wait to connect brokers: ", e);
+			return false;
+		}
+		
+		boolean connectBrokersCheck = connectAllBrokers();
+		if(!connectBrokersCheck)
+		{
+			logger.error(logHeader + "Failed to connect all brokers!");
+			return false;
+		}
+		
+		linkedBrokers.countDown();
+		
 		logger.info(logHeader + "Everything launched.");
 		return true;
 	}
@@ -838,6 +871,8 @@ public abstract class PhysicalTopology {
 		
 		return true;
 	}
+	
+	protected abstract boolean connectAllBrokers();
 	
 	/**
 	 * The values checkActiveProcesses can return

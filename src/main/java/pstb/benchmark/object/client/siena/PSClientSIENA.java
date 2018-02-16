@@ -62,7 +62,6 @@ public class PSClientSIENA extends PSClient
 		}
 		
 		String brokerURI = brokersURIs.get(0);
-		
 		try 
 		{
 			actualClient = new ThinClient(brokerURI, nodeName);
@@ -112,24 +111,26 @@ public class PSClientSIENA extends PSClient
 	@Override
 	protected boolean advertise(String givenAttributes, DiaryEntry resultingEntry)
 	{
-		Filter adI = generateFilterFromAttributes(givenAttributes);
-		if(adI == null)
-		{
-			nodeLog.error(logHeader + "Couldn't create ad filter!");
-			return false;
-		}
+		nodeLog.warn("SIENA is bullshit... so... this isn't working rn...");
 		
-		try 
-		{
-			actualClient.advertise(adI, nodeName);
-		} 
-		catch (Exception e) 
-		{
-			nodeLog.error(logHeader + "Couldn't advertise " + givenAttributes + ": ", e);
-			return false;
-		}
-		
-		nodeLog.debug(logHeader + "Advertise successful.");
+//		Filter adI = generateFilterFromAttributes(givenAttributes);
+//		if(adI == null)
+//		{
+//			nodeLog.error(logHeader + "Couldn't create ad filter!");
+//			return false;
+//		}
+//		
+//		try 
+//		{
+//			actualClient.advertise(adI, nodeName);
+//		} 
+//		catch (Exception e) 
+//		{
+//			nodeLog.error(logHeader + "Couldn't advertise " + givenAttributes + ": ", e);
+//			return false;
+//		}
+//		
+//		nodeLog.debug(logHeader + "Advertise successful.");
 		return true;
 	}
 	
@@ -252,20 +253,7 @@ public class PSClientSIENA extends PSClient
 			
 			short opValue = Op.op(operator);
 			
-			if(opValue == Op.ANY)
-			{
-				value = null;
-			}
-			
-			Double doubleCheck = PSTBUtil.checkIfDouble(value, false, null);
-			if(doubleCheck == null)
-			{
-				retVal.addConstraint(key, opValue, value);
-			}
-			else
-			{
-				retVal.addConstraint(key, opValue, doubleCheck);
-			}
+			retVal.addConstraint(key, opValue, value);
 		}
 		
 		return retVal;

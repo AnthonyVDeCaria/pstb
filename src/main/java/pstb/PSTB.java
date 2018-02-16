@@ -229,8 +229,9 @@ public class PSTB {
 					}
 					
 					allLTs.put(topoI, network);
-					logger.debug("Topology Check Complete for topology " + topoI + ".");
+					
 				}
+				logger.debug("Topology Check Complete for topology " + topoI + ".");
 			}
 		}
 		if(!allToposOk)

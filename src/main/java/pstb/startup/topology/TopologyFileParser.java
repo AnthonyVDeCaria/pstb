@@ -25,8 +25,11 @@ public class TopologyFileParser {
 	private Set<String> submittedWorkloadFilesStrings;
 	private LogicalTopology logicalTopo;
 	
-	private final int MIN_SEGMENTS = 3;
+	private final int MIN_SEGMENTS = 2;
 	private final int MAX_SEGMENTS = 4;
+	
+	private final int MAX_BROKER_SEGMENTS = 3;
+	
 	private final int LOC_NAME = 0;
 	private final int LOC_ROLE = 1;
 	private final int LOC_CONN = 2;
@@ -85,10 +88,7 @@ public class TopologyFileParser {
 					}
 					else
 					{
-						String name = splitLine[LOC_NAME];
 						String role = splitLine[LOC_ROLE];
-						String connections = splitLine[LOC_CONN];
-						String workloadFileString = new String();
 						
 						NodeRole lineIsRole = checkProperRoles(role);
 						if(lineIsRole == null)
@@ -98,7 +98,10 @@ public class TopologyFileParser {
 						}
 						else
 						{
-							if(!checkProperLineLength(lineIsRole, splitLine.length))
+							String name = splitLine[LOC_NAME];
+							int lineLength = splitLine.length;
+							
+							if(!checkProperLineLength(lineIsRole, lineLength))
 							{
 								isParseSuccessful = false;
 								logger.error(logHeader + "Line " + linesRead + "'s length isn't correct for its role!");
@@ -112,10 +115,22 @@ public class TopologyFileParser {
 								}
 								else
 								{
-									if(lineIsRole.equals(NodeRole.C))
+									ArrayList<String> splitConnections = null;
+									String workloadFileString = null;
+									
+									if(
+											!lineIsRole.equals(NodeRole.B) ||
+											(lineIsRole.equals(NodeRole.B) && lineLength == MAX_BROKER_SEGMENTS)
+											)
 									{
+										String connections = splitLine[LOC_CONN];
+										splitConnections = PSTBUtil.turnStringArrayIntoArrayListString(
+												connections.split(PSTBUtil.ITEM_SEPARATOR));
+									}
+									
+									if(lineIsRole.equals(NodeRole.C))
+									{										
 										workloadFileString = splitLine[LOC_WORKLOAD_FILE];
-										
 										if(!submittedWorkloadFilesStrings.contains(workloadFileString))
 										{
 											isParseSuccessful = false;
@@ -127,12 +142,10 @@ public class TopologyFileParser {
 									{
 										logger.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
 										
-										ArrayList<String> splitConnections = PSTBUtil.turnStringArrayIntoArrayListString(
-																					connections.split(PSTBUtil.ITEM_SEPARATOR)
-																				);
-										
 										isParseSuccessful = logicalTopo.addNewNodeToTopo(lineIsRole, name, splitConnections, 
-																								workloadFileString);
+												workloadFileString);
+										
+										
 										if(!isParseSuccessful)
 										{
 											logger.error(logHeader + "Couldn't add line " + linesRead + " to the logical topology!");
@@ -143,7 +156,7 @@ public class TopologyFileParser {
 						}
 					}
 				}
-			}
+			}		
 			tFReader.close();
 		} 
 		catch (IOException e) 
@@ -188,7 +201,7 @@ public class TopologyFileParser {
 		{
 			case B:
 			{
-				return (lineLength == MIN_SEGMENTS); 
+				return (lineLength == MIN_SEGMENTS) || (lineLength == MAX_BROKER_SEGMENTS); 
 			}
 			case C:
 			{

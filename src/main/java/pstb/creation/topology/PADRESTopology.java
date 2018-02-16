@@ -72,4 +72,10 @@ public class PADRESTopology extends PhysicalTopology {
 	{
 		return PSEngine.PADRES;
 	}
+
+	@Override
+	protected boolean connectAllBrokers() {
+		// not needed for PADRES
+		return true;
+	}
 }

@@ -5,10 +5,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Random;
+import java.util.TreeMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -17,10 +19,9 @@ import org.apache.logging.log4j.Logger;
  * Contains a collection of all the NodeRole PubSubGroups - I.e. the needed broker and client nodes - that make this topology.
  */
 public class LogicalTopology {
-	private HashMap<String, ArrayList<String>> brokers;
-	private HashMap<String, ClientNotes> clients;
+	private TreeMap<String, ArrayList<String>> brokers;
+	private TreeMap<String, ClientNotes> clients;
 	
-	private enum VisitedState{ NOTVISITED, VISITED }
 	private ArrayList<NonMutuallyConnectedNodes> problemNodes;
 	
 	private final String logHeader = "Logical Topology: "; 
@@ -31,8 +32,8 @@ public class LogicalTopology {
 	 */
 	public LogicalTopology()
     {
-		brokers = new HashMap<String, ArrayList<String>>();
-		clients = new HashMap<String, ClientNotes>();
+		brokers = new TreeMap<String, ArrayList<String>>();
+		clients = new TreeMap<String, ClientNotes>();
 		problemNodes = new ArrayList<NonMutuallyConnectedNodes>();
     }
 	
@@ -47,15 +48,9 @@ public class LogicalTopology {
 	 */
 	public boolean addNewNodeToTopo(NodeRole role, String name, ArrayList<String> connections, String workloadFileString)
 	{
-		if(role == null || connections == null || name == null || workloadFileString == null)
+		if(role == null || name == null || name.isEmpty())
 		{
-			logger.error(logHeader + "An input was given as null!");
-			return false;
-		}
-		
-		if(connections.isEmpty() || name.isEmpty())
-		{
-			logger.error(logHeader + "A key input was empty!");
+			logger.error(logHeader + "An key input was given as null or empty!");
 			return false;
 		}
 		
@@ -65,7 +60,13 @@ public class LogicalTopology {
 		}
 		else
 		{
-			if(workloadFileString.isEmpty())
+			if(connections == null || connections.isEmpty())
+			{
+				logger.error(logHeader + "this client wasn't given broker connections!");
+				return false;
+			}
+			
+			if(workloadFileString == null || workloadFileString.isEmpty())
 			{
 				logger.error(logHeader + "no workload was given for this client!");
 				return false;
@@ -92,14 +93,44 @@ public class LogicalTopology {
 		clients.put(name, note);
 	}
 	
-	public HashMap<String, ArrayList<String>> getBrokers()
+	public TreeMap<String, ArrayList<String>> getBrokers()
 	{
 		return brokers;
 	}
 	
-	public HashMap<String, ClientNotes> getClients()
+	public TreeMap<String, ClientNotes> getClients()
 	{
 		return clients;
+	}
+	
+	/**
+	 * Returns the size of the network - i.e. how many brokers and clients there are
+	 * 
+	 * @return the size of the network
+	 */
+	public int networkSize() 
+	{
+		return brokers.size() + clients.size();
+	}
+	
+	/**
+	 * Returns the number of brokers there are in the network
+	 * 
+	 * @return the number of brokers
+	 */
+	public int numBrokers()
+	{
+		return brokers.size();
+	}
+	
+	/**
+	 * Returns the number of clients there are in the network
+	 * 
+	 * @return the number of clients
+	 */
+	public int numClients()
+	{
+		return clients.size();
 	}
 	
 	/**
@@ -130,7 +161,19 @@ public class LogicalTopology {
 	 * @returns true if everything is mutually connected; false if not; null if there is an error
 	 */
 	public Boolean confirmBrokerMutualConnectivity()
-	{
+	{	
+		int numBrokers = brokers.size();
+		if(numBrokers == 1)
+		{
+			logger.error(logHeader + "A single broker is mutually connected - returning true.");
+			return true;
+		}
+		else if(numBrokers == 0)
+		{
+			logger.error(logHeader + "No brokers exist!");
+			return false;
+		}
+		
 		boolean allBrokersMC = true;
 		Iterator<String> brokerNodeIt = brokers.keySet().iterator();
 		for(; brokerNodeIt.hasNext();)
@@ -196,10 +239,21 @@ public class LogicalTopology {
 	 */
 	public boolean confirmTopoConnectivity()
 	{
+		int numBrokers = brokers.size();
+		if(numBrokers == 1)
+		{
+			logger.error(logHeader + "A single broker is connected - returning true.");
+			return true;
+		}
+		else if(numBrokers == 0)
+		{
+			logger.error(logHeader + "No brokers exist!");
+			return false;
+		}
+		
 		boolean topoConnected = true;
 		
 		HashMap<String, VisitedState> visitedBrokerNodes = new HashMap<String, VisitedState>();
-		
 		brokers.forEach((name, connections)->visitedBrokerNodes.put(name, VisitedState.NOTVISITED));
 		
 		logger.info(logHeader + "Beginning to check broker connectivity.");
@@ -232,8 +286,7 @@ public class LogicalTopology {
         					
         					if(!brokers.containsKey(brokerJ))
         					{
-        						throw new IllegalArgumentException("Broker " + brokerJ
-    																	+ " doesn't exist for client " + clientI + "!");
+        						throw new IllegalArgumentException("Broker " + brokerJ + " doesn't exist for client " + clientI + "!");
         					}
         				}
             		});
@@ -243,7 +296,6 @@ public class LogicalTopology {
         			logger.error("Topology: Not all brokers exist for some clients: ", e);
         			topoConnected = false;
         		}
-        		
         		logger.info("Topology: All clients are connected to existing brokers.");
         	}
         }
@@ -264,13 +316,11 @@ public class LogicalTopology {
 	private boolean attemptToReachAllBrokerNodes(HashMap<String, VisitedState> brokerVisitedList)
 	{
 		boolean nodesHaveConnections = true;
-		
-		// To reach all nodes, this code uses a Breadth-First Search
-		
 		Queue<String> queue = new LinkedList<String>();
 		
-		String startingNode = randomlySelectBrokerNode();
-		logger.debug(logHeader + "Starting at node: " + startingNode +".");		
+		String[] brokerNodes = brokers.keySet().toArray(new String[brokers.size()]);
+		String startingNode = PSTBUtil.randomlySelectString(brokerNodes);
+		logger.debug(logHeader + "Starting at node: " + startingNode +".");	
 		brokerVisitedList.put(startingNode, VisitedState.VISITED);
 		queue.add(startingNode);
 		
@@ -302,50 +352,7 @@ public class LogicalTopology {
 				}
 			}
         }
+		
 		return nodesHaveConnections;
-	}
-	
-	/**
-	 * Returns a random node from the Broker ("B") group
-	 * 
-	 * @param brokerGroup - the "B" group
-	 * @returns the name of a broker node
-	 */
-	private String randomlySelectBrokerNode()
-	{
-		Random generator = new Random();
-		String[] brokerNodes = brokers.keySet().toArray(new String[brokers.size()]);
-		int i = generator.nextInt(brokerNodes.length);
-		return  brokerNodes[i];
-	}
-	
-	/**
-	 * Returns the size of the network - i.e. how many brokers and clients there are
-	 * 
-	 * @return the size of the network
-	 */
-	public int networkSize() 
-	{
-		return brokers.size() + clients.size();
-	}
-	
-	/**
-	 * Returns the number of brokers there are in the network
-	 * 
-	 * @return the number of brokers
-	 */
-	public int numBrokers()
-	{
-		return brokers.size();
-	}
-	
-	/**
-	 * Returns the number of clients there are in the network
-	 * 
-	 * @return the number of clients
-	 */
-	public int numClients()
-	{
-		return clients.size();
 	}
 }

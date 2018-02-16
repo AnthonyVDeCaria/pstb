@@ -65,29 +65,4 @@ public class SIENABrokerProcess extends PSTBBrokerProcess {
 		}
 	}
 
-	@Override
-	protected boolean connect() {
-		String brokerIURI = actualNode.getBrokerURI();
-		String[] bIsNeighboursURIs = actualNode.getNeighbourURIS();
-		
-		for(int j = 0 ; j < bIsNeighboursURIs.length ; j++)
-		{
-			String brokerJURI = bIsNeighboursURIs[j];
-			String brokerJID = actualNode.getID(brokerJURI);
-			
-			String[] connectCommand = {"./connectSBrokers.sh", brokerIURI, brokerJID, brokerJURI};
-			
-			Boolean connectCheck = PSTBUtil.createANewProcess(connectCommand, log, false, 
-					"Problem connecting brokers " + brokerIURI + " & " + brokerJURI + ":", 
-					"Connected brokers " + brokerIURI + " & " + brokerJURI + ".",
-					"Couldn't connect brokers " + brokerIURI + " & " + brokerJURI + "!");
-			if(connectCheck == null || !connectCheck.booleanValue())
-			{
-				return false;
-			}
-		}
-		
-		return true;
-	}
-
 }

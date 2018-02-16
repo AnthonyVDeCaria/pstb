@@ -1,1 +1,3 @@
-500	s	class,=,"oneITS"|area,=,tor|value,<,100.0
+500	s	class,=,temp
+500	u	class,=,temp
+500	s	class,=,temp|area,=,tor|temp,<,100

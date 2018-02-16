@@ -11,7 +11,7 @@ fi
 
 echo "Starting SIENA broker $brokerID"
 	
-java -cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar siena.StartDVDRPServer -id $brokerID -receiver $brokerURI &
+java -cp target/pstb-0.0.1-SNAPSHOT-jar-with-dependencies.jar siena.StartDVDRPServer -id $brokerID -receiver $brokerURI -log testLog"$brokerID".log -log-level DEBUG&
 
 exitVal=$?
 echo "$exitVal"

@@ -62,9 +62,4 @@ public class PADRESBrokerProcess extends PSTBBrokerProcess {
 		return true;
 	}
 
-	@Override
-	protected boolean connect() {
-		return true;
-	}
-
 }

@@ -43,6 +43,8 @@ public class SIENAListener implements Notifiable
 	public void notify(Notification arg0) throws SienaException {
 		ThreadContext.put("client", diaryName);
 		
+		clientLog.debug("Received a new message...");
+		
 		Long currentTime = System.currentTimeMillis();
 		DiaryEntry receivedMsg = new DiaryEntry();
 		
@@ -63,6 +65,7 @@ public class SIENAListener implements Notifiable
 		}
 		
 		clientLog.debug(logHeader + "New publication received " + attributes + ".");
+		System.out.println(attributes);
 	}
 
 	@Override
