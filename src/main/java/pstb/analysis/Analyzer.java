@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
-import pstb.analysis.diary.DiaryEntry.DiaryHeader;
+import pstb.analysis.diary.DiaryHeader;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.object.client.padres.PSClientPADRES;
 import pstb.startup.config.NetworkProtocol;

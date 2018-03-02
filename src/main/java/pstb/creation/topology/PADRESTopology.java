@@ -10,6 +10,7 @@ import pstb.benchmark.object.broker.PSBroker;
 import pstb.benchmark.object.broker.PSBrokerPADRES;
 import pstb.benchmark.object.client.PSClient;
 import pstb.benchmark.object.client.padres.PSClientPADRES;
+import pstb.startup.config.BenchmarkMode;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.config.SupportedEngines.PSEngine;
 import pstb.startup.topology.LogicalTopology;
@@ -37,12 +38,12 @@ public class PADRESTopology extends PhysicalTopology {
 	 * @param givenWorkload
 	 * @throws UnknownHostException
 	 */
-	public PADRESTopology(LogicalTopology givenTopo,  
+	public PADRESTopology(BenchmarkMode givenMode, LogicalTopology givenTopo,  
 			NetworkProtocol givenProtocol, String givenUser, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
 			HashMap<String, ArrayList<PSAction>> givenWorkload, 
 			String givenBST, String givenTFS) throws UnknownHostException
 	{
-		super(givenTopo, givenProtocol, givenUser, givenHostsAndPorts, givenWorkload, givenBST, givenTFS);
+		super(givenMode, givenTopo, givenProtocol, givenUser, givenHostsAndPorts, givenWorkload, givenBST, givenTFS);
 		
 		logHeader = "PADRES Topology: ";
 		BROKER_PROCESS_CLASS_NAME = "pstb.benchmark.process.PSTBProcess";

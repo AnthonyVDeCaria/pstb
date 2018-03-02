@@ -20,6 +20,7 @@ import pstb.creation.topology.PhysicalTopology.ActiveProcessRetVal;
 import pstb.creation.topology.SIENATopology;
 import pstb.startup.DistributedFileParser;
 import pstb.startup.config.BenchmarkConfig;
+import pstb.startup.config.BenchmarkMode;
 import pstb.startup.config.DistributedState;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.config.SupportedEngines.PSEngine;
@@ -291,93 +292,110 @@ public class PSTB {
 		// Benchmark
 		Long currTime = System.currentTimeMillis();
 		String currTimeString = PSTBUtil.DATE_FORMAT.format(currTime);
-		String localUsername = System.getProperty("user.name");
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
+		ArrayList<BenchmarkMode> askedModes = benchmarkRules.getModes();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
 		
 		logger.info("Beginning to create Physical Topology...");
-		
-		logger.debug("There are " + allLTs.size() + " logical topologies.");
-		for( ; iteratorLT.hasNext() ; )
+		int numModes = askedModes.size();
+		for(int i = 0 ; i < numModes ; i++)
 		{
-			String topologyI = iteratorLT.next();
-			LogicalTopology actualTopologyI = allLTs.get(topologyI);
-			DistributedState givenDS = askedDistributed.get(topologyI);
-			ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
+			BenchmarkMode modeI = askedModes.get(i);
 			
-			for(int i = 0 ; i < askedProtocols.size() ; i++)
+			for( ; iteratorLT.hasNext() ; )
 			{
-				NetworkProtocol givenProtocolI = askedProtocols.get(i);
+				String topologyI = iteratorLT.next();
+				LogicalTopology actualTopologyI = allLTs.get(topologyI);
+				DistributedState givenDS = askedDistributed.get(topologyI);
+				ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
 				
-				PhysicalTopology local = null;
-				PhysicalTopology dis = null;
-				boolean checkLocalPT = true;
-				boolean checkDisPT = true;
-				
-				if(PADRESTopology.SUPPORTED_PROTOCOLS.contains(givenProtocolI))
+				for(int j = 0 ; j < askedProtocols.size() ; j++)
 				{
-					try
+					NetworkProtocol givenProtocolJ = askedProtocols.get(j);
+					
+					PhysicalTopology local = null;
+					PhysicalTopology dis = null;
+					boolean checkLocalPT = true;
+					boolean checkDisPT = true;
+					
+					if(PADRESTopology.SUPPORTED_PROTOCOLS.contains(givenProtocolJ))
 					{
-						local = new PADRESTopology(actualTopologyI,  givenProtocolI, localUsername, null, PADRESWorkload, 
-								currTimeString, topologyI);
-						dis = new PADRESTopology(actualTopologyI,  givenProtocolI, disUsername, disHostsAndPorts, PADRESWorkload, 
-								currTimeString, topologyI);
+						try
+						{
+							local = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, null, null, PADRESWorkload, 
+									currTimeString, topologyI);
+							dis = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, disUsername, disHostsAndPorts, 
+									PADRESWorkload, currTimeString, topologyI);
+						}
+						catch (UnknownHostException e)
+						{
+							logger.error("Couldn't create PhysicalTopolgies: ", e);
+							endProgram(PSTBError.M_TOPO_PHY, userInput);
+						}
 					}
-					catch (UnknownHostException e)
+					else if(SIENATopology.SUPPORTED_PROTOCOLS.contains(givenProtocolJ))
 					{
-						logger.error("Couldn't create PhysicalTopolgies: ", e);
+						try
+						{
+							local = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, null, null, SIENAWorkload, 
+									currTimeString, topologyI);
+							dis = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, disUsername, disHostsAndPorts, SIENAWorkload, 
+									currTimeString, topologyI);
+						}
+						catch (UnknownHostException e)
+						{
+							logger.error("Couldn't create PhysicalTopolgies: ", e);
+							endProgram(PSTBError.M_TOPO_PHY, userInput);
+						}
+					}
+					
+					if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
+					{
+						checkLocalPT = local.developTopologyObjects(false);
+					}
+					if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
+					{
+						checkDisPT = dis.developTopologyObjects(true);
+					}
+					
+					if(!checkDisPT || !checkLocalPT)
+					{
+						logger.error("Error creating physical topology!");
 						endProgram(PSTBError.M_TOPO_PHY, userInput);
 					}
-				}
-				else if(SIENATopology.SUPPORTED_PROTOCOLS.contains(givenProtocolI))
-				{
-					try
+					
+					logger.info("Beginning experiment...");
+					boolean successfulExperiment = true;
+					if(modeI.equals(BenchmarkMode.Normal))
 					{
-						local = new SIENATopology(actualTopologyI,  givenProtocolI, localUsername, null, SIENAWorkload, 
-								currTimeString, topologyI);
-						dis = new SIENATopology(actualTopologyI,  givenProtocolI, disUsername, disHostsAndPorts, SIENAWorkload, 
-								currTimeString, topologyI);
+						if(local.doAnyObjectsExist())
+						{
+							successfulExperiment = conductNormalExperiment(local, benchmarkRules.getRunLengths(),
+																		benchmarkRules.getNumRunsPerExperiment());
+						}
+						if(dis.doAnyObjectsExist())
+						{
+							successfulExperiment = conductNormalExperiment(dis, benchmarkRules.getRunLengths(),
+																		benchmarkRules.getNumRunsPerExperiment());
+						}
 					}
-					catch (UnknownHostException e)
+					else if(modeI.equals(BenchmarkMode.Throughput))
 					{
-						logger.error("Couldn't create PhysicalTopolgies: ", e);
-						endProgram(PSTBError.M_TOPO_PHY, userInput);
+						if(local.doAnyObjectsExist())
+						{
+							successfulExperiment = conductThroughputExperiment(local, benchmarkRules.getPeriodLength());
+						}
+						if(dis.doAnyObjectsExist())
+						{
+							successfulExperiment = conductThroughputExperiment(dis, benchmarkRules.getPeriodLength());
+						}
 					}
-				}
-				
-				if(givenDS.equals(DistributedState.No) || givenDS.equals(DistributedState.Both) )
-				{
-					checkLocalPT = local.developTopologyObjects(false);
-				}
-				if(givenDS.equals(DistributedState.Yes) || givenDS.equals(DistributedState.Both) )
-				{
-					checkDisPT = dis.developTopologyObjects(true);
-				}
-				
-				if(!checkDisPT || !checkLocalPT)
-				{
-					logger.error("Error creating physical topology!");
-					endProgram(PSTBError.M_TOPO_PHY, userInput);
-				}
-				
-				logger.info("Beginning experiment...");
-				boolean successfulExperiment = true;
-				
-				if(local.doAnyObjectsExist())
-				{
-					successfulExperiment = conductExperiment(local, benchmarkRules.getRunLengths(),
-																benchmarkRules.getNumRunsPerExperiment());
-				}
-				if(dis.doAnyObjectsExist())
-				{
-					successfulExperiment = conductExperiment(dis, benchmarkRules.getRunLengths(),
-																benchmarkRules.getNumRunsPerExperiment());
-				}
-				
-				if(!successfulExperiment)
-				{
-					logger.error("Error conducting the experiment!");
-					endProgram(PSTBError.M_EXPERIMENT, userInput);
+					
+					if(!successfulExperiment)
+					{
+						logger.error("Error conducting the experiment!");
+						endProgram(PSTBError.M_EXPERIMENT, userInput);
+					}
 				}
 			}
 		}
@@ -481,9 +499,9 @@ public class PSTB {
 	 * @param givenAnalyzer - the Benchmark's analyzer
 	 * @return false if there is a failure; true otherwise
 	 */
-	private static boolean conductExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
+	private static boolean conductNormalExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
 	{
-		// We'll need this to collect the diaries latter, so...
+		// We'll need this in case there is an error, so...
 		Boolean givenPTDis = givenPT.getDistributed();
 		
 		if(givenPTDis == null)
@@ -505,7 +523,7 @@ public class PSTB {
 			{
 				CountDownLatch start = new CountDownLatch(1);
 																
-				boolean prepCheck = givenPT.prepareRun(start, iTHRunLengthNano, runI);
+				boolean prepCheck = givenPT.prepareNormalRun(start, iTHRunLengthNano, runI);
 				if(!prepCheck)
 				{
 					logger.error("Couldn't prepare experiment!");
@@ -604,6 +622,99 @@ public class PSTB {
 			}
 		}
 		
+		logger.info("Experiment successful.");
+		return true;
+	}
+	
+	/**
+	 * Given a set of parameters, conducts a particular Benchmark Experiment 
+	 * 
+	 * @param givenPT - the Experiment's PhysicalTopology
+	 * @param givenRLs - the length a given run of the Experiment should be
+	 * @return false if there is a failure; true otherwise
+	 */
+	private static boolean conductThroughputExperiment(PhysicalTopology givenPT, Long givenPL)
+	{
+		// We'll need this in case there is an error, so...
+		Boolean givenPTDis = givenPT.getDistributed();
+		
+		if(givenPTDis == null)
+		{
+			logger.error("Error with givenPT - distributed value not set properly!");
+			return false;
+		}
+		
+		CountDownLatch start = new CountDownLatch(1);
+																
+		boolean prepCheck = givenPT.prepareThroughputRun(start, givenPL);
+		if(!prepCheck)
+		{
+			logger.error("Couldn't prepare experiment!");
+			return false;
+		}
+				
+		boolean runCheck = givenPT.startRun();
+		if(!runCheck)
+		{
+			logger.error("Error starting run!");
+			return false;
+		}
+		logger.debug("Run starting...");
+				
+		try 
+		{
+			start.await();
+		} 
+		catch (InterruptedException e) 
+		{
+			logger.error("Interrupted waiting for start signal: ", e);
+		}
+		logger.info("Start signal receieved.");
+			
+		PSTBUtil.synchronizeRun();
+		logger.info("Synchronization complete.");
+				
+		PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
+		while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
+		{
+			// If ActiveProcesses had an error... well...
+			if(valueCAP.equals(ActiveProcessRetVal.Error))
+			{
+				logger.error("Run ran into an error!");
+				killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+				return false;
+			}
+			// If all of our processes have finished, we have an error - brokers should never self-terminate
+			else if(valueCAP.equals(ActiveProcessRetVal.AllOff))
+			{
+				logger.error("Run has no more client or broker processes!");
+				killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+				return false;
+			}
+					
+			// So that we don't continuously check, let's put this thread to sleep for two seconds
+			try 
+			{				
+				logger.trace("Pausing main.");
+				Thread.sleep(2000);
+			} 
+			catch (InterruptedException e) 
+			{
+				logger.error("Error sleeping in main:", e);
+				killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+				return false;
+			}
+					
+			valueCAP = givenPT.checkActiveProcesses();
+		}	
+		logger.info("Run ended.");
+				
+		killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+				
+		givenPT.destroyAllActiveNodes();
+		givenPT.resetSystemAfterRun();
+		logger.info("Run complete.");
+			
 		logger.info("Experiment successful.");
 		return true;
 	}

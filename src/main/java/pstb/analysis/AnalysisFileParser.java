@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.analysis.diary.DiaryEntry.DiaryHeader;
+import pstb.analysis.diary.DiaryHeader;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;

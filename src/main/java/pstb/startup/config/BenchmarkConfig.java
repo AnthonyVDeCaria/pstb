@@ -20,15 +20,20 @@ import pstb.util.PSTBUtil;
 
 public class BenchmarkConfig {
 	private final String enginesString = "startup.engines";
+	private final String modesString = "startup.modes";
 	private final String tfsString = "startup.topologyFilesStrings";
 	private final String distributedString = "startup.distributed";
 	private final String dfsString = "startup.distributedFileString";
 	private final String protocolsString = "startup.protocols";
 	private final String runLengthsString = "startup.runLengths";
 	private final String nrpeString = "startup.numRunsPerExperiment";
+//	private final String initialDelayString = "startup.initialDelay";
+//	private final String initialPayloadString = "startup.initialPayload";
+	private final String periodLengthString = "startup.periodLength";
 	private final String wfsString = "startup.workloadFilesStrings";
 	
 	private ArrayList<PSEngine> engines;
+	private ArrayList<BenchmarkMode> modes;
 	
 	private ArrayList<String> topologyFilesStrings;
 	
@@ -36,16 +41,23 @@ public class BenchmarkConfig {
 	private boolean wantDistributed;
 	private String distributedFileString;
 	
+	private ArrayList<NetworkProtocol> protocols;
 	private boolean wantPADRES;
 	private boolean wantSIENA;
-	private ArrayList<NetworkProtocol> protocols;
+	
+	private boolean wantNormal;
 	private ArrayList<Long> runLengths; // Milliseconds
 	private Integer numRunsPerExperiment;
+	
+	private boolean wantThroughput;
+	private Long periodLength;
+//	private Long initialDelay;
+//	private Integer initialPayload;
 	
 	private ArrayList<String> workloadFilesStrings;
 	
 	private Logger logger = null;
-	private final String logHeader = "Properties: ";
+	private final String logHeader = "Benchmark Config: ";
 	
 	/**
 	 * Constructor
@@ -58,15 +70,27 @@ public class BenchmarkConfig {
 		logger = log;
 		
 		engines = new ArrayList<PSEngine>();
+		modes = new ArrayList<BenchmarkMode>();
+		
 		topologyFilesStrings = new ArrayList<String>();
+		
 		distributed = new HashMap<String, DistributedState>();
 		wantDistributed = false;
-		distributedFileString = new String();
+		distributedFileString = null;
+		
 		protocols = new ArrayList<NetworkProtocol>();
 		wantPADRES = false;
 		wantSIENA = false;
+		
+		wantNormal = false;
 		runLengths = new ArrayList<Long>();
-		numRunsPerExperiment = new Integer(0);
+		numRunsPerExperiment = null;
+		
+		wantThroughput = false;
+		periodLength = null;
+//		initialDelay = null;
+//		initialPayload = null;
+		
 		workloadFilesStrings = new ArrayList<String>();
 	}
 	
@@ -87,7 +111,6 @@ public class BenchmarkConfig {
 		
 		// Engines
 		String unsplitEngines = givenProperty.getProperty(enginesString);
-		ArrayList<PSEngine> requestedEngines = new ArrayList<PSEngine>();
 		if(unsplitEngines != null)
 		{
 			String[] splitEngines = unsplitEngines.split(PSTBUtil.ITEM_SEPARATOR);
@@ -105,7 +128,7 @@ public class BenchmarkConfig {
 					catch(IllegalArgumentException e)
 					{
 						everythingisProper = false;
-						requestedEngines.clear();
+						engines.clear();
 						logger.error(logHeader + stringEI + " is not a Supported Engine: ", e);
 						break;
 					}
@@ -117,7 +140,7 @@ public class BenchmarkConfig {
 					{
 						wantSIENA = true;
 					}
-					requestedEngines.add(eI);
+					engines.add(eI);
 				}
 			}
 			else
@@ -129,16 +152,59 @@ public class BenchmarkConfig {
 		{
 			everythingisProper = false;
 		}
-		setEngines(requestedEngines);
+		
+		String unsplitModes = givenProperty.getProperty(modesString);
+		if(unsplitModes != null)
+		{
+			String[] splitModes = unsplitModes.split(PSTBUtil.ITEM_SEPARATOR);
+			int numModes = splitModes.length;
+			if(numModes <= PSEngine.values().length)
+			{
+				for(int i = 0 ; i < numModes ; i++ )
+				{
+					String stringMI = splitModes[i];
+					BenchmarkMode mI = null;
+					try
+					{
+						mI = BenchmarkMode.valueOf(stringMI);
+					}
+					catch(IllegalArgumentException e)
+					{
+						everythingisProper = false;
+						modes.clear();
+						logger.error(logHeader + stringMI + " is not a supported BenchmarkMode: ", e);
+						break;
+					}
+					
+					if(mI.equals(BenchmarkMode.Normal))
+					{
+						wantNormal = true;
+					}
+					else if(mI.equals(BenchmarkMode.Throughput))
+					{
+						wantThroughput = true;
+					}
+					
+					modes.add(mI);
+				}
+			}
+			else
+			{
+				everythingisProper = false;
+			}
+		}
+		else
+		{
+			everythingisProper = false;
+		}
 		
 		// TopologyFilesStrings
 		String unsplitTFS = givenProperty.getProperty(tfsString);
 		String[] splitTFS = unsplitTFS.split(PSTBUtil.ITEM_SEPARATOR);
-		setTopologyFilesStrings(PSTBUtil.turnStringArrayIntoArrayListString(splitTFS));
+		topologyFilesStrings = PSTBUtil.turnStringArrayIntoArrayListString(splitTFS);
 		
 		// Distributed
 		String unsplitDistributedStates = givenProperty.getProperty(distributedString);
-		HashMap<String, DistributedState> requestedDS = new HashMap<String, DistributedState>();
 		if(unsplitDistributedStates != null)
 		{
 			String[] splitDS = unsplitDistributedStates.split(PSTBUtil.ITEM_SEPARATOR);
@@ -157,12 +223,12 @@ public class BenchmarkConfig {
 							wantDistributed = true;
 						}
 						
-						requestedDS.put(topologyFilesStrings.get(i), dsI);
+						distributed.put(topologyFilesStrings.get(i), dsI);
 					}
 					catch(IllegalArgumentException e)
 					{
 						everythingisProper = false;
-						requestedDS.clear();
+						distributed.clear();
 						logger.error(logHeader + stringDSI + " is not a valid Distributed value: ", e);
 					}
 				}
@@ -176,26 +242,20 @@ public class BenchmarkConfig {
 		{
 			everythingisProper = false;
 		}
-		setDistributed(requestedDS);
 		
 		// DistributedFileString
 		if(wantDistributed)
 		{
-			String requestedDFS = givenProperty.getProperty(dfsString);
-			if(requestedDFS == null || requestedDFS.equals("null"))
+			distributedFileString = givenProperty.getProperty(dfsString);
+			if(distributedFileString == null || distributedFileString.equals("null"))
 			{
 				logger.error(logHeader + "No valid Distributed File given!");
 				everythingisProper = false;
-			}
-			else
-			{
-				setDistributedFileString(requestedDFS);
 			}
 		}
 		
 		// Protocols
 		String unsplitProtocols = givenProperty.getProperty(protocolsString);
-		ArrayList<NetworkProtocol> requestedProtocols = new ArrayList<NetworkProtocol>();
 		if(unsplitProtocols != null)
 		{
 			String[] splitProtocols = unsplitProtocols.split(PSTBUtil.ITEM_SEPARATOR);
@@ -224,12 +284,12 @@ public class BenchmarkConfig {
 					
 					if(validPADRES || validSIENA)
 					{
-						requestedProtocols.add(pI);
+						protocols.add(pI);
 					}
 					else
 					{
 						everythingisProper = false;
-						requestedProtocols.clear();
+						protocols.clear();
 						logger.error(logHeader + stringPI + " is not a valid Protocol!");
 						break;
 					}
@@ -238,8 +298,8 @@ public class BenchmarkConfig {
 				if((wantPADRES && givenPADRESProtocols == 0) || (wantSIENA && givenSIENAProtocols == 0))
 				{
 					everythingisProper = false;
-					requestedProtocols.clear();
-					logger.error(logHeader + " not enough protocols were given for the requested engines!");
+					protocols.clear();
+					logger.error(logHeader + "not enough protocols were given for the requested engines!");
 				}
 			}
 			else
@@ -251,150 +311,103 @@ public class BenchmarkConfig {
 		{
 			everythingisProper = false;
 		}
-		setProtocols(requestedProtocols);
 		
-		// runLengths
-		String unsplitRL = givenProperty.getProperty(runLengthsString);
-		ArrayList<Long> requestedRL = new ArrayList<Long>();
-		if(unsplitRL != null)
+		if(wantNormal)
 		{
-			String[] splitRL = unsplitRL.split(PSTBUtil.ITEM_SEPARATOR);
-			for(int i = 0 ; i < splitRL.length ; i++)
+			// runLengths
+			String unsplitRL = givenProperty.getProperty(runLengthsString);
+			if(unsplitRL != null)
 			{
-				String stringRLI = splitRL[i];
-				try
+				String[] splitRL = unsplitRL.split(PSTBUtil.ITEM_SEPARATOR);
+				for(int i = 0 ; i < splitRL.length ; i++)
 				{
-					Long rlI = Long.parseLong(stringRLI);
-					requestedRL.add(rlI);
-				}
-				catch(IllegalArgumentException e)
-				{
-					everythingisProper = false;
-					requestedRL.clear();
-					logger.error(logHeader + stringRLI + " is not a valid Integer: ", e);
-					break;
+					String stringRLI = splitRL[i];
+					try
+					{
+						Long rlI = Long.parseLong(stringRLI);
+						runLengths.add(rlI);
+					}
+					catch(IllegalArgumentException e)
+					{
+						everythingisProper = false;
+						runLengths.clear();
+						logger.error(logHeader + stringRLI + " is not a valid Integer: ", e);
+						break;
+					}
 				}
 			}
+			else
+			{
+				everythingisProper = false;
+			}
+			
+			// numRunsPerExperiment
+			String givenNRPE = givenProperty.getProperty(nrpeString);
+			try
+			{
+				numRunsPerExperiment = Integer.parseInt(givenNRPE);
+			}
+			catch(IllegalArgumentException e)
+			{
+				logger.error(logHeader + givenNRPE + " is not a valid Integer: ", e);
+				everythingisProper = false;
+			}
 		}
-		else
-		{
-			everythingisProper = false;
-		}
-		setRunLengths(requestedRL);
 		
-		// numRunsPerExperiment
-		String givenNRPE = givenProperty.getProperty(nrpeString);
-		try
+		if(wantThroughput)
 		{
-			Integer intNRPE = Integer.parseInt(givenNRPE);
-			setNumRunsPerExperiment(intNRPE);
-		}
-		catch(IllegalArgumentException e)
-		{
-			logger.error(logHeader + givenNRPE + " is not a valid Integer: ", e);
-			everythingisProper = false;
+			// PeriodLength
+			String givenPLS = givenProperty.getProperty(periodLengthString);
+			Long temp = null;
+			try
+			{
+				temp = Long.parseLong(givenPLS);
+			}
+			catch(IllegalArgumentException e)
+			{
+				logger.error(logHeader + givenPLS + " is not a valid Long: ", e);
+				everythingisProper = false;
+			}
+			periodLength = temp * PSTBUtil.MILLISEC_TO_NANOSEC;
+			
+//			// InitialDelay
+//			String givenIDS = givenProperty.getProperty(initialDelayString);
+//			try
+//			{
+//				initialDelay = Long.parseLong(givenIDS);
+//			}
+//			catch(IllegalArgumentException e)
+//			{
+//				logger.error(logHeader + givenIDS + " is not a valid Long: ", e);
+//				everythingisProper = false;
+//			}
+//			
+//			// InitialPayload
+//			String givenIPS = givenProperty.getProperty(initialPayloadString);
+//			try
+//			{
+//				initialPayload = Integer.parseInt(givenIPS);
+//			}
+//			catch(IllegalArgumentException e)
+//			{
+//				logger.error(logHeader + givenIPS + " is not a valid Integer: ", e);
+//				everythingisProper = false;
+//			}
 		}
 		
 		// workloadFilesStrings
 		String unsplitWFS = givenProperty.getProperty(wfsString);
-		ArrayList<String> requestedPWFS = new ArrayList<String>();
 		if(unsplitWFS != null)
 		{
-			String[] splitPWFS = unsplitWFS.split(PSTBUtil.ITEM_SEPARATOR);
-			requestedPWFS = PSTBUtil.turnStringArrayIntoArrayListString(splitPWFS);
+			String[] splitWFS = unsplitWFS.split(PSTBUtil.ITEM_SEPARATOR);
+			workloadFilesStrings = PSTBUtil.turnStringArrayIntoArrayListString(splitWFS);
 		}
 		else
 		{
 			everythingisProper = false;
 		}
-		setWorkloadFilesStrings(requestedPWFS);
 		
 		return everythingisProper;
-	}
-	
-	/**
-	 * NOTE: All the setter functions are private 
-	 * as the only "setter" that should be accessed is setBenchmarkConfig
-	 */
-	
-	/**
-	 * Sets the engines
-	 * 
-	 * @param nE - the new engines
-	 */
-	private void setEngines(ArrayList<PSEngine> nE)
-	{
-		engines = nE;
-	}
-	
-	/**
-	 * Sets the topologyFilesStrings
-	 * 
-	 * @param nTFS - the new topologyFilesStrings
-	 */
-	private void setTopologyFilesStrings(ArrayList<String> nTFS)
-	{
-		topologyFilesStrings = nTFS;
-	}
-	
-	/**
-	 * Sets the distributed array
-	 * 
-	 * @param nDis - the new distributed
-	 */
-	private void setDistributed(HashMap<String, DistributedState> nDis)
-	{
-		distributed = nDis;
-	}
-	
-	/**
-	 * Sets the distributed array
-	 * 
-	 * @param nDFS - the new distributed File String
-	 */
-	private void setDistributedFileString(String nDFS) 
-	{
-		distributedFileString = nDFS;
-	}
-	
-	/**
-	 * Sets the protocols
-	 * 
-	 * @param nProto - the new protocols
-	 */
-	private void setProtocols(ArrayList<NetworkProtocol> nProto)
-	{
-		protocols = nProto;
-	}
-	
-	/**
-	 * Sets the runLength
-	 * 
-	 * @param proto - the new protocols
-	 */
-	private void setRunLengths(ArrayList<Long> nRL)
-	{
-		runLengths = nRL;
-	}
-	
-	/**
-	 * Sets the numRunsPerExperiment
-	 * 
-	 * @param nNRPE - the new numRunsPerExperiment
-	 */
-	private void setNumRunsPerExperiment(Integer nNRPE)
-	{
-		numRunsPerExperiment = nNRPE;
-	}
-	
-	/**
-	 * Sets the workloadFilesStrings
-	 * 
-	 * @param nWFS - the new workloadFilesStrings
-	 */
-	private void setWorkloadFilesStrings(ArrayList<String> nWFS)
-	{
-		workloadFilesStrings = nWFS;
 	}
 	
 	/**
@@ -405,6 +418,16 @@ public class BenchmarkConfig {
 	public ArrayList<PSEngine> getEngines()
 	{
 		return engines;
+	}
+	
+	/**
+	 * Gets the modes
+	 * 
+	 * @return modes - the list of modes to be used
+	 */
+	public ArrayList<BenchmarkMode> getModes()
+	{
+		return modes;
 	}
 	
 	/**
@@ -498,6 +521,36 @@ public class BenchmarkConfig {
 	}
 	
 	/**
+	 * Gets the initialDelay
+	 * 
+	 * @return initialDelay - the initial delay value to be used in a throughput experiment
+	 */
+//	public Long getInitialDelay()
+//	{
+//		return initialDelay;
+//	}
+	
+	/**
+	 * Gets the initialPayload
+	 * 
+	 * @return initialPayload - the initial payload value to be used in a throughput experiment
+	 */
+//	public Integer getInitialPayload()
+//	{
+//		return initialPayload;
+//	}
+	
+	/**
+	 * Gets the periodLength
+	 * 
+	 * @return periodLength - the length of a period in a throughput experiment
+	 */
+	public Long getPeriodLength()
+	{
+		return periodLength;
+	}
+	
+	/**
 	 * Gets the WorkloadFilesStrings
 	 * 
 	 * @return the WorkloadFilesStrings 
@@ -513,6 +566,7 @@ public class BenchmarkConfig {
 	public void printAllFields()
 	{
 		logger.info(logHeader + "engines = " + Arrays.toString(engines.toArray()) + ".");
+		logger.info(logHeader + "modes = " + Arrays.toString(modes.toArray()) + ".");
 		logger.info(logHeader + "topologyFilesStrings = " + Arrays.toString(topologyFilesStrings.toArray()) + ".");
 		logger.info(logHeader + "distributed = " + distributed.toString() + ".");
 		if(wantDistributed)
@@ -525,8 +579,17 @@ public class BenchmarkConfig {
 			logger.info(logHeader + "Distributed systems not requested.");
 		}
 		logger.info(logHeader + "protocols = " + Arrays.toString(protocols.toArray()) + ".");
-		logger.info(logHeader + "runLength = " + Arrays.toString(runLengths.toArray()) + ".");
-		logger.info(logHeader + "numRunsPerExperiment = " + numRunsPerExperiment + ".");
+		if(wantNormal)
+		{
+			logger.info(logHeader + "runLength = " + Arrays.toString(runLengths.toArray()) + ".");
+			logger.info(logHeader + "numRunsPerExperiment = " + numRunsPerExperiment + ".");
+		}
+		if(wantThroughput)
+		{
+//			logger.info(logHeader + "initialDelay = " + initialDelay + ".");
+//			logger.info(logHeader + "initialPayload = " + initialPayload + ".");
+			logger.info(logHeader + "periodLength = " + periodLength + ".");
+		}
 		logger.info(logHeader + "workloadFilesStrings = " + Arrays.toString(workloadFilesStrings.toArray()) + ".");
 	}
 	
@@ -545,6 +608,11 @@ public class BenchmarkConfig {
 			logger.error(logHeader + "No Engine(s) were given!");
 			anyFieldNull = true;
 		}
+		if(modes.isEmpty())
+		{
+			logger.error(logHeader + "No Modes(s) were given!");
+			anyFieldNull = true;
+		}
 		if(topologyFilesStrings.isEmpty())
 		{
 			logger.error(logHeader + "No Topology File String(s) were given!");
@@ -555,7 +623,7 @@ public class BenchmarkConfig {
 			logger.error(logHeader + "No Distributed information was given!");
 			anyFieldNull = true;
 		}
-		if(wantDistributed && distributedFileString.isEmpty())
+		if(wantDistributed && (distributedFileString == null))
 		{
 			logger.error(logHeader + " No Distributed File String was given!");
 			anyFieldNull = true;
@@ -565,16 +633,31 @@ public class BenchmarkConfig {
 			logger.error(logHeader + "No Protocol(s) were given!");
 			anyFieldNull = true;
 		}
-		if(runLengths.isEmpty())
+		if(wantNormal && runLengths.isEmpty())
 		{
 			logger.error(logHeader + "No Run Length(s) were given!");
 			anyFieldNull = true;
 		}
-		if(numRunsPerExperiment.equals(0))
+		if(wantNormal && numRunsPerExperiment == null)
 		{
 			logger.error(logHeader + "No Number of Experiment Runs was given!");
 			anyFieldNull = true;
 		}
+		if(wantThroughput && periodLength == null)
+		{
+			logger.error(logHeader + "No Period Length was given!");
+			anyFieldNull = true;
+		}
+//		if(wantThroughput && initialDelay == null)
+//		{
+//			logger.error(logHeader + "No Initial Delay was given!");
+//			anyFieldNull = true;
+//		}
+//		if(wantThroughput && initialPayload == null)
+//		{
+//			logger.error(logHeader + "No Initial Payload was given!");
+//			anyFieldNull = true;
+//		}
 		if(workloadFilesStrings.isEmpty())
 		{
 			logger.error(logHeader + "No Workload File String(s) were given!");

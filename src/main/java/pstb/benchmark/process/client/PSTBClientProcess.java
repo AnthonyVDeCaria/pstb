@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.object.client.PSClient;
+import pstb.benchmark.object.client.PSClientMode;
 import pstb.benchmark.process.PSTBProcess;
 import pstb.creation.topology.PADRESTopology;
 import pstb.startup.config.SupportedEngines.PSEngine;
@@ -58,8 +59,15 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 	{
 		PSClient givenClient = (PSClient) givenNode;
 		
+		PSClientMode givenMode = givenClient.getClientMode();
+		if((givenMode.equals(PSClientMode.TPPub)) || (givenMode.equals(PSClientMode.TPSub)))
+		{
+			givenClient.setMIP(masterIPAddress);
+			givenClient.setMasterPort(portNumber);
+		}
+		
 		log.debug(logHeader + "Attempting to setup client...");
-		boolean setupCheck = setup(givenNode);
+		boolean setupCheck = setup(givenClient);
 		if(!setupCheck)
 		{
 			log.error("Couldn't setup client!");
@@ -70,7 +78,7 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 		initalized();
 		
 		log.debug(logHeader + "Attempting to get start signal from master...");
-		String start = readConnection();
+		String start = PSTBUtil.readConnection(connection, log, logHeader);
 		if(start == null || !start.equals(PSTBUtil.START))
 		{
 			log.error(logHeader + "Didn't get start signal from master!");

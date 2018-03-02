@@ -13,6 +13,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -35,6 +36,7 @@ import pstb.benchmark.process.client.PSTBClientProcess;
 public class PSTBUtil {
 	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
 	public static final Long SEC_TO_NANOSEC = new Long(1000000000L);
+	public static final Long SEC_TO_MILLISEC = new Long(1000L);
 	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
 	
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd-HH:mm:ss.SSS");
@@ -50,6 +52,9 @@ public class PSTBUtil {
 	public static final String INIT = "On your command.";
 	public static final String START = "start";
 	public static final String LINK = "connect";
+	
+	public static final String ERROR = "ERROR!";
+	public static final String STOP = "STOP!";
 	
 	/**
 	 * Sees if a given String is an Integer
@@ -204,6 +209,26 @@ public class PSTBUtil {
 		}
 		
 		return true;
+	}
+	
+	public static String readConnection(Socket connection, Logger log, String logHeader)
+	{
+		String inputLine = new String();
+		try 
+		{
+			BufferedReader bufferedIn = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+			
+			if ((inputLine = bufferedIn.readLine()) != null) 
+			{
+				return inputLine;
+            }
+		}
+		catch (IOException e) 
+		{
+			log.error(logHeader + "Couldn't get a BufferedReader/InputStreamReader onto the Socket: ", e);
+		}
+		
+		return null; 
 	}
 	
 	/**

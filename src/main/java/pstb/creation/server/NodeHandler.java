@@ -29,6 +29,7 @@ public class NodeHandler extends Thread
 	private CountDownLatch brokersNotStarted;
 	private CountDownLatch brokersNotLinked;
 	private CountDownLatch start;
+	private CountDownLatch startSent;
 	
 	private Boolean nodeIsClient;
 	
@@ -36,24 +37,25 @@ public class NodeHandler extends Thread
 		Object, Init, Done; 
 	}
 	
-	private ServerMode mode;
+	private ServerMode sMode;
 	
 	private final String logHeader = "NodeHandler: ";
 	private final Logger log = LogManager.getLogger(PSTBServer.class);
 	
 	public NodeHandler(Socket givenPipe, CountDownLatch clientsReadySignal, CountDownLatch brokersStartedSignal,
-			CountDownLatch brokersReadySignal, CountDownLatch startSignal, PSTBServer givenServer)
+			CountDownLatch brokersReadySignal, CountDownLatch startSignal, CountDownLatch startSentSignal, PSTBServer givenServer)
 	{
 		objectPipe = givenPipe;
 		clientsNotWaiting = clientsReadySignal;
 		brokersNotStarted = brokersStartedSignal;
 		brokersNotLinked = brokersReadySignal;
 		start = startSignal;
+		startSent = startSentSignal;
 		master = givenServer;
 		
 		nodeIsClient = null;
 		
-		mode = ServerMode.Object;
+		sMode = ServerMode.Object;
 	}
 	
 	public void run()
@@ -81,7 +83,7 @@ public class NodeHandler extends Thread
 			
 			while ((inputLine = bufferedIn.readLine()) != null)
 			{
-				if(mode.equals(ServerMode.Object))
+				if(sMode.equals(ServerMode.Object))
 				{
 					nodeName = inputLine;
 					PSTBServerPacket nodeObject = master.getNode(nodeName);
@@ -109,9 +111,9 @@ public class NodeHandler extends Thread
 					PSTBUtil.sendObject(nodeObject.getNode(), inputLine, pipeOut, log, logHeader);
 					log.info(logHeader + "Object data sent to node " + nodeName + ".");
 					
-					mode = ServerMode.Init;
+					sMode = ServerMode.Init;
 				}
-				else if(mode.equals(ServerMode.Init))
+				else if(sMode.equals(ServerMode.Init))
 				{
 					if(!inputLine.equals(PSTBUtil.INIT))
 					{
@@ -146,11 +148,13 @@ public class NodeHandler extends Thread
 						log.debug(logHeader + "Sending " + nodeName + " the start signal...");
 						PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.START, log, logHeader);
 						log.info(logHeader + "Start signal sent to " + nodeName + ".");
+						
+						startSent.countDown();
 					}
 					
-					mode = ServerMode.Done;
+					sMode = ServerMode.Done;
 				}
-				else if(mode.equals(ServerMode.Done))
+				else if(sMode.equals(ServerMode.Done))
 				{
 					try 
 					{
@@ -165,7 +169,7 @@ public class NodeHandler extends Thread
 				}
 				else
 				{
-					endFailedThread(logHeader + "Invaild mode " + mode + "!", null, false);
+					endFailedThread(logHeader + "Invaild mode " + sMode + "!", null, false);
 				}
 			}
 		} 

@@ -26,18 +26,6 @@ public class DiaryEntry  implements java.io.Serializable
 	private final String logHeader = "DiaryEntry: ";
 	
 	/**
-	 * The allowed headers for this Diary Entry
-	 */
-	public enum DiaryHeader {
-		PSActionType,
-		TimeActionStarted, TimeBrokerFinished,
-		StartedAction, EndedAction, ActionDelay,
-		MessageID, Attributes, PayloadSize, 
-		TimeActiveStarted, TimeActiveEnded,
-		TimeMessageCreated, TimeMessageReceived, MessageDelay
-	}
-	
-	/**
 	 * Empty Constructor
 	 */
 	public DiaryEntry()

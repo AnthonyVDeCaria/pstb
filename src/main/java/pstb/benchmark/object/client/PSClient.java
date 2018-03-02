@@ -1,5 +1,8 @@
 package pstb.benchmark.object.client;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -7,8 +10,10 @@ import org.apache.logging.log4j.LogManager;
 
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
+import pstb.analysis.diary.DiaryHeader;
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.process.client.PSTBClientProcess;
+import pstb.startup.config.BenchmarkMode;
 import pstb.startup.workload.PSAction;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
@@ -27,6 +32,7 @@ public abstract class PSClient extends PSNode
 	// Constants
 	protected static final long serialVersionUID = 1L;
 	protected final long MIN_RUNLENGTH = 1;
+	protected final long TP_RUN_COMPLETE = -1;
 	
 	// Pre-set variables
 	protected ReentrantLock diaryLock = new ReentrantLock();
@@ -34,9 +40,16 @@ public abstract class PSClient extends PSNode
 	// Variables needed by user to run experiment
 	protected ArrayList<String> brokersURIs;
 	protected ArrayList<PSAction> workload;
+	protected PSClientMode cMode;
 	
-	// Variables set on creation
-	private long defaultDelay;
+	// Varaibles needed to run Throughput experiment
+	private String masterIPAddress;
+	private Integer portNumber;
+	private Long pubDelay;
+	private Double currentDelay;
+	
+	// Variables set during experiment
+	protected Integer receivedMessages;
 	
 	// Output Variables
 	protected ClientDiary diary;
@@ -48,8 +61,16 @@ public abstract class PSClient extends PSNode
 	{
 		super();
 		
-		brokersURIs = new ArrayList<String>();
-		workload = new ArrayList<PSAction>();
+		brokersURIs = null;
+		workload = null;
+		cMode = null;
+		
+		masterIPAddress = null;
+		portNumber = null;
+		pubDelay = null;
+		currentDelay = null;
+		
+		receivedMessages = new Integer(0);
 		
 		diary = new ClientDiary();
 		
@@ -77,6 +98,21 @@ public abstract class PSClient extends PSNode
 		workload = clientIWorkload;
 	}
 	
+	public void setClientMode(PSClientMode givenMode)
+	{
+		cMode = givenMode;
+	}
+	
+	public void setMIP(String givenIP)
+	{
+		masterIPAddress = givenIP;
+	}
+	
+	public void setMasterPort(Integer givenPort)
+	{
+		portNumber = givenPort;
+	}
+	
 	/**
 	 * Gets the URIs of the Broker(s) this Client is connected to 
 	 * 
@@ -98,6 +134,11 @@ public abstract class PSClient extends PSNode
 		return diary;
 	}
 	
+	public PSClientMode getClientMode()
+	{
+		return cMode;
+	}
+	
 	/**
 	 * Begins the run for the client
 	 * @return false if there are any errors; true otherwise
@@ -112,13 +153,73 @@ public abstract class PSClient extends PSNode
 		}
 		// We do
 		
-		defaultDelay = runLength / 10 / PSTBUtil.MILLISEC_TO_NANOSEC;
+		PSTBUtil.synchronizeRun();
+		
+		boolean runCheck = false;
+		if(cMode.equals(PSClientMode.Normal))
+		{
+			nodeLog.info(logHeader + "Starting normal run...");
+			runCheck = normalRun();
+		}
+		else
+		{
+			nodeLog.info(logHeader + "Starting throughput run...");
+			runCheck = throughputRun();
+		}
+		
+		return runCheck;
+	}
+	
+	protected boolean variableCheck()
+	{
+		boolean everythingPresent = true;
+		
+		everythingPresent = contextVariableCheck();
+		if(!everythingPresent)
+		{
+			return false;
+		}
+		
+		if(brokersURIs == null)
+		{
+			nodeLog.error("No broker URI was given!");
+			everythingPresent = false;
+		}
+		
+		if(cMode == null)
+		{
+			nodeLog.error("No PSClientMode was was given!");
+			everythingPresent = false;
+		}
+		else if(cMode.equals(PSClientMode.Normal))
+		{
+			if(!mode.equals(BenchmarkMode.Normal))
+			{
+				nodeLog.error("Mode mismatch!");
+				everythingPresent = false;
+			}
+			
+			if(workload == null)
+			{
+				nodeLog.error("No workload was given!");
+				everythingPresent = false;
+			}
+		}
+		else if((cMode.equals(PSClientMode.TPPub) || (cMode.equals(PSClientMode.TPSub))) && mode.equals(BenchmarkMode.Normal) )
+		{
+			nodeLog.error("Mode mismatch!");
+			everythingPresent = false;
+		}
+		
+		return everythingPresent;
+	}
+	
+	private boolean normalRun() 
+	{
+		Long defaultDelay = runLength / 10 / PSTBUtil.MILLISEC_TO_NANOSEC;
 		ArrayList<PSAction> activeList = new ArrayList<PSAction>();
 		int numActions = workload.size();
 		
-		PSTBUtil.synchronizeRun();
-		
-		nodeLog.info(logHeader + "Starting run...");
 		int i = 0;
 		Long runStart = System.nanoTime();
 		Long currentTime = System.nanoTime();
@@ -275,7 +376,7 @@ public abstract class PSClient extends PSNode
 				}
 				else
 				{
-					nodeLog.error(logHeader + "improper active list given");
+					nodeLog.error(logHeader + "improper active list given!");
 					return false;
 				}
 				
@@ -297,12 +398,12 @@ public abstract class PSClient extends PSNode
 			PSAction inactionActionJ = givenActiveList.get(j);
 			
 			nodeLog.debug(logHeader + "Removing " + inactionActionJ.getActionType().toString() + " " + inactionActionJ.getAttributes()
-							+ " from ActiveList");
+							+ " from ActiveList...");
 			givenActiveList.remove(j);
-			nodeLog.debug(logHeader + "Remove successful");
+			nodeLog.debug(logHeader + "Remove successful.");
 		}
 		
-		nodeLog.trace(logHeader + "Update complete");
+		nodeLog.trace(logHeader + "Update complete.");
 		return true;
 	}
 	
@@ -315,7 +416,7 @@ public abstract class PSClient extends PSNode
 	private boolean cleanup(ArrayList<PSAction> activeList)
 	{
 		int sizeAL = activeList.size();
-		nodeLog.debug(logHeader + "Undoing " + sizeAL + " 'infinite' actions."); 
+		nodeLog.debug(logHeader + "Undoing " + sizeAL + " 'infinite' actions..."); 
 		for(int i = 0 ; i < sizeAL ; i++)
 		{
 			PSAction activeActionI = activeList.get(i);
@@ -347,25 +448,240 @@ public abstract class PSClient extends PSNode
 		return true;
 	}
 	
-	protected boolean variableCheck()
+	private boolean throughputRun()
 	{
-		boolean everythingPresent = true;
-		
-		if(brokersURIs.isEmpty())
+		if(masterIPAddress == null || portNumber == null)
 		{
-			nodeLog.error("No broker URI was given!");
-			everythingPresent = false;
-		}
-		if(workload.isEmpty())
-		{
-			nodeLog.error("No workload was given!");
-			everythingPresent = false;
+			nodeLog.error(logHeader + "Missing the components needed to make a Socket!");
+			return false;
 		}
 		
-		everythingPresent = contextVariableCheck();
+		PSActionType firstActionType = null;
+		if(cMode.equals(PSClientMode.TPPub))
+		{
+			firstActionType = PSActionType.A;
+		}
+		else
+		{
+			firstActionType = PSActionType.S;
+		}
+		String attri = generateThroughputAttributes(firstActionType, 0);
+		PSAction firstAction = new PSAction(firstActionType, 1000L, attri, 0, Long.MAX_VALUE);
+		boolean firstActionCheck = launchAction(firstActionType, firstAction);
+		if(!firstActionCheck)
+		{
+			nodeLog.error(logHeader + "Couldn't send the first action!");
+			return false;
+		}
 		
-		return everythingPresent;
+		int i = 0;
+		Boolean stillRunning = true;
+		while(stillRunning)
+		{
+			stillRunning = handleMaster(currentDelay);
+			if(stillRunning == null)
+			{
+				nodeLog.error(logHeader + "Couldn't get new pubDelay!");
+				return false;
+			}
+			else if(stillRunning)
+			{
+				Long roundStart = System.nanoTime();
+				Long currentTime = System.nanoTime();
+				while((currentTime - roundStart) < periodLength)
+				{
+					boolean checkDPA = duringPeriodAction(i);
+					if(!checkDPA)
+					{
+						return false;
+					}
+					currentTime = System.nanoTime();
+				}
+				
+				boolean checkAPA = afterPeriodAction();
+				if(!checkAPA)
+				{
+					return false;
+				}
+			}
+			else
+			{
+				nodeLog.info(logHeader + "Throughput experiment.");
+			}
+		}
+		
+		return true;
 	}
+	
+	private boolean duringPeriodAction(int i)
+	{
+		if(cMode.equals(PSClientMode.TPPub))
+		{
+			String pubAttribute = generateThroughputAttributes(PSActionType.P, i);
+			PSAction pubI = new PSAction(PSActionType.P, pubDelay, pubAttribute, 0, 0L);
+			
+			boolean pubISendCheck = launchAction(PSActionType.P, pubI);
+			if(!pubISendCheck)
+			{
+				nodeLog.error(logHeader + "Couldn't send pub " + i + "!");
+				return false;
+			}
+
+			try 
+			{				
+				nodeLog.debug(logHeader + "pausing for " + pubDelay.toString() + "...");
+				Thread.sleep(pubDelay);
+			} 
+			catch (InterruptedException e) 
+			{
+				nodeLog.error(logHeader + "error sleeping in client " + nodeName + ": ", e);
+				return false;
+			}
+			
+			i++;
+		}
+		
+		return true;
+	}
+	
+	private boolean afterPeriodAction()
+	{
+		if(cMode.equals(PSClientMode.TPSub))
+		{
+			int counter = 0;
+			currentDelay = new Double(0);
+			
+			ClientDiary currentDiary = null;
+			try
+			{
+				diaryLock.lock();
+				currentDiary = diary;
+			}
+			finally
+			{
+				diaryLock.unlock();
+			}
+			
+			for(int j = 0 ; j < currentDiary.size() ; j++)
+			{
+				DiaryEntry pageI = currentDiary.getDiaryEntryI(j);
+				if(pageI.getPSActionType().equals(PSActionType.R))
+				{
+					Double delayI = pageI.getDelay(DiaryHeader.MessageDelay).doubleValue();
+					nodeLog.info(logHeader + "delayI = " + delayI + " | counter = " + counter + ".");
+					currentDelay += delayI;
+					counter++;
+				}
+			}
+			
+			currentDelay /= counter;
+			nodeLog.info(logHeader + "CurrentDelay = " + currentDelay + ".");
+			
+			try
+			{
+				diaryLock.lock();
+				diary.clear();
+			}
+			finally
+			{
+				diaryLock.unlock();
+			}
+		}
+		
+		return true;
+	}
+	
+	private Boolean handleMaster(Double givenDelay)
+	{
+		nodeLog.debug(logHeader + "Waiting for master...");
+		Long masterCheck = connectToMaster(givenDelay);
+		nodeLog.info(logHeader + "Wait complete.");
+		
+		if(masterCheck == null)
+		{
+			nodeLog.error(logHeader + "major error waiting for master!");
+			return null;
+		}
+		else if(masterCheck == TP_RUN_COMPLETE)
+		{
+			nodeLog.info(logHeader + "Run complete.");
+			return false;
+		}
+		else
+		{
+			nodeLog.info(logHeader + "Continuing.");
+			pubDelay = masterCheck;
+			
+			return true;
+		}
+	}
+	
+	private Long connectToMaster(Double givenDelay)
+	{
+		Long retVal = null;
+		
+		nodeLog.debug(logHeader + "Attempting to connect to Throughput Master...");
+		Socket throughputMasterConnection = null;
+//		while(throughputMasterConnection == null)
+//		{
+			try
+			{
+				throughputMasterConnection = new Socket(masterIPAddress, portNumber);
+			}
+			catch (IOException e) 
+			{
+				nodeLog.error(logHeader + "error creating a new Socket: ", e);
+				return null;
+			}
+//		}
+		nodeLog.info(logHeader + "Connected to Throughput Master.");
+		
+		OutputStream toMaster = null;
+		try
+		{
+			toMaster = throughputMasterConnection.getOutputStream();
+		}
+		catch (IOException e) 
+		{
+			nodeLog.error(logHeader + "error creating a new OutputStream: ", e);
+		}
+		
+		if(toMaster != null)
+		{	
+			String delay = nodeName + "-" + givenDelay + "-" + "TODO"; 
+			
+			nodeLog.debug(logHeader + "Attempting to send delay to master...");
+			PSTBUtil.sendStringAcrossSocket(toMaster, delay, nodeLog, logHeader);
+			nodeLog.info(logHeader + "Delay sent.");
+			
+			String receivedMessage = PSTBUtil.readConnection(throughputMasterConnection, nodeLog, logHeader);
+			nodeLog.info(logHeader + receivedMessage + " received.");
+			
+			retVal = PSTBUtil.checkIfLong(receivedMessage, false, null);
+			if(retVal == null)
+			{
+				if(receivedMessage.equals(PSTBUtil.STOP))
+				{
+					retVal = new Long(TP_RUN_COMPLETE);
+				}
+			}
+		}
+
+		try 
+		{
+			throughputMasterConnection.close();
+		} 
+		catch (IOException e) 
+		{
+			nodeLog.error(logHeader + "couldn't close " + nodeName + "'s socket: ", e);
+			return null;
+		}
+		nodeLog.info(logHeader + "Connection to master closed.");
+		
+		return retVal;
+	}
+	
+	protected abstract String generateThroughputAttributes(PSActionType givenPSAT, int messageNumber);
 	
 	/**
 	 * Create a new diary entry and record all the information associated with it

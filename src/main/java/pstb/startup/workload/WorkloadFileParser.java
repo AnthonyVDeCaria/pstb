@@ -34,6 +34,7 @@ public class WorkloadFileParser {
 	// Produced
 	private ArrayList<PSAction> workloadP;
 	private ArrayList<PSAction> workloadS;
+	private Boolean throttle;
 	
 	private final String logHeader = "Workload Parser: ";
 	private Logger logger = LogManager.getRootLogger();
@@ -50,6 +51,8 @@ public class WorkloadFileParser {
 		
 		workloadP = new ArrayList<PSAction>();
 		workloadS = new ArrayList<PSAction>();
+		
+		throttle = null;
 	}
 	
 	public WorkloadFileParser(String givenWorkloadFileString, ArrayList<PSEngine> givenEngines)
@@ -59,6 +62,8 @@ public class WorkloadFileParser {
 		
 		workloadP = new ArrayList<PSAction>();
 		workloadS = new ArrayList<PSAction>();
+		
+		throttle = null;
 	}
 	
 	/**
@@ -99,6 +104,11 @@ public class WorkloadFileParser {
 	public ArrayList<PSAction> getSIENAWorkload()
 	{
 		return workloadS;
+	}
+	
+	public Boolean isThrottle()
+	{
+		return throttle;
 	}
 	
 	/**
@@ -146,12 +156,13 @@ public class WorkloadFileParser {
 				}
 				else
 				{
-					Long actionDelay = PSTBUtil.checkIfLong(splitLine[LOC_ACTION_DELAY], false, null);
+					String actionDelayString = splitLine[LOC_ACTION_DELAY];
+					Long actionDelay = PSTBUtil.checkIfLong(actionDelayString, false, null);
 					
 					if(actionDelay == null)
 					{
 						parseSuccessful = false;
-						logger.error(logHeader + "line " + linesRead + " has an incorrect action delay");
+						logger.error(logHeader + "line " + linesRead + " has an incorrect action delay!");
 					}
 					else
 					{
@@ -159,7 +170,7 @@ public class WorkloadFileParser {
 						if(lineIsActionType == null)
 						{
 							parseSuccessful = false;
-							logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action");
+							logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action!");
 						}
 						else
 						{
@@ -170,7 +181,7 @@ public class WorkloadFileParser {
 								if(!addCheck)
 								{
 									parseSuccessful = false;
-									logger.error(logHeader + "error adding " + linesRead + " to the workload");
+									logger.error(logHeader + "error adding " + linesRead + " to the workload!");
 								}
 							}
 							else

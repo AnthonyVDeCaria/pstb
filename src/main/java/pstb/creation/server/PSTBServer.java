@@ -15,6 +15,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import pstb.benchmark.object.PSNode;
+import pstb.benchmark.object.client.PSClient;
+import pstb.benchmark.object.client.PSClientMode;
+import pstb.benchmark.throughput.ThroughputMaster;
+import pstb.startup.config.BenchmarkMode;
 
 /**
  * @author padres-dev-4187
@@ -36,13 +40,14 @@ public class PSTBServer extends Thread
 	private ServerSocket objectConnection;
 	
 	private String benchmarkStartTime;
-	private int runNumber;
+	
+	private BenchmarkMode mode;
 	
 	private String logHeader = "PSTBServer: ";
 	private Logger serverLog = LogManager.getLogger(PSTBServer.class);
 	
 	public PSTBServer(HashMap<String, PSNode> brokerObjects, HashMap<String, PSNode> clientObjects, CountDownLatch startSignal, 
-			CountDownLatch brokersStartedSignal, CountDownLatch brokersLinkedSignal, String givenBST, int givenRunNumber)
+			CountDownLatch brokersStartedSignal, CountDownLatch brokersLinkedSignal, String givenBST, BenchmarkMode givenMode)
 	{
 		brokerData = brokerObjects;
 		clientData = clientObjects;
@@ -55,7 +60,8 @@ public class PSTBServer extends Thread
 		objectConnection = null;
 		
 		benchmarkStartTime = givenBST;
-		runNumber = givenRunNumber;
+		
+		mode = givenMode;
 	}
 	
 	public int numBrokers()
@@ -100,23 +106,10 @@ public class PSTBServer extends Thread
 	
 	public void run()
 	{
-		String serverName = "Server-" + benchmarkStartTime + "-" + runNumber; 
+		String serverName = "Server-" + benchmarkStartTime; 
 		setName(serverName);
 		ThreadContext.put("server", serverName);
 		Thread.currentThread().setName(serverName);
-		
-		while (clientData.isEmpty())
-		{
-			serverLog.debug(logHeader + "Waiting for data.");
-			try 
-			{
-				Thread.sleep(1000);
-			} 
-			catch (InterruptedException e) 
-			{
-				endServerFailure(logHeader + "Failure waiting for data: ", e, true);
-			}
-		}
 		
 		serverLog.info(logHeader + "Server started.");
 		
@@ -132,6 +125,7 @@ public class PSTBServer extends Thread
 		int numClients = clientData.size();
 		int numNodes = numBrokers + numClients;
 		CountDownLatch incompleteClients = new CountDownLatch(numClients);
+		CountDownLatch startSent = new CountDownLatch(numClients);
 		
 		int numConnectedNodes = 0;
 		while(numConnectedNodes < numNodes)
@@ -153,7 +147,7 @@ public class PSTBServer extends Thread
 				}
 			};
 			
-			NodeHandler oH = new NodeHandler(objectPipe, incompleteClients, incompleteBrokers, brokersLinked, start, this);
+			NodeHandler oH = new NodeHandler(objectPipe, incompleteClients, incompleteBrokers, brokersLinked, start, startSent, this);
 			oH.setUncaughtExceptionHandler(nodeHandlerExceptionNet);		
 			oH.start();
 						
@@ -184,7 +178,43 @@ public class PSTBServer extends Thread
 			throw new RuntimeException("Error closing objectPipe: ", eIO);
 		}
 		
+		try 
+		{
+			startSent.await();
+		} 
+		catch (InterruptedException e) 
+		{
+			endServerFailure(logHeader + "Error waiting for clients: ", e, true);
+		}
+		
 		serverLog.info(logHeader + "Server ending.");
+		
+		if(mode.equals(BenchmarkMode.Throughput))
+		{
+			serverLog.debug(logHeader + "Starting Throughput Master...");
+			
+			HashMap<String, PSClientMode> tmDatabase = new HashMap<String, PSClientMode>();
+			
+			clientData.forEach((clientIsName, clientIShell)->{
+				PSClient clientI = (PSClient) clientIShell;
+				PSClientMode clientIsMode = clientI.getClientMode();
+				
+				tmDatabase.put(clientIsName, clientIsMode);
+			});
+			
+			Thread.UncaughtExceptionHandler nodeHandlerExceptionNet = new Thread.UncaughtExceptionHandler() {
+				@Override
+				public void uncaughtException(Thread t, Throwable e) {
+					serverLog.error(logHeader + "Error in the thread " + t.getName() + ": ", e);
+				}
+			};
+			
+			ThroughputMaster newServer = new ThroughputMaster(tmDatabase, port, benchmarkStartTime);
+			newServer.setUncaughtExceptionHandler(nodeHandlerExceptionNet);		
+			newServer.start();
+			
+			serverLog.info(logHeader + "Throughput Master started.");
+		}
 	}
 	
 	private boolean createServerSocket()

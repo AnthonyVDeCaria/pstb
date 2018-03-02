@@ -8,6 +8,7 @@ import java.io.IOException;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.benchmark.object.client.PSClient;
 import pstb.startup.config.NetworkProtocol;
+import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 import siena.Filter;
 import siena.Notification;
@@ -31,6 +32,8 @@ public class PSClientSIENA extends PSClient
 {
 	// Constants
 	private static final long serialVersionUID = 1L;
+	private final String standardAttribute = "class,=,\"oneITS\"|Date,any,'some_date'|ID,any,0|Name,any,'some_name'|Address,any,'some_addr'|Latitude,any,0.0|Longitude,any,0.0|LaneIndex,any,0|LoopOccupancy,any,'some_occupancy'|AvgSpeed,any,0|Vehicles/Interval,any,0|VdsDeviceID,any,0|RegionName,any,'some_region'";
+	private final String stdPubAttribute = "class,\"oneITS\"|Date,'2012-06-25 00:00:00'|ID,200|Name,'ds0040dsa Allen05'|Address,'SB Allen Road - 401'|Latitude,43.7276177739601|Longitude,-79.4490468206761|LaneIndex,2|LoopOccupancy,'null'|AvgSpeed,73|Vehicles/Interval,1|VdsDeviceID,1271|RegionName,'Allen Road'";
 	
 	// SIENA Client Variables
 	private ThinClient actualClient;
@@ -326,5 +329,21 @@ public class PSClientSIENA extends PSClient
 			return null;
 		}
 		
+	}
+
+	@Override
+	protected String generateThroughputAttributes(PSActionType givenPSAT, int messageNumber) {
+		if(givenPSAT == null)
+		{
+			return null;
+		}
+		else if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+		{
+			return stdPubAttribute;
+		}
+		else
+		{
+			return standardAttribute;
+		}
 	}
 }

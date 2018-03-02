@@ -16,6 +16,7 @@ import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.benchmark.object.client.PSClient;
 import pstb.startup.workload.PSActionType;
+import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -32,6 +33,8 @@ public class PSClientPADRES extends PSClient
 {
 	// Constants
 	private static final long serialVersionUID = 1L;
+	private final String standardAttribute = "[class,eq,\"oneITS\"],[Date,isPresent,'some_date'],[ID,isPresent,0],[Name,isPresent,'some_name'],[Address,isPresent,'some_addr'],[Latitude,isPresent,0.0],[Longitude,isPresent,0.0],[LaneIndex,isPresent,0],[LoopOccupancy,isPresent,'some_occupancy'],[AvgSpeed,isPresent,0],[Vehicles/Interval,isPresent,0],[VdsDeviceID,isPresent,0],[RegionName,isPresent,'some_region']";
+	private final String stdPubAttribute = "[class,\"oneITS\"],[Date,'2012-06-25 00:00:00'],[ID,200],[Name,'ds0040dsa Allen05'],[Address,'SB Allen Road - 401'],[Latitude,43.7276177739601],[Longitude,-79.4490468206761],[LaneIndex,2],[LoopOccupancy,'null'],[AvgSpeed,73],[Vehicles/Interval,1],[VdsDeviceID,1271],[RegionName,'Allen Road']";
 	
 	// PADRES Client Variables
 	private PADRESClientExtension actualClient;
@@ -155,8 +158,7 @@ public class PSClientPADRES extends PSClient
 			}
 			catch (ClientException e)
 			{
-				nodeLog.error(logHeader + "Cannot connect client " + nodeName + 
-							" to broker " + iTHURI, e);
+				nodeLog.error(logHeader + "Cannot connect client " + nodeName + " to broker " + iTHURI + ": ", e);
 				this.shutdown();
 				return false;
 			}
@@ -206,6 +208,7 @@ public class PSClientPADRES extends PSClient
 			{
 				diaryLock.lock();
 				diary.addDiaryEntryToDiary(receivedMsg);
+				receivedMessages++;
 			}
 			finally
 			{
@@ -406,5 +409,23 @@ public class PSClientPADRES extends PSClient
 			resultingEntry.addMessageID(result.getMessageID());
 			return true;
 		}
-	}	
+	}
+
+	@Override
+	protected String generateThroughputAttributes(PSActionType givenPSAT, int messageNumber) {
+		if(givenPSAT == null)
+		{
+			return null;
+		}
+		else if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+		{
+			Long currTime = System.currentTimeMillis();
+			String currTimeString = PSTBUtil.DATE_FORMAT.format(currTime);
+			return "[class,\"oneITS\"],[Name,'" + nodeName + "'],[Date,'" + currTimeString + "'],[Number," + messageNumber + "]";
+		}
+		else
+		{
+			return "[class,eq,\"oneITS\"],[Name,isPresent,'some_name'],[Date,isPresent,'some_date'],[Number,isPresent,0]";
+		}
+	}
 }

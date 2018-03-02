@@ -18,7 +18,9 @@ import org.apache.logging.log4j.Logger;
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.object.broker.PSBroker;
 import pstb.benchmark.object.client.PSClient;
+import pstb.benchmark.object.client.PSClientMode;
 import pstb.creation.server.PSTBServer;
+import pstb.startup.config.BenchmarkMode;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.config.SupportedEngines.PSEngine;
 import pstb.startup.topology.ClientNotes;
@@ -44,6 +46,7 @@ public abstract class PhysicalTopology {
 	protected Integer localPortNum = LOCAL_START_PORT;
 	
 	// Variables given by user on creation
+	protected BenchmarkMode mode;
 	protected LogicalTopology startingTopology;
 	protected NetworkProtocol protocol;
 	protected String user;
@@ -65,7 +68,7 @@ public abstract class PhysicalTopology {
 	
 	// Variables set during Object creation
 	protected HashMap<String, String> nodeMachine;
-	
+		
 	// Objects
 	protected HashMap<String, PSNode> brokerObjects;
 	protected HashMap<String, PSNode> clientObjects;
@@ -87,11 +90,13 @@ public abstract class PhysicalTopology {
 	protected String logHeader;
 	protected final Logger logger = LogManager.getRootLogger();
 	
-	public PhysicalTopology(LogicalTopology givenTopo,  
+	public PhysicalTopology(BenchmarkMode givenMode, LogicalTopology givenTopo,  
 			NetworkProtocol givenProtocol, String givenUser, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
 			HashMap<String, ArrayList<PSAction>> givenWorkload, 
 			String givenBST, String givenTFS) throws UnknownHostException
 	{
+		mode = givenMode;
+		
 		startingTopology = givenTopo;
 		
 		protocol = givenProtocol;
@@ -127,7 +132,7 @@ public abstract class PhysicalTopology {
 		distributed = null;
 		
 		nodeMachine = new HashMap<String, String>();
-		
+				
 		brokerObjects = new HashMap<String, PSNode>();
 		clientObjects = new HashMap<String, PSNode>();
 		
@@ -374,6 +379,7 @@ public abstract class PhysicalTopology {
 			brokerI.setBenchmarkStartTime(benchmarkStartTime);
 			brokerI.setTopologyFileString(topologyFileString);
 			brokerI.setDistributed(distributed);
+			brokerI.setMode(mode);
 			
 			brokerObjects.put(brokerIName, brokerI);
 		}
@@ -463,10 +469,10 @@ public abstract class PhysicalTopology {
 	private boolean developClients()
 	{
 		logger.debug(logHeader + "Attempting to develop PSClient Objects...");
+		boolean isThroughputPub = true;
+		
 		TreeMap<String, ClientNotes> clientList = startingTopology.getClients();
 		Iterator<String> cliIterator = clientList.keySet().iterator();
-		
-		// Loop through the publisherList, creating every client that's there
 		for( ; cliIterator.hasNext() ; )
 		{
 			PSClient clientI = createPSClientObject();
@@ -474,16 +480,43 @@ public abstract class PhysicalTopology {
 			String clientIName = cliIterator.next();
 			ClientNotes clientINotes = clientList.get(clientIName);
 			
-			ArrayList<String> clientIConnections = clientINotes.getConnections();
-			
 			String workloadFileString = clientINotes.getRequestedWorkload();
-			ArrayList<PSAction> clientIWorkload = masterWorkload.get(workloadFileString);
-			if(clientIWorkload == null)
+			ArrayList<PSAction> clientIWorkload = null;
+			if(mode.equals(BenchmarkMode.Throughput))
 			{
-				logger.error(logHeader + "Client " + clientIName + " is requesting a non-existant workload!");
-				return false;
+				if(workloadFileString.contains("pub"))
+				{
+					clientI.setClientMode(PSClientMode.TPPub);
+				}
+				else if(workloadFileString.contains("sub"))
+				{
+					clientI.setClientMode(PSClientMode.TPSub);
+				}
+				else
+				{
+					if(isThroughputPub)
+					{
+						clientI.setClientMode(PSClientMode.TPPub);
+					}
+					else
+					{
+						clientI.setClientMode(PSClientMode.TPSub);
+					}
+					isThroughputPub = !isThroughputPub;
+				}
+			}
+			else
+			{
+				clientIWorkload = masterWorkload.get(workloadFileString);
+				if(clientIWorkload == null)
+				{
+					logger.error(logHeader + "Client " + clientIName + " is requesting a non-existant workload!");
+					return false;
+				}
+				clientI.setClientMode(PSClientMode.TPSub);
 			}
 			
+			ArrayList<String> clientIConnections = clientINotes.getConnections();
 			ArrayList<String> clientIBrokerURIs = new ArrayList<String>();
 			int numClientIConnections = clientIConnections.size();
 			
@@ -517,6 +550,7 @@ public abstract class PhysicalTopology {
 			clientI.setTopologyFileString(topologyFileString);
 			clientI.setBenchmarkStartTime(benchmarkStartTime);
 			clientI.setWorkload(clientIWorkload);
+			clientI.setMode(mode);
 										
 			clientObjects.put(clientIName, clientI);
 			
@@ -568,7 +602,7 @@ public abstract class PhysicalTopology {
 	 * @param givenRunNumber - the current run we're on
 	 * @return false if there is an issue; true otherwise
 	 */
-	public boolean prepareRun(CountDownLatch givenStartSignal, Long givenRunLength, Integer givenRunNumber)
+	public boolean prepareNormalRun(CountDownLatch givenStartSignal, Long givenRunLength, Integer givenRunNumber)
 	{
 		if(brokerObjects.isEmpty())
 		{
@@ -582,7 +616,7 @@ public abstract class PhysicalTopology {
 			return false;
 		}
 		
-		setupServer(givenStartSignal, givenRunNumber);
+		setupServer(givenStartSignal);
 		
 		clientObjects.forEach((clientName, actualClient)->{
 			actualClient.setRunLength(givenRunLength);
@@ -599,17 +633,53 @@ public abstract class PhysicalTopology {
 	}
 	
 	/**
+	 * Prepares the topology for a run
+	 * 
+	 * @param givenStartSignal - the signal that will be used to let key threads know the run has started
+	 * @param givenStartingDelay - the amount of time this run will last
+	 * @param givenStartingPayload - the current run we're on
+	 * @return false if there is an issue; true otherwise
+	 */
+	public boolean prepareThroughputRun(CountDownLatch givenStartSignal, Long givenPeriodLength)
+	{
+		if(brokerObjects.isEmpty())
+		{
+			logger.error(logHeader + "prepareRun() needs brokers objects! Please run developTopologyObjects() first!");
+			return false;
+		}
+		
+		if(clientObjects.isEmpty())
+		{
+			logger.error(logHeader + "prepareRun() needs client objects! Please run developTopologyObjects() first!");
+			return false;
+		}
+		
+		setupServer(givenStartSignal);
+		
+		clientObjects.forEach((clientName, actualClient)->{
+			actualClient.setPeriodLength(givenPeriodLength);
+		});
+		
+		brokerObjects.forEach((brokerName, actualBroker)->{
+			actualBroker.setPeriodLength(givenPeriodLength);
+		});
+		
+		boolean retVal = generateBrokerAndClientProcesses();
+		return retVal;
+	}
+	
+	/**
 	 * Prepares the PSTBServer for the run
 	 * 
 	 * @param givenStartSignal - the signal that will be used to let key threads know the run has started
 	 */
-	private void setupServer(CountDownLatch givenStartSignal, int givenRunNumber)
+	private void setupServer(CountDownLatch givenStartSignal)
 	{
 		unstartedBrokers = new CountDownLatch(brokerObjects.size());
 		linkedBrokers = new CountDownLatch(1);
 		
 		masterServer = new PSTBServer(brokerObjects, clientObjects, givenStartSignal, unstartedBrokers, linkedBrokers, 
-				benchmarkStartTime, givenRunNumber);
+				benchmarkStartTime, mode);
 		
 		masterServer.generatePort();
 	}
@@ -687,11 +757,6 @@ public abstract class PhysicalTopology {
 			logger.error(logHeader + "No server exists!");
 			return null;
 		}
-		if(user.isEmpty())
-		{
-			logger.error(logHeader + "No user data given!");
-			return null;
-		}
 		if(distributed == null)
 		{
 			logger.error(logHeader + "No distributed data given!");
@@ -734,6 +799,10 @@ public abstract class PhysicalTopology {
 		{
 			command.add("./startRemoteNode.sh");
 			
+			if(user == null)
+			{
+				return null;
+			}
 			command.add(user);
 			
 			String machine = nodeMachine.get(nodeName);
@@ -808,6 +877,9 @@ public abstract class PhysicalTopology {
 		linkedBrokers.countDown();
 		
 		logger.info(logHeader + "Everything launched.");
+		
+		
+		
 		return true;
 	}
 	

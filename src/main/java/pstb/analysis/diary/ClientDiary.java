@@ -161,4 +161,8 @@ public class ClientDiary implements java.io.Serializable
 		
 		return true;
 	}
+
+	public void clear() {
+		diary.clear();
+	}
 }

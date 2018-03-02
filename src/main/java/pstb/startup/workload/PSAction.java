@@ -23,6 +23,16 @@ public class PSAction implements java.io.Serializable
 		timeActive = null;
 	}
 	
+	public PSAction(PSActionType givenActionType, Long givenDelay, String givenAttributes, Integer givenPayloadSize, 
+			Long givenTimeActive)
+	{
+		actionType = givenActionType;
+		actionDelay = givenDelay;
+		attributes = givenAttributes;
+		payloadSize = givenPayloadSize;
+		timeActive = givenTimeActive;
+	}
+	
 	/**
 	 * Sets the action Type of this action
 	 * @param nPSAT - the given action type
