@@ -467,8 +467,8 @@ public abstract class PSClient extends PSNode
 		}
 		String attri = generateThroughputAttributes(firstActionType, 0);
 		PSAction firstAction = new PSAction(firstActionType, 1000L, attri, 0, Long.MAX_VALUE);
-		boolean firstActionCheck = launchAction(firstActionType, firstAction);
-		if(!firstActionCheck)
+		boolean undoFirstActionCheck = launchAction(firstActionType, firstAction);
+		if(!undoFirstActionCheck)
 		{
 			nodeLog.error(logHeader + "Couldn't send the first action!");
 			return false;
@@ -495,6 +495,7 @@ public abstract class PSClient extends PSNode
 					{
 						return false;
 					}
+					i++;
 					currentTime = System.nanoTime();
 				}
 				
@@ -506,7 +507,23 @@ public abstract class PSClient extends PSNode
 			}
 			else
 			{
-				nodeLog.info(logHeader + "Throughput experiment.");
+//				PSActionType undoActionType = null;
+//				if(cMode.equals(PSClientMode.TPPub))
+//				{
+//					undoActionType = PSActionType.V;
+//				}
+//				else
+//				{
+//					undoActionType = PSActionType.U;
+//				}
+//				undoFirstActionCheck = launchAction(undoActionType, firstAction);
+//				if(!undoFirstActionCheck)
+//				{
+//					nodeLog.error(logHeader + "Couldn't undo the first action!");
+//					return false;
+//				}
+				
+				nodeLog.info(logHeader + "Throughput experiment complete.");
 			}
 		}
 		
@@ -527,18 +544,8 @@ public abstract class PSClient extends PSNode
 				return false;
 			}
 
-			try 
-			{				
-				nodeLog.debug(logHeader + "pausing for " + pubDelay.toString() + "...");
-				Thread.sleep(pubDelay);
-			} 
-			catch (InterruptedException e) 
-			{
-				nodeLog.error(logHeader + "error sleeping in client " + nodeName + ": ", e);
-				return false;
-			}
-			
-			i++;
+			nodeLog.debug(logHeader + "pausing for " + pubDelay.toString() + "ns ...");
+			PSTBUtil.waitAPeriod(pubDelay);
 		}
 		
 		return true;
@@ -622,18 +629,15 @@ public abstract class PSClient extends PSNode
 		
 		nodeLog.debug(logHeader + "Attempting to connect to Throughput Master...");
 		Socket throughputMasterConnection = null;
-//		while(throughputMasterConnection == null)
-//		{
-			try
-			{
-				throughputMasterConnection = new Socket(masterIPAddress, portNumber);
-			}
-			catch (IOException e) 
-			{
-				nodeLog.error(logHeader + "error creating a new Socket: ", e);
-				return null;
-			}
-//		}
+		try
+		{
+			throughputMasterConnection = new Socket(masterIPAddress, portNumber);
+		}
+		catch (IOException e) 
+		{
+			nodeLog.error(logHeader + "error creating a new Socket: ", e);
+			return null;
+		}
 		nodeLog.info(logHeader + "Connected to Throughput Master.");
 		
 		OutputStream toMaster = null;
@@ -700,7 +704,7 @@ public abstract class PSClient extends PSNode
 		/*
 		 *  Make sure our inputs are proper
 		 */
-		// The only time the ActionTypes should differ is if we want to Unad / Unsub
+		// The only time the ActionTypes should differ is if we want to Unad / Unsub and have the original action
 		if(selectedAction != givenAction.getActionType())
 		{
 			if(selectedAction == PSActionType.V && givenAction.getActionType() == PSActionType.A)

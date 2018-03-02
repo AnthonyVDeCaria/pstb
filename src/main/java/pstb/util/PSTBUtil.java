@@ -665,4 +665,13 @@ public class PSTBUtil {
 		int i = generator.nextInt(numStrings);
 		return givenStrings[i];
 	}
+	
+	public static void waitAPeriod(long periodToWait)
+	{
+		long endTime = System.nanoTime() + periodToWait;
+		while(endTime > System.nanoTime())
+		{
+			// Nothing
+		}
+	}
 }

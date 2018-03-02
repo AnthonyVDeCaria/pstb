@@ -110,7 +110,7 @@ public class ThroughputMaster extends Thread {
 	{
 		Double messagesPerSecondPub = ((double) messagesPerSecond) / numPubs;
 		Double secondsPubPerMessage = 1 / messagesPerSecondPub;
-		messageDelay = (long) (secondsPubPerMessage * PSTBUtil.SEC_TO_MILLISEC);
+		messageDelay = (long) (secondsPubPerMessage * PSTBUtil.SEC_TO_NANOSEC);
 		
 		log.info(logHeader 
 				+ "messagesPerSecond = " + messagesPerSecond
@@ -282,9 +282,9 @@ public class ThroughputMaster extends Thread {
 			// Read all the delays
 			log.debug(logHeader + "Beginning to process delays...");
 			ArrayList<String> currentSubDelays = getCurrentSubDelays();
-			int numDelays = currentSubDelays.size();
 			double currentDelay = 0;
 			int numNull = 0;
+			int numDelays = currentSubDelays.size();
 			for(int j = 0 ; j < numDelays ; j++)
 			{
 				String delayJ = currentSubDelays.get(j);
@@ -304,40 +304,40 @@ public class ThroughputMaster extends Thread {
 					currentDelay += actualDelayJ;
 				}
 			}
-			if(numNull > 0)
+			if(roundNum != 0)
 			{
-				if(numNull != numSubs)
+				if(numNull > 0)
 				{
-					endServerFailure(logHeader + "Null delay!", null, false);
-				}
-			}
-			else
-			{
-				currentDelay /= numDelays;
-				
-				// Should we stop yes or no?
-				if(firstDelay == null)
-				{
-					log.info(logHeader + "First delay is " + currentDelay + ".");
-					firstDelay = currentDelay;
+					endServerFailure(logHeader + "Null delay receieved!", null, false);
 				}
 				else
 				{
-					Double ratio = firstDelay / currentDelay;
-					log.info(logHeader + "Current delay = " + currentDelay + " | Ratio is " + ratio + ".");
+					currentDelay /= numSubs;
 					
-					if(ratio <= TOLERANCE_LIMIT)
+					// Should we stop yes or no?
+					if(firstDelay == null)
 					{
-						log.info(logHeader + "Tolerance limit reached.");
-						stopExperiment();
+						log.info(logHeader + "First delay is " + currentDelay + ".");
+						firstDelay = currentDelay;
 					}
-				}
-				
-				if(isExperimentRunning())
-				{
-					log.info(logHeader + "Updating message delay.");
-					updateMessagesPerSecond();
-					updateMessageDelay();
+					else
+					{
+						Double ratio = firstDelay / currentDelay;
+						log.info(logHeader + "Current delay = " + currentDelay + " | Ratio is " + ratio + ".");
+						
+						if(ratio <= TOLERANCE_LIMIT)
+						{
+							log.info(logHeader + "Tolerance limit reached.");
+							stopExperiment();
+						}
+					}
+					
+					if(isExperimentRunning())
+					{
+						log.info(logHeader + "Updating message delay.");
+						updateMessagesPerSecond();
+						updateMessageDelay();
+					}
 				}
 			}
 			log.info(logHeader + "Calucaltions complete.");
