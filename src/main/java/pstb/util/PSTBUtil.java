@@ -30,8 +30,14 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 
 import pstb.analysis.diary.ClientDiary;
+import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.process.broker.PSTBBrokerProcess;
 import pstb.benchmark.process.client.PSTBClientProcess;
+import pstb.benchmark.throughput.AttributeRatio;
+import pstb.benchmark.throughput.MessageSize;
+import pstb.benchmark.throughput.NumAttributes;
+import pstb.startup.config.BenchmarkMode;
+import pstb.startup.config.NetworkProtocol;
 
 public class PSTBUtil {
 	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
@@ -189,13 +195,12 @@ public class PSTBUtil {
 	 * @see PSTBClientProcess
 	 * 
 	 * @param givenObject - the Object to be stored in a file
-	 * @param givenObjectName - the name of said Object
 	 * @param out - the OutputStream to write the object to
 	 * @param logger - the Logger to record errors
 	 * @param logHeader - the header to put when logging
 	 * @return false on error; true if successful
 	 */
-	public static boolean sendObject(Object givenObject, String givenObjectName, OutputStream out, Logger logger, String logHeader)
+	public static boolean sendObject(Object givenObject, OutputStream out, Logger logger, String logHeader)
 	{
 		try 
 		{
@@ -260,7 +265,7 @@ public class PSTBUtil {
 		return diaryI;
 	}
 	
-	public static boolean sendStringAcrossSocket(OutputStream givenOutputStream, String givenString, Logger log, String logHeader)
+	public static boolean sendStringAcrossSocket(OutputStream givenOutputStream, String givenString)
 	{
 		PrintWriter out = new PrintWriter(givenOutputStream, true);
 		out.println(givenString);
@@ -556,7 +561,7 @@ public class PSTBUtil {
 		return i;
 	}
 	
-	public static Boolean createANewProcess(String[] command, Logger logger, boolean seeProcess, String newProcessException, 
+	public static Boolean createANewProcess(String[] command, Logger log, boolean seeProcess, String newProcessException, 
 												String processSuccessful, String processFailure)
 	{
 		ProcessBuilder newProcess = new ProcessBuilder(command);
@@ -570,9 +575,12 @@ public class PSTBUtil {
 		} 
 		catch (IOException e) 
 		{
-			logger.error(newProcessException, e);
+			log.error(newProcessException, e);
 			return null;
 		}
+		
+		StreamGobbler errorGobbler = new StreamGobbler(pNewProcess.getErrorStream(), log, "Script: ");
+		errorGobbler.start();
 		
 		if(seeProcess)
 		{
@@ -582,12 +590,12 @@ public class PSTBUtil {
 			{
 				while( (line = pNewProcessReader.readLine()) != null)
 				{
-					logger.debug(line);
+					log.info(line);
 				}
 			}
 			catch (IOException e)
 			{
-				logger.error("Couldn't read output from new Process: ", e);
+				log.error("Couldn't read output from new Process: ", e);
 				return false;
 			}
 		}
@@ -598,7 +606,7 @@ public class PSTBUtil {
 		} 
 		catch (InterruptedException e)
 		{
-			logger.error("Couldn't end new process: ", e);
+			log.error("Couldn't end new process: ", e);
 			return false;
 		}
 		
@@ -606,12 +614,12 @@ public class PSTBUtil {
 		
 		if(exitValue != 0)
 		{
-			logger.error(processFailure + " | Error = " + exitValue);
+			log.error(processFailure + " | Error = " + exitValue);
 			return false;
 		}
 		else
 		{
-			logger.info(processSuccessful);
+			log.info(processSuccessful);
 			return true;
 		}
 	}
@@ -666,12 +674,95 @@ public class PSTBUtil {
 		return givenStrings[i];
 	}
 	
-	public static void waitAPeriod(long periodToWait)
+	public static void waitAPeriod(long periodToWait, Logger log, String logHeader)
 	{
+		log.debug(logHeader + "pausing for " + periodToWait + " ns ...");
 		long endTime = System.nanoTime() + periodToWait;
 		while(endTime > System.nanoTime())
 		{
 			// Nothing
 		}
+		log.debug(logHeader + "pause complete.");
+	}
+	
+	public static Boolean killAllProcesses(boolean distributed, String username, Logger logger)
+	{
+		ArrayList<String> command = new ArrayList<String>();
+		
+		if(distributed)
+		{
+			command.add("scripts/killAllNodes.sh");
+			command.add(username);
+		}
+		else
+		{
+			command.add("scripts/killAllNodesOnThisMachine.sh");
+		}
+		
+		String[] kill = command.toArray(new String[0]);
+		
+		return PSTBUtil.createANewProcess(kill, logger, false,
+												"Couldn't run kill process :", 
+												"Kill process successfull.", 
+												"Kill process failed!"
+											);
+	}
+	
+	public static String generateContext(Boolean distributed, String benchmarkStartTime, String topologyFileString, 
+			NetworkProtocol protocol, BenchmarkMode mode, Long runLength, Integer runNumber, Long periodLength,
+			AttributeRatio ar, NumAttributes na, MessageSize ms, String givenName,
+			Logger nodeLog, String logHeader)
+	{
+		// Convert the distributed value into a flag
+		DistributedFlagValue distributedFlag = null;
+		if(distributed.booleanValue() == true)
+		{
+			distributedFlag = DistributedFlagValue.D;
+		}
+		else if(distributed.booleanValue() == false)
+		{
+			distributedFlag = DistributedFlagValue.L;
+		}
+		else
+		{
+			nodeLog.error(logHeader + "error with distributed");
+			return null;
+		}
+		
+		ArrayList<String> context = new ArrayList<String>();
+		context.add(benchmarkStartTime);
+		context.add(topologyFileString);
+		context.add(distributedFlag.toString());
+		context.add(protocol.toString());
+		
+		if(mode.equals(BenchmarkMode.Scenario))
+		{
+			// Convert the nanosecond runLength into milliseconds
+			// WHY: neatness / it's what the user gave us->why confuse them?
+			Long milliRunLength = (long) (runLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
+			
+			context.add(milliRunLength.toString());
+			context.add(runNumber.toString());
+		}
+		else if(mode.equals(BenchmarkMode.Throughput))
+		{
+			// Convert the nanosecond runLength into milliseconds
+			// WHY: neatness / it's what the user gave us->why confuse them?
+			Long convertedPL = (long) (periodLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
+			
+			context.add(convertedPL.toString());
+			context.add(ar.toString());
+			context.add(na.toString());
+			context.add(ms.toString());
+		}
+		else
+		{
+			return null;
+		}
+		
+		context.add(givenName);
+		
+		String retVal = String.join(PSTBUtil.DIARY_SEPARATOR, context);
+		return retVal;
 	}
 }

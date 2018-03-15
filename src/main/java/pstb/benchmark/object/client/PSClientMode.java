@@ -8,5 +8,5 @@ package pstb.benchmark.object.client;
  *
  */
 public enum PSClientMode {
-	Normal, TPPub, TPSub
+	Scenario, TPPub, TPSub
 }

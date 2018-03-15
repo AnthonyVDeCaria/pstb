@@ -77,7 +77,7 @@ public class PSBrokerPADRES extends PSBroker
 		{
 			actualBroker = new BrokerCore(bConfig);
 		}
-		catch (BrokerCoreException e)
+		catch (Exception e)
 		{
 			nodeLog.error(logHeader + "Cannot create new broker " + nodeName, e);
 			return false;
@@ -105,7 +105,7 @@ public class PSBrokerPADRES extends PSBroker
 		{
 			actualBroker.initialize();
 		}
-		catch (BrokerCoreException e)
+		catch (Exception e)
 		{
 			nodeLog.error(logHeader + "Error starting broker " + nodeName, e);
 			return false;

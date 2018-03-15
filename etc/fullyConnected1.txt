@@ -1,0 +1,4 @@
+B0	B	
+
+P0	C	B0	etc/samplePub.pdrs
+S0	C	B0	etc/sampleSub.pdrs

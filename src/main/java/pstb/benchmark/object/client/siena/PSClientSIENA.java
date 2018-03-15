@@ -87,7 +87,7 @@ public class PSClientSIENA extends PSClient
 		nodeLog.info(logHeader + "Receiver attached.");
 		
 		nodeLog.debug(logHeader + "Creating a subscriber listener...");
-		String context = generateContext();
+		String context = generateNodeContext();
 		actualSub = new SIENAListener(diary, diaryLock, context);
 		nodeLog.info(logHeader + "Listener created.");
 		

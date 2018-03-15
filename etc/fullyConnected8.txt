@@ -1,0 +1,25 @@
+B0	B	B1,B2,B3,B4,B5,B6,B7
+B1	B	B0,B2,B3,B4,B5,B6,B7
+B2	B	B0,B1,B3,B4,B5,B6,B7
+B3	B	B0,B1,B2,B4,B5,B6,B7
+B4	B	B0,B1,B2,B3,B5,B6,B7
+B5	B	B0,B1,B2,B3,B4,B6,B7
+B6	B	B0,B1,B2,B3,B4,B5,B7
+B7	B	B0,B1,B2,B3,B4,B5,B6
+
+P0	C	B0	etc/samplePub.pdrs
+S0	C	B0	etc/sampleSub.pdrs
+P1	C	B1	etc/samplePub.pdrs
+S1	C	B1	etc/sampleSub.pdrs
+P2	C	B2	etc/samplePub.pdrs
+S2	C	B2	etc/sampleSub.pdrs
+P3	C	B3	etc/samplePub.pdrs
+S3	C	B3	etc/sampleSub.pdrs
+P4	C	B4	etc/samplePub.pdrs
+S4	C	B4	etc/sampleSub.pdrs
+P5	C	B5	etc/samplePub.pdrs
+S5	C	B5	etc/sampleSub.pdrs
+P6	C	B6	etc/samplePub.pdrs
+S6	C	B6	etc/sampleSub.pdrs
+P7	C	B7	etc/samplePub.pdrs
+S7	C	B7	etc/sampleSub.pdrs

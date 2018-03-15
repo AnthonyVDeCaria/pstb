@@ -14,6 +14,9 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.benchmark.throughput.AttributeRatio;
+import pstb.benchmark.throughput.MessageSize;
+import pstb.benchmark.throughput.NumAttributes;
 import pstb.creation.topology.PADRESTopology;
 import pstb.creation.topology.PhysicalTopology;
 import pstb.creation.topology.PhysicalTopology.ActiveProcessRetVal;
@@ -58,7 +61,7 @@ public class PSTB {
 		Scanner userInput = new Scanner(System.in);
 		Properties defaultProp = null;
 		
-		logger.info("Starting Properties Parsing...");
+		logger.debug("Starting Properties Parsing...");
 		try
 		{
 			defaultProp = loadProperties(DEFAULT_BENCHMARK_PROPERTIES_FILE_STRING, null);
@@ -100,7 +103,7 @@ public class PSTB {
 			endProgram(PSTBError.M_BENCHMARK, userInput);
 		}
 		
-		logger.info("Properties file loaded successfully!!");
+		logger.debug("Properties file loaded successfully!!");
 			
 		ArrayList<String> workloadFilesStrings = benchmarkRules.getWorkloadFilesStrings();
 		ArrayList<PSEngine> requestedEngines = benchmarkRules.getEngines();
@@ -125,7 +128,7 @@ public class PSTB {
 			}
 			else
 			{
-				logger.info("Parse Complete for file " + workloadFileI + ".");
+				logger.debug("Parse Complete for file " + workloadFileI + ".");
 				
 				if(pRequested)
 				{
@@ -145,7 +148,7 @@ public class PSTB {
 			logger.error("Error with topology files!");
 			endProgram(PSTBError.M_WORKLOAD, userInput);
 		}
-		logger.info("All workload files valid!!");
+		logger.debug("All workload files valid!!");
 		
 		ArrayList<String> allTopoFiles = benchmarkRules.getTopologyFilesStrings();
 		HashMap<String, LogicalTopology> allLTs = new HashMap<String, LogicalTopology>();
@@ -162,7 +165,7 @@ public class PSTB {
 		}
 		// for now else isn't needed
 		
-		logger.info("Starting to parse Topology Files...");
+		logger.debug("Starting to parse Topology Files...");
 		boolean allToposOk = true;
 		for(int i = 0 ; i < allTopoFiles.size() ; i++)
 		{
@@ -243,14 +246,14 @@ public class PSTB {
 			numNodesLargestTopo = 0;
 			endProgram(PSTBError.M_TOPO_LOG, userInput);
 		}
-		logger.info("All topologies valid!!");
+		logger.debug("All topologies valid!!");
 		
 		HashMap<String, ArrayList<Integer>> disHostsAndPorts = new HashMap<String, ArrayList<Integer>>();
 		String disUsername = new String();
 		
 		if(benchmarkRules.distributedRequested())
 		{
-			logger.info("Attempting to parse distributed ...");
+			logger.debug("Attempting to parse distributed ...");
 			
 			DistributedFileParser dfp = new DistributedFileParser(benchmarkRules.getDistributedFileString());
 			
@@ -366,7 +369,7 @@ public class PSTB {
 					
 					logger.info("Beginning experiment...");
 					boolean successfulExperiment = true;
-					if(modeI.equals(BenchmarkMode.Normal))
+					if(modeI.equals(BenchmarkMode.Scenario))
 					{
 						if(local.doAnyObjectsExist())
 						{
@@ -559,14 +562,14 @@ public class PSTB {
 					if(valueCAP.equals(ActiveProcessRetVal.Error))
 					{
 						logger.error("Run " + runI + " ran into an error!");
-						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
 						return false;
 					}
 					// If all of our processes have finished, we have an error - brokers should never self-terminate
 					else if(valueCAP.equals(ActiveProcessRetVal.AllOff))
 					{
 						logger.error("Run " + runI + " has no more client or broker processes!");
-						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
 						return false;
 					}
 					// If there are brokers with no clients, has the experiment already finished?
@@ -576,7 +579,7 @@ public class PSTB {
 						if((currentTime - startTime) < (iTHRunLengthNano - bufferTimeNano))
 						{
 							logger.error("Run " + runI + " finished early!");
-							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+							PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
 							return false;
 						}
 						else
@@ -591,7 +594,7 @@ public class PSTB {
 						if((currentTime - startTime) > (iTHRunLengthNano + bufferTimeNano))
 						{
 							logger.error("Run " + runI + " hasn't finished within the experiment period!");
-							killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+							PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
 							return false;
 						}
 					}
@@ -605,7 +608,7 @@ public class PSTB {
 					catch (InterruptedException e) 
 					{
 						logger.error("Error sleeping in main:", e);
-						killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
 						return false;
 					}
 					
@@ -614,7 +617,7 @@ public class PSTB {
 				
 				logger.info("Run ended.");
 				
-				killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
+				PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
 				
 				givenPT.destroyAllActiveNodes();
 				givenPT.resetSystemAfterRun();
@@ -637,109 +640,113 @@ public class PSTB {
 	{
 		// We'll need this in case there is an error, so...
 		Boolean givenPTDis = givenPT.getDistributed();
-		
 		if(givenPTDis == null)
 		{
 			logger.error("Error with givenPT - distributed value not set properly!");
 			return false;
 		}
 		
-		CountDownLatch start = new CountDownLatch(1);
-																
-		boolean prepCheck = givenPT.prepareThroughputRun(start, givenPL);
-		if(!prepCheck)
+		for(MessageSize msI : MessageSize.values())
 		{
-			logger.error("Couldn't prepare experiment!");
-			return false;
-		}
-				
-		boolean runCheck = givenPT.startRun();
-		if(!runCheck)
-		{
-			logger.error("Error starting run!");
-			return false;
-		}
-		logger.debug("Run starting...");
-				
-		try 
-		{
-			start.await();
-		} 
-		catch (InterruptedException e) 
-		{
-			logger.error("Interrupted waiting for start signal: ", e);
-		}
-		logger.info("Start signal receieved.");
-			
-		PSTBUtil.synchronizeRun();
-		logger.info("Synchronization complete.");
-				
-		PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
-		while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
-		{
-			// If ActiveProcesses had an error... well...
-			if(valueCAP.equals(ActiveProcessRetVal.Error))
+			for(NumAttributes naI : NumAttributes.values())
 			{
-				logger.error("Run ran into an error!");
-				killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-				return false;
-			}
-			// If all of our processes have finished, we have an error - brokers should never self-terminate
-			else if(valueCAP.equals(ActiveProcessRetVal.AllOff))
-			{
-				logger.error("Run has no more client or broker processes!");
-				killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-				return false;
-			}
+				boolean oneAttributeComplete = false;
+				for(AttributeRatio arI : AttributeRatio.values())
+				{
+					logger.info("Variables are: " + arI + " " + naI + " " + msI + ".");
 					
-			// So that we don't continuously check, let's put this thread to sleep for two seconds
-			try 
-			{				
-				logger.trace("Pausing main.");
-				Thread.sleep(2000);
-			} 
-			catch (InterruptedException e) 
-			{
-				logger.error("Error sleeping in main:", e);
-				killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-				return false;
-			}
+					CountDownLatch start = new CountDownLatch(1);
 					
-			valueCAP = givenPT.checkActiveProcesses();
-		}	
-		logger.info("Run ended.");
-				
-		killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser());
-				
-		givenPT.destroyAllActiveNodes();
-		givenPT.resetSystemAfterRun();
-		logger.info("Run complete.");
-			
+					boolean run = true;
+					if(naI.equals(NumAttributes.One))
+					{
+						if(oneAttributeComplete)
+						{
+							run = false;
+						}
+						else
+						{
+							oneAttributeComplete = true;
+						}
+					}
+					
+					if(run)
+					{
+						boolean prepCheck = givenPT.prepareThroughputRun(start, givenPL, arI, naI, msI);
+						if(!prepCheck)
+						{
+							logger.error("Couldn't prepare experiment!");
+							return false;
+						}
+						
+						boolean runCheck = givenPT.startRun();
+						if(!runCheck)
+						{
+							logger.error("Error starting run!");
+							return false;
+						}
+						logger.debug("Run starting...");
+								
+						try 
+						{
+							start.await();
+						} 
+						catch (InterruptedException e) 
+						{
+							logger.error("Interrupted waiting for start signal: ", e);
+						}
+						logger.info("Start signal receieved.");
+							
+						PSTBUtil.synchronizeRun();
+						logger.info("Synchronization complete.");
+								
+						PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
+						while(!valueCAP.equals(ActiveProcessRetVal.FloatingBrokers))
+						{
+							// If ActiveProcesses had an error... well...
+							if(valueCAP.equals(ActiveProcessRetVal.Error))
+							{
+								logger.error("Run ran into an error!");
+								PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+								return false;
+							}
+							// If all of our processes have finished, we have an error - brokers should never self-terminate
+							else if(valueCAP.equals(ActiveProcessRetVal.AllOff))
+							{
+								logger.error("Run has no more client or broker processes!");
+								PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+								return false;
+							}
+									
+							// So that we don't continuously check, let's put this thread to sleep for two seconds
+							try 
+							{				
+								logger.trace("Pausing main.");
+								Thread.sleep(2000);
+							} 
+							catch (InterruptedException e) 
+							{
+								logger.error("Error sleeping in main:", e);
+								PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+								return false;
+							}
+									
+							valueCAP = givenPT.checkActiveProcesses();
+						}	
+						logger.debug("Run ended.");
+								
+						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+								
+						givenPT.destroyAllActiveNodes();
+						givenPT.resetSystemAfterRun();
+						logger.info("Run complete.");
+					}
+				}
+			}			
+		}
+
 		logger.info("Experiment successful.");
 		return true;
-	}
-	
-	private static Boolean killAllProcesses(boolean distributed, String username)
-	{
-		ArrayList<String> command = new ArrayList<String>();
-		
-		if(distributed)
-		{
-			command.add("scripts/killAllNodes.sh");
-			command.add(username);
-		}
-		else
-		{
-			command.add("scripts/killAllNodesOnThisMachine.sh");
-		}
-		
-		String[] kill = command.toArray(new String[0]);
-		
-		return PSTBUtil.createANewProcess(kill, logger, false,
-												"Couldn't run kill process :", 
-												"Kill process successfull.", 
-												"Kill process failed!"
-											);
 	}
 }
 

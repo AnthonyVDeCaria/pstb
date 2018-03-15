@@ -50,7 +50,7 @@ public class SIENAListener implements Notifiable
 		
 		String attributes = arg0.toString();
 		
-		receivedMsg.addPSActionType(PSActionType.R);
+		receivedMsg.setPSActionType(PSActionType.R);
 		receivedMsg.addTimeReceived(currentTime);
 		receivedMsg.addAttributes(attributes);
 		

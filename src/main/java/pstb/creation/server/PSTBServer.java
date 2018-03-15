@@ -6,7 +6,7 @@ package pstb.creation.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
+//import java.net.SocketException;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
@@ -27,7 +27,7 @@ import pstb.startup.config.BenchmarkMode;
 public class PSTBServer extends Thread
 {
 	// Constants
-	private final int STD_TIMEOUT = 20000; // Milliseconds
+//	private final int STD_TIMEOUT = 20000; // Milliseconds
 	
 	private HashMap<String, PSNode> brokerData;
 	private HashMap<String, PSNode> clientData;
@@ -42,12 +42,14 @@ public class PSTBServer extends Thread
 	private String benchmarkStartTime;
 	
 	private BenchmarkMode mode;
+	private Long periodLength;
 	
 	private String logHeader = "PSTBServer: ";
 	private Logger serverLog = LogManager.getLogger(PSTBServer.class);
 	
 	public PSTBServer(HashMap<String, PSNode> brokerObjects, HashMap<String, PSNode> clientObjects, CountDownLatch startSignal, 
-			CountDownLatch brokersStartedSignal, CountDownLatch brokersLinkedSignal, String givenBST, BenchmarkMode givenMode)
+			CountDownLatch brokersStartedSignal, CountDownLatch brokersLinkedSignal, String givenBST, BenchmarkMode givenMode,
+			Long givenPL)
 	{
 		brokerData = brokerObjects;
 		clientData = clientObjects;
@@ -62,6 +64,7 @@ public class PSTBServer extends Thread
 		benchmarkStartTime = givenBST;
 		
 		mode = givenMode;
+		periodLength = givenPL;
 	}
 	
 	public int numBrokers()
@@ -209,7 +212,7 @@ public class PSTBServer extends Thread
 				}
 			};
 			
-			ThroughputMaster newServer = new ThroughputMaster(tmDatabase, port, benchmarkStartTime);
+			ThroughputMaster newServer = new ThroughputMaster(tmDatabase, periodLength, port, benchmarkStartTime);
 			newServer.setUncaughtExceptionHandler(nodeHandlerExceptionNet);		
 			newServer.start();
 			
@@ -235,15 +238,15 @@ public class PSTBServer extends Thread
 			return false;
 		}
 		
-		try 
-		{
-			objectConnection.setSoTimeout(STD_TIMEOUT);
-		} 
-		catch (SocketException e) 
-		{
-			serverLog.error(logHeader + "Couldn't sete a timeout period to the serverSocket: ", e);
-			return false;
-		}
+//		try 
+//		{
+//			objectConnection.setSoTimeout(STD_TIMEOUT);
+//		} 
+//		catch (SocketException e) 
+//		{
+//			serverLog.error(logHeader + "Couldn't sete a timeout period to the serverSocket: ", e);
+//			return false;
+//		}
 		
 		return true;
 	}

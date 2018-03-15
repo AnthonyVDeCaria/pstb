@@ -21,7 +21,7 @@ import pstb.util.PSTBUtil.TimeType;
 public class DiaryEntry  implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;
-	HashMap<DiaryHeader, String> page;
+	HashMap<DiaryHeader, Object> page;
 	
 	private final String logHeader = "DiaryEntry: ";
 	
@@ -30,7 +30,7 @@ public class DiaryEntry  implements java.io.Serializable
 	 */
 	public DiaryEntry()
 	{
-		page = new HashMap<DiaryHeader, String>();
+		page = new HashMap<DiaryHeader, Object>();
 	}
 	
 	/**
@@ -38,9 +38,9 @@ public class DiaryEntry  implements java.io.Serializable
 	 * 
 	 * @param givenPSAT - the PSActionType to add
 	 */
-	public void addPSActionType(PSActionType givenPSAT)
+	public void setPSActionType(PSActionType givenPSAT)
 	{
-		page.put(DiaryHeader.PSActionType, givenPSAT.toString());
+		page.put(DiaryHeader.PSActionType, givenPSAT);
 	}
 	
 	/**
@@ -48,19 +48,19 @@ public class DiaryEntry  implements java.io.Serializable
 	 * 
 	 * @param givenTAS - the time the action started
 	 */
-	public void addTimeActionStarted(Long givenTAS)
+	public void setTimeActionStarted(Long givenTAS)
 	{
-		page.put(DiaryHeader.TimeActionStarted, givenTAS.toString());
+		page.put(DiaryHeader.TimeActionStarted, givenTAS);
 	}
 	
 	/**
-	 * TimeBrokerFinished setter
+	 * TimeFunctionReturned setter
 	 * 
-	 * @param givenTAS - the time the broker finished handling the action
+	 * @param givenTFR - the time the broker finished handling the action
 	 */
-	public void addTimeBrokerFinished(Long givenTBF)
+	public void setTimeFunctionReturned(Long givenTFR)
 	{
-		page.put(DiaryHeader.TimeBrokerFinished, givenTBF.toString());
+		page.put(DiaryHeader.TimeFunctionReturned, givenTFR);
 	}
 	
 	/**
@@ -70,7 +70,7 @@ public class DiaryEntry  implements java.io.Serializable
 	 */
 	public void addStartedAction(Long givenSA)
 	{
-		page.put(DiaryHeader.StartedAction, givenSA.toString());
+		page.put(DiaryHeader.StartedAction, givenSA);
 	}
 	
 	/**
@@ -80,7 +80,7 @@ public class DiaryEntry  implements java.io.Serializable
 	 */
 	public void addEndedAction(Long givenEA)
 	{
-		page.put(DiaryHeader.EndedAction, givenEA.toString());
+		page.put(DiaryHeader.EndedAction, givenEA);
 	}
 	
 	/**
@@ -89,7 +89,7 @@ public class DiaryEntry  implements java.io.Serializable
 	 */
 	public void addActionDelay(Long givenAD)
 	{
-		page.put(DiaryHeader.ActionDelay, givenAD.toString());
+		page.put(DiaryHeader.ActionDelay, givenAD);
 	}
 	
 	public void addMessageID(String givenMID)
@@ -104,102 +104,130 @@ public class DiaryEntry  implements java.io.Serializable
 	
 	public void addPayloadSize(Integer givenPS)
 	{
-		page.put(DiaryHeader.PayloadSize, givenPS.toString());
+		page.put(DiaryHeader.PayloadSize, givenPS);
 	}
 	
 	public void addTimeActiveStarted(Long givenTAS)
 	{
-		page.put(DiaryHeader.TimeActiveStarted, givenTAS.toString());
+		page.put(DiaryHeader.TimeActiveStarted, givenTAS);
 	}
 	
 	public void addTimeActiveAck(Long givenTAA)
 	{
-		page.put(DiaryHeader.TimeActiveEnded, givenTAA.toString());
+		page.put(DiaryHeader.TimeActiveEnded, givenTAA);
 	}
 	
 	public void addTimeCreated(Long givenTC)
 	{
-		page.put(DiaryHeader.TimeMessageCreated, givenTC.toString());
+		page.put(DiaryHeader.TimeMessageCreated, givenTC);
 	}
 	
 	public void addTimeReceived(Long givenTR)
 	{
-		page.put(DiaryHeader.TimeMessageReceived, givenTR.toString());
+		page.put(DiaryHeader.TimeMessageReceived, givenTR);
 	}
 	
 	public void addTimeDifference(Long givenTD)
 	{
-		page.put(DiaryHeader.MessageDelay, givenTD.toString());
+		page.put(DiaryHeader.MessageDelay, givenTD);
+	}
+	
+	public void setRound(Integer givenRound)
+	{
+		page.put(DiaryHeader.Round, givenRound);
+	}
+	
+	public void setRoundDelay(Double givenDelay)
+	{	
+		page.put(DiaryHeader.RoundDelay, givenDelay);
+	}
+	
+	public void setMessagesReceievedRound(Integer givenMRR)
+	{	
+		page.put(DiaryHeader.MessagesReceievedRound, givenMRR);
+	}
+	
+	public void setMessagesReceievedTotal(Integer givenMRT)
+	{	
+		page.put(DiaryHeader.MessagesReceievedTotal, givenMRT);
+	}
+	
+	public void setMessageRate(Double givenMR) {
+		page.put(DiaryHeader.MessageRate, givenMR);
+	}
+
+	public void setCurrentThroughput(Double givenCT) {
+		page.put(DiaryHeader.CurrentThroughput, givenCT);
+	}
+	
+	public void setSecant(Double givenMT)
+	{
+		page.put(DiaryHeader.Secant, givenMT);
+	}
+	
+	public void setAverageThroughput(Double givenIT)
+	{
+		page.put(DiaryHeader.AverageThroughput, givenIT);
 	}
 	
 	public PSActionType getPSActionType()
 	{
-		String storedPSActionType = page.get(DiaryHeader.PSActionType);
-		return PSActionType.valueOf(storedPSActionType);
+		return (PSActionType) page.get(DiaryHeader.PSActionType);
 	}
 	
 	public Long getStartedAction()
 	{
-		String storedTimeStartedAction = page.get(DiaryHeader.StartedAction);
-		return PSTBUtil.checkIfLong(storedTimeStartedAction, false, null);
+		return (Long) page.get(DiaryHeader.StartedAction);
 	}
 	
 	public Long getEndedAction()
 	{
-		String storedTimeBrokerAck = page.get(DiaryHeader.EndedAction);
-		return PSTBUtil.checkIfLong(storedTimeBrokerAck, false, null);
+		return (Long) page.get(DiaryHeader.EndedAction);
 	}
 	
 	public Long getActionDelay()
 	{
-		String storedActionDelay = page.get(DiaryHeader.ActionDelay);
-		return PSTBUtil.checkIfLong(storedActionDelay, false, null);
+		return (Long) page.get(DiaryHeader.ActionDelay);
 	}
 	
 	public String getMessageID()
 	{
-		return page.get(DiaryHeader.MessageID);
+		return (String) page.get(DiaryHeader.MessageID);
 	}
 	
 	public String getAttributes()
 	{
-		return page.get(DiaryHeader.Attributes);
+		return (String) page.get(DiaryHeader.Attributes);
 	}
 	
 	public Integer getPayloadSize()
 	{
-		String storedPayloadSize = page.get(DiaryHeader.PayloadSize);
-		return PSTBUtil.checkIfInteger(storedPayloadSize, false, null);
+		return (Integer) page.get(DiaryHeader.PayloadSize);
 	}
 	
 	public Long getTimeActiveStarted()
 	{
-		String storedTimeActiveStarted = page.get(DiaryHeader.TimeActiveStarted);
-		return PSTBUtil.checkIfLong(storedTimeActiveStarted, false, null);
+		return (Long) page.get(DiaryHeader.TimeActiveStarted);
 	}
 	
 	public Long getTimeActiveEnded()
 	{
-		String storedTimeActiveEnded = page.get(DiaryHeader.TimeActiveEnded);
-		return PSTBUtil.checkIfLong(storedTimeActiveEnded, false, null);
+		return (Long) page.get(DiaryHeader.TimeActiveEnded);
 	}
 	
 	public Long getTimeCreated()
 	{
-		String storedTimeCreated = page.get(DiaryHeader.TimeMessageCreated);
-		return PSTBUtil.checkIfLong(storedTimeCreated, false, null);
+		return (Long) page.get(DiaryHeader.TimeMessageCreated);
 	}
 	
 	public Long getTimeReceived()
 	{
-		String storedTimeReceived = page.get(DiaryHeader.TimeMessageReceived);
-		return PSTBUtil.checkIfLong(storedTimeReceived, false, null);
+		return (Long) page.get(DiaryHeader.TimeMessageReceived);
 	}
 	
-	public Long getTimeDifference()
+	public Long getMessageDelay()
 	{
-		String storedTimeDifference = page.get(DiaryHeader.MessageDelay);
-		return PSTBUtil.checkIfLong(storedTimeDifference, false, null);
+		return (Long) page.get(DiaryHeader.MessageDelay);
 	}
 	
 	public Long getDelay(DiaryHeader delayType) 
@@ -210,7 +238,7 @@ public class DiaryEntry  implements java.io.Serializable
 		}
 		else if(delayType == DiaryHeader.MessageDelay)
 		{
-			return getTimeDifference();
+			return getMessageDelay();
 		}
 		else
 		{
@@ -256,21 +284,21 @@ public class DiaryEntry  implements java.io.Serializable
 				 *  If we're looking at TimeActionStarted or TimeBrokerFinished, don't record the number value
 				 *  Instead, convert that number into a date
 				 */
-				if(header.equals(DiaryHeader.TimeActionStarted) || header.equals(DiaryHeader.TimeBrokerFinished))
+				if(header.equals(DiaryHeader.TimeActionStarted) || header.equals(DiaryHeader.TimeFunctionReturned))
 				{
-					Long convertedData = PSTBUtil.checkIfLong(data, false, null);
+					Long convertedData = (Long) data;
 					if(convertedData != null)
 					{
 						data = PSTBUtil.DATE_FORMAT.format(convertedData);
 					}
 					else
 					{
-						throw new IllegalArgumentException("Converted data null for header" + header.toString() 
+						throw new IllegalArgumentException("Converted data null for header" + header 
 																+ " and data " + data);
 					}
 				}
 				
-				String line = header.toString() + ": " + data;
+				String line = header + ": " + data;
 				try
 				{
 					Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
@@ -296,7 +324,7 @@ public class DiaryEntry  implements java.io.Serializable
 					|| header.equals(DiaryHeader.TimeMessageReceived)
 					)
 				{
-					Long convertedData = PSTBUtil.checkIfLong(data, false, null);
+					Long convertedData = (Long) data;
 					if(convertedData != null)
 					{
 						String formatted = null;

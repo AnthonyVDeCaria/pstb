@@ -8,6 +8,7 @@ import java.net.Socket;
 
 import org.apache.logging.log4j.Logger;
 
+import pstb.analysis.diary.ClientDiary;
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.object.client.PSClient;
 import pstb.benchmark.object.client.PSClientMode;
@@ -66,6 +67,11 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 			givenClient.setMasterPort(portNumber);
 		}
 		
+		log.debug(logHeader + "The requested brokers are:");
+		givenClient.getBrokersURIs().forEach((brokerURI)->{
+			log.debug(brokerURI);
+		});
+		
 		log.debug(logHeader + "Attempting to setup client...");
 		boolean setupCheck = setup(givenClient);
 		if(!setupCheck)
@@ -73,7 +79,7 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 			log.error("Couldn't setup client!");
 			System.exit(PSTBError.C_SETUP);
 		}
-		log.info(logHeader + "Client setup.");
+		log.debug(logHeader + "Client setup.");
 		
 		initalized();
 		
@@ -93,22 +99,23 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 			log.error("Couldn't run experiment!");
 			System.exit(PSTBError.C_RUN);
 		}
-		log.info(logHeader + "Run complete.");
+		log.debug(logHeader + "Run complete.");
 		
-		log.debug(logHeader + "Attempting to clean up after experiment...");
-		boolean cleanupCheck = cleanup();
-		if(!cleanupCheck)
-		{
-			log.error("Couldn't cleanup after run!");
-			System.exit(PSTBError.C_CLEANUP);
-		}
-		log.info(logHeader + "Clean up complete.");
+//		log.debug(logHeader + "Attempting to clean up after experiment...");
+//		boolean cleanupCheck = cleanup();
+//		if(!cleanupCheck)
+//		{
+//			log.error("Couldn't cleanup after run!");
+//			System.exit(PSTBError.C_CLEANUP);
+//		}
+//		log.info(logHeader + "Clean up complete.");
 		
-		log.info(logHeader + "recording a diary object with name " + context);
+		log.debug(logHeader + "recording a diary object with name " + context);
+		String diaryFileString = context + ".dia";
 		FileOutputStream out = null;
 		try 
 		{
-			out = new FileOutputStream(context + ".dia");
+			out = new FileOutputStream(diaryFileString);
 		} 
 		catch (FileNotFoundException e) 
 		{
@@ -116,35 +123,43 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 			System.exit(PSTBError.C_DIARY);
 		}
 		
-		boolean diaryCheck = PSTBUtil.sendObject(givenClient.getDiary(), context, out, log, logHeader);
-		if(!diaryCheck)
+		if(givenMode.equals(PSClientMode.TPPub))
 		{
-			log.error(logHeader + "Couldn't record " + nodeName + "'s diary object!");
-			System.exit(PSTBError.C_DIARY);
+			log.error(logHeader + "No diary record needed.");
 		}
-		
-		try 
+		else
 		{
-			out.close();
-		} 
-		catch (IOException e) 
-		{
-			log.error(logHeader + "error closing diary OutputStream: ", e);
-			System.exit(PSTBError.C_DIARY);
-		}
-		
-		if(distributed)
-		{
-			String[] command = {"scripts/nodeSendUpstream.sh", username, masterIPAddress, "dia"};
-			boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, log, false,
-																	"Error creating process to send " + nodeName + "'s diary: ", 
-																	"Sent " + nodeName + "'s diary upstream.", 
-																	"Couldn't send " + nodeName + "'s diary upstream.");
-			if(!sendDiaryCheck)
+			ClientDiary currentDiary = givenClient.getDiary();
+			boolean diaryCheck = PSTBUtil.sendObject(currentDiary, out, log, logHeader);
+			if(!diaryCheck)
 			{
-				log.error(logHeader + "error sending diary!");
+				log.error(logHeader + "Couldn't record " + nodeName + "'s diary object!");
 				System.exit(PSTBError.C_DIARY);
 			}
+			
+			try 
+			{
+				out.close();
+			} 
+			catch (IOException e) 
+			{
+				log.error(logHeader + "error closing diary OutputStream: ", e);
+				System.exit(PSTBError.C_DIARY);
+			}
+			
+//			if(distributed)
+//			{
+//				String[] command = {"scripts/sendDiaryUpstream.sh", username, masterIPAddress, diaryFileString};
+//				boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, log, false,
+//																		"Error creating process to send " + nodeName + "'s diary: ", 
+//																		"Sent " + nodeName + "'s diary upstream.", 
+//																		"Couldn't send " + nodeName + "'s diary upstream.");
+//				if(!sendDiaryCheck)
+//				{
+//					log.error(logHeader + "error sending diary!");
+//					System.exit(PSTBError.C_DIARY);
+//				}
+//			}
 		}
 		
 		log.info("Successful run with client " + nodeName);

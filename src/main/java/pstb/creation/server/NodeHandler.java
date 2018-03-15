@@ -108,7 +108,7 @@ public class NodeHandler extends Thread
 					}
 					
 					log.debug(logHeader + "Sending object data to node " + inputLine + "...");
-					PSTBUtil.sendObject(nodeObject.getNode(), inputLine, pipeOut, log, logHeader);
+					PSTBUtil.sendObject(nodeObject.getNode(), pipeOut, log, logHeader);
 					log.info(logHeader + "Object data sent to node " + nodeName + ".");
 					
 					sMode = ServerMode.Init;
@@ -146,7 +146,7 @@ public class NodeHandler extends Thread
 						}
 						
 						log.debug(logHeader + "Sending " + nodeName + " the start signal...");
-						PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.START, log, logHeader);
+						PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.START);
 						log.info(logHeader + "Start signal sent to " + nodeName + ".");
 						
 						startSent.countDown();
@@ -201,9 +201,6 @@ public class NodeHandler extends Thread
 		{
 			log.error("Error closing objectPipe: ", eIO);
 		}
-		
-		brokersNotStarted.countDown();
-		clientsNotWaiting.countDown();
 		
 		throw new RuntimeException(record, givenException);
 	}

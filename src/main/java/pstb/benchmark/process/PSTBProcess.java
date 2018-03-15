@@ -99,7 +99,7 @@ public abstract class PSTBProcess {
 		Thread.currentThread().setName(context);
 		
 		log.debug(logHeader + "Attempting to send name to master...");
-		PSTBUtil.sendStringAcrossSocket(connOut, nodeName, log, logHeader);
+		PSTBUtil.sendStringAcrossSocket(connOut, nodeName);
 		log.info(logHeader + "Name sent.");
 		
 		log.debug(logHeader + "Attempting to retrieve " + nodeName + "'s Object from master...");
@@ -257,7 +257,7 @@ public abstract class PSTBProcess {
 	protected void initalized()
 	{
 		log.debug(logHeader + "Letting master know we've initialized...");
-		PSTBUtil.sendStringAcrossSocket(connOut, PSTBUtil.INIT, log, logHeader);
+		PSTBUtil.sendStringAcrossSocket(connOut, PSTBUtil.INIT);
 		log.info(logHeader + "Master should know.");
 	}
 	

@@ -27,8 +27,6 @@ public class BenchmarkConfig {
 	private final String protocolsString = "startup.protocols";
 	private final String runLengthsString = "startup.runLengths";
 	private final String nrpeString = "startup.numRunsPerExperiment";
-//	private final String initialDelayString = "startup.initialDelay";
-//	private final String initialPayloadString = "startup.initialPayload";
 	private final String periodLengthString = "startup.periodLength";
 	private final String wfsString = "startup.workloadFilesStrings";
 	
@@ -51,8 +49,6 @@ public class BenchmarkConfig {
 	
 	private boolean wantThroughput;
 	private Long periodLength;
-//	private Long initialDelay;
-//	private Integer initialPayload;
 	
 	private ArrayList<String> workloadFilesStrings;
 	
@@ -176,7 +172,7 @@ public class BenchmarkConfig {
 						break;
 					}
 					
-					if(mI.equals(BenchmarkMode.Normal))
+					if(mI.equals(BenchmarkMode.Scenario))
 					{
 						wantNormal = true;
 					}
@@ -369,30 +365,6 @@ public class BenchmarkConfig {
 				everythingisProper = false;
 			}
 			periodLength = temp * PSTBUtil.MILLISEC_TO_NANOSEC;
-			
-//			// InitialDelay
-//			String givenIDS = givenProperty.getProperty(initialDelayString);
-//			try
-//			{
-//				initialDelay = Long.parseLong(givenIDS);
-//			}
-//			catch(IllegalArgumentException e)
-//			{
-//				logger.error(logHeader + givenIDS + " is not a valid Long: ", e);
-//				everythingisProper = false;
-//			}
-//			
-//			// InitialPayload
-//			String givenIPS = givenProperty.getProperty(initialPayloadString);
-//			try
-//			{
-//				initialPayload = Integer.parseInt(givenIPS);
-//			}
-//			catch(IllegalArgumentException e)
-//			{
-//				logger.error(logHeader + givenIPS + " is not a valid Integer: ", e);
-//				everythingisProper = false;
-//			}
 		}
 		
 		// workloadFilesStrings
@@ -521,26 +493,6 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Gets the initialDelay
-	 * 
-	 * @return initialDelay - the initial delay value to be used in a throughput experiment
-	 */
-//	public Long getInitialDelay()
-//	{
-//		return initialDelay;
-//	}
-	
-	/**
-	 * Gets the initialPayload
-	 * 
-	 * @return initialPayload - the initial payload value to be used in a throughput experiment
-	 */
-//	public Integer getInitialPayload()
-//	{
-//		return initialPayload;
-//	}
-	
-	/**
 	 * Gets the periodLength
 	 * 
 	 * @return periodLength - the length of a period in a throughput experiment
@@ -648,16 +600,6 @@ public class BenchmarkConfig {
 			logger.error(logHeader + "No Period Length was given!");
 			anyFieldNull = true;
 		}
-//		if(wantThroughput && initialDelay == null)
-//		{
-//			logger.error(logHeader + "No Initial Delay was given!");
-//			anyFieldNull = true;
-//		}
-//		if(wantThroughput && initialPayload == null)
-//		{
-//			logger.error(logHeader + "No Initial Payload was given!");
-//			anyFieldNull = true;
-//		}
 		if(workloadFilesStrings.isEmpty())
 		{
 			logger.error(logHeader + "No Workload File String(s) were given!");

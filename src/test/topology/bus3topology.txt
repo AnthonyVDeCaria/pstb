@@ -1,0 +1,11 @@
+#Brokers
+B0	B	B1
+B1	B	B2
+B2	B	B3
+B3	B	B2
+
+#Clients
+P0	C	B0	src/test/workload/testpub2.cna
+S0	C	B1	src/test/workload/testsub.pdrs
+S1	C	B2	src/test/workload/testsub.pdrs
+S2	C	B3	src/test/workload/testsub.pdrs

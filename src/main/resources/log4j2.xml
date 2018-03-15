@@ -123,74 +123,74 @@
     </Appenders>
     
     <Loggers>
-        <Root level="debug" additivity="false">
+        <Root level="info" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Root"/>
         </Root>
-        <Logger name="pstb.creation.server.PSTBServer" level="debug" additivity="false">
+        <Logger name="pstb.creation.server.PSTBServer" level="info" additivity="false">
         	<AppenderRef ref="Server"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.PSTBProcess" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.PSTBProcess" level="info" additivity="false">
         	<AppenderRef ref="Node"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="info" additivity="false">
         	<AppenderRef ref="Broker"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="info" additivity="false">
         	<AppenderRef ref="Client"/>
         </Logger>
-        <Logger name="SystemError" level="warn" additivity="false">
+        <Logger name="SystemError" level="fatal" additivity="false">
         	<AppenderRef ref="SystemError"/>
         </Logger>
-        <Logger name="Exception" level="warn" additivity="false">
+        <Logger name="Exception" level="fatal" additivity="false">
         	<AppenderRef ref="Exception"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.brokercore.BrokerCore" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.brokercore.BrokerCore" level="fatal" additivity="false">
         	<AppenderRef ref="BC"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.controller.Controller" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.Controller" level="fatal" additivity="false">
         	<AppenderRef ref="Controller"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.controller.LifeCycleManager" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.LifeCycleManager" level="fatal" additivity="false">
         	<AppenderRef ref="LCM"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.controller.OverlayManager" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.OverlayManager" level="fatal" additivity="false">
         	<AppenderRef ref="OM"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.controller.ServerInjectionManager" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.controller.ServerInjectionManager" level="fatal" additivity="false">
         	<AppenderRef ref="SIM"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.monitor.SystemMonitor" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.monitor.SystemMonitor" level="fatal" additivity="false">
         	<AppenderRef ref="SM"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.router.Router" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.router.Router" level="fatal" additivity="false">
         	<AppenderRef ref="Router"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.broker.router.matching.rete.ReteMatcher" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.broker.router.matching.rete.ReteMatcher" level="fatal" additivity="false">
         	<AppenderRef ref="ReteMatcher"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.common.comm.CommSystem" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.common.comm.CommSystem" level="fatal" additivity="false">
         	<AppenderRef ref="CS"/>
         </Logger>
-        <Logger name="HeartBeat" level="debug" additivity="false">
+        <Logger name="HeartBeat" level="fatal" additivity="false">
         	<AppenderRef ref="HB"/>
         </Logger>
-        <Logger name="DBBinding" level="debug" additivity="false">
+        <Logger name="DBBinding" level="fatal" additivity="false">
         	<AppenderRef ref="DBB"/>
         </Logger>
-        <Logger name="Performance" level="debug" additivity="false">
+        <Logger name="Performance" level="fatal" additivity="false">
         	<AppenderRef ref="Performance"/>
         </Logger>
-        <Logger name="Message" level="debug" additivity="false">
+        <Logger name="Message" level="fatal" additivity="false">
         	<AppenderRef ref="Message"/>
         </Logger>
-        <Logger name="MessagePath" level="debug" additivity="false">
+        <Logger name="MessagePath" level="fatal" additivity="false">
         	<AppenderRef ref="MessagePath"/>
         </Logger>
-        <Logger name="LoopDetection" level="debug" additivity="false">
+        <Logger name="LoopDetection" level="fatal" additivity="false">
         	<AppenderRef ref="LD"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.client.Client" level="debug" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.client.Client" level="info" additivity="false">
         	<AppenderRef ref="PADRES-C"/>
         </Logger>
         

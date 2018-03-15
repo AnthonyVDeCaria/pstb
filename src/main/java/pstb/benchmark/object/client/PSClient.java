@@ -13,6 +13,7 @@ import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DiaryHeader;
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.process.client.PSTBClientProcess;
+import pstb.benchmark.throughput.MessageSize;
 import pstb.startup.config.BenchmarkMode;
 import pstb.startup.workload.PSAction;
 import pstb.startup.workload.PSActionType;
@@ -36,20 +37,23 @@ public abstract class PSClient extends PSNode
 	
 	// Pre-set variables
 	protected ReentrantLock diaryLock = new ReentrantLock();
+	protected ReentrantLock runningLock = new ReentrantLock();
 	
 	// Variables needed by user to run experiment
 	protected ArrayList<String> brokersURIs;
 	protected ArrayList<PSAction> workload;
 	protected PSClientMode cMode;
+	protected Integer numPubs;
 	
 	// Varaibles needed to run Throughput experiment
 	private String masterIPAddress;
 	private Integer portNumber;
 	private Long pubDelay;
+	private Integer messagesReceived;
 	private Double currentDelay;
 	
 	// Variables set during experiment
-	protected Integer receivedMessages;
+	protected Boolean currentlyRunning;
 	
 	// Output Variables
 	protected ClientDiary diary;
@@ -65,12 +69,14 @@ public abstract class PSClient extends PSNode
 		workload = null;
 		cMode = null;
 		
+		numPubs = null;
 		masterIPAddress = null;
 		portNumber = null;
 		pubDelay = null;
-		currentDelay = null;
+		messagesReceived = new Integer(0);
+		currentDelay = new Double(0.0);
 		
-		receivedMessages = new Integer(0);
+		currentlyRunning = null;
 		
 		diary = new ClientDiary();
 		
@@ -103,6 +109,11 @@ public abstract class PSClient extends PSNode
 		cMode = givenMode;
 	}
 	
+	public void setNumPubs(Integer givenNP)
+	{
+		numPubs = givenNP;
+	}
+	
 	public void setMIP(String givenIP)
 	{
 		masterIPAddress = givenIP;
@@ -111,6 +122,48 @@ public abstract class PSClient extends PSNode
 	public void setMasterPort(Integer givenPort)
 	{
 		portNumber = givenPort;
+	}
+	
+	public void startCR()
+	{
+		try
+		{
+			runningLock.lock();
+			currentlyRunning = new Boolean(true);
+		}
+		finally
+		{
+			runningLock.unlock();
+		}
+	}
+	
+	public void stopCR()
+	{
+		try
+		{
+			runningLock.lock();
+			currentlyRunning = new Boolean(false);
+		}
+		finally
+		{
+			runningLock.unlock();
+		}
+	}
+	
+	public Boolean getCurrentlyRunning()
+	{
+		Boolean retVal = null;
+		try
+		{
+			runningLock.lock();
+			retVal = currentlyRunning;
+		}
+		finally
+		{
+			runningLock.unlock();
+		}
+		
+		return retVal; 
 	}
 	
 	/**
@@ -131,7 +184,18 @@ public abstract class PSClient extends PSNode
 	 */
 	public ClientDiary getDiary()
 	{
-		return diary;
+		ClientDiary retVal = null;
+		try
+		{
+			diaryLock.lock();
+			retVal = diary;
+		}
+		finally
+		{
+			diaryLock.unlock();
+		}
+		
+		return retVal;
 	}
 	
 	public PSClientMode getClientMode()
@@ -155,8 +219,10 @@ public abstract class PSClient extends PSNode
 		
 		PSTBUtil.synchronizeRun();
 		
+		startCR();
+		
 		boolean runCheck = false;
-		if(cMode.equals(PSClientMode.Normal))
+		if(cMode.equals(PSClientMode.Scenario))
 		{
 			nodeLog.info(logHeader + "Starting normal run...");
 			runCheck = normalRun();
@@ -166,6 +232,8 @@ public abstract class PSClient extends PSNode
 			nodeLog.info(logHeader + "Starting throughput run...");
 			runCheck = throughputRun();
 		}
+		
+		stopCR();
 		
 		return runCheck;
 	}
@@ -191,11 +259,11 @@ public abstract class PSClient extends PSNode
 			nodeLog.error("No PSClientMode was was given!");
 			everythingPresent = false;
 		}
-		else if(cMode.equals(PSClientMode.Normal))
+		else if(cMode.equals(PSClientMode.Scenario))
 		{
-			if(!mode.equals(BenchmarkMode.Normal))
+			if(!mode.equals(BenchmarkMode.Scenario))
 			{
-				nodeLog.error("Mode mismatch!");
+				nodeLog.error("Mode mismatch - Client Mode is Scenario but Benchmark Mode isn't!");
 				everythingPresent = false;
 			}
 			
@@ -205,7 +273,7 @@ public abstract class PSClient extends PSNode
 				everythingPresent = false;
 			}
 		}
-		else if((cMode.equals(PSClientMode.TPPub) || (cMode.equals(PSClientMode.TPSub))) && mode.equals(BenchmarkMode.Normal) )
+		else if((cMode.equals(PSClientMode.TPPub) || (cMode.equals(PSClientMode.TPSub))) && !mode.equals(BenchmarkMode.Throughput) )
 		{
 			nodeLog.error("Mode mismatch!");
 			everythingPresent = false;
@@ -216,7 +284,6 @@ public abstract class PSClient extends PSNode
 	
 	private boolean normalRun() 
 	{
-		Long defaultDelay = runLength / 10 / PSTBUtil.MILLISEC_TO_NANOSEC;
 		ArrayList<PSAction> activeList = new ArrayList<PSAction>();
 		int numActions = workload.size();
 		
@@ -225,8 +292,6 @@ public abstract class PSClient extends PSNode
 		Long currentTime = System.nanoTime();
 		while( (currentTime - runStart) < runLength)
 		{
-			Long delayValue = new Long(defaultDelay);
-			
 			nodeLog.info(logHeader + "Updating active lists...");
 			updateActiveList(activeList);
 			nodeLog.info(logHeader + "Updated active lists.");
@@ -235,7 +300,6 @@ public abstract class PSClient extends PSNode
 			{
 				PSAction actionI = workload.get(i);
 				PSActionType actionIsActionType = actionI.getActionType();
-				delayValue = actionI.getActionDelay();
 				
 				nodeLog.debug(logHeader + "Attempting to send " + actionIsActionType + " " + actionI.getAttributes() + ".");
 				boolean checkPublication = launchAction(actionIsActionType, actionI);
@@ -276,18 +340,6 @@ public abstract class PSClient extends PSNode
 				}
 				
 				i++;
-			}
-			
-			// Sleep for some time
-			try 
-			{				
-				nodeLog.debug(logHeader + "pausing for " + delayValue.toString() + ".");
-				Thread.sleep(delayValue);
-			} 
-			catch (InterruptedException e) 
-			{
-				nodeLog.error(logHeader + "error sleeping in client " + nodeName + ": ", e);
-				return false;
 			}
 			
 			currentTime = System.nanoTime();
@@ -350,7 +402,7 @@ public abstract class PSClient extends PSNode
 			
 			Long currentTime = System.nanoTime();
 			
-			DiaryEntry activeActionIEntry = diary.getDiaryEntryGivenActionTypeNAttributes(aAIActionType, aAIAttributes);
+			DiaryEntry activeActionIEntry = diary.getDiaryEntryGivenActionTypeNAttributes(aAIActionType, aAIAttributes, nodeLog);
 			if(activeActionIEntry == null)
 			{
 				nodeLog.error(logHeader + "Couldn't find " + activeActionI.getActionType() + " " + activeActionI.getAttributes() 
@@ -457,8 +509,10 @@ public abstract class PSClient extends PSNode
 		}
 		
 		PSActionType firstActionType = null;
+		Long delay = 1000L;
 		if(cMode.equals(PSClientMode.TPPub))
 		{
+			PSTBUtil.waitAPeriod((long)(0.5 * PSTBUtil.SEC_TO_NANOSEC), nodeLog, logHeader);
 			firstActionType = PSActionType.A;
 		}
 		else
@@ -466,19 +520,19 @@ public abstract class PSClient extends PSNode
 			firstActionType = PSActionType.S;
 		}
 		String attri = generateThroughputAttributes(firstActionType, 0);
-		PSAction firstAction = new PSAction(firstActionType, 1000L, attri, 0, Long.MAX_VALUE);
-		boolean undoFirstActionCheck = launchAction(firstActionType, firstAction);
-		if(!undoFirstActionCheck)
+		PSAction firstAction = new PSAction(firstActionType, delay, attri, 0, Long.MAX_VALUE);
+		boolean firstActionCheck = launchAction(firstActionType, firstAction);
+		if(!firstActionCheck)
 		{
 			nodeLog.error(logHeader + "Couldn't send the first action!");
 			return false;
 		}
 		
-		int i = 0;
+		int i = 0, periodNum = 0;
 		Boolean stillRunning = true;
 		while(stillRunning)
 		{
-			stillRunning = handleMaster(currentDelay);
+			stillRunning = handleMaster(messagesReceived, currentDelay);
 			if(stillRunning == null)
 			{
 				nodeLog.error(logHeader + "Couldn't get new pubDelay!");
@@ -498,30 +552,62 @@ public abstract class PSClient extends PSNode
 					i++;
 					currentTime = System.nanoTime();
 				}
-				
-				boolean checkAPA = afterPeriodAction();
+				nodeLog.info(logHeader + "Round " + periodNum + " complete.");
+				boolean checkAPA = afterPeriodAction(periodNum);
 				if(!checkAPA)
 				{
 					return false;
 				}
+				
+				periodNum++;
 			}
 			else
-			{
+			{	
 //				PSActionType undoActionType = null;
-//				if(cMode.equals(PSClientMode.TPPub))
-//				{
-//					undoActionType = PSActionType.V;
-//				}
-//				else
+				if(cMode.equals(PSClientMode.TPPub))
+				{
+					PSActionType undoActionType = PSActionType.V;
+					boolean undoFirstActionCheck = launchAction(undoActionType, firstAction);
+					if(!undoFirstActionCheck)
+					{
+						nodeLog.error(logHeader + "Couldn't undo the first action!");
+						return false;
+					}
+					else
+					{
+						nodeLog.info(logHeader + "Undo complete.");
+					}					
+				}
+//				else if(cMode.equals(PSClientMode.TPSub))
 //				{
 //					undoActionType = PSActionType.U;
 //				}
-//				undoFirstActionCheck = launchAction(undoActionType, firstAction);
+//				boolean undoFirstActionCheck = launchAction(undoActionType, firstAction);
 //				if(!undoFirstActionCheck)
 //				{
 //					nodeLog.error(logHeader + "Couldn't undo the first action!");
 //					return false;
 //				}
+//				else
+//				{
+//					nodeLog.info(logHeader + "Undo complete.");
+//				}
+				
+				try
+				{
+					diaryLock.lock();
+					
+					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.A);
+					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.V);
+					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.S);
+					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.U);
+					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.P);
+					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.R);
+				}
+				finally
+				{
+					diaryLock.unlock();
+				}
 				
 				nodeLog.info(logHeader + "Throughput experiment complete.");
 			}
@@ -535,7 +621,18 @@ public abstract class PSClient extends PSNode
 		if(cMode.equals(PSClientMode.TPPub))
 		{
 			String pubAttribute = generateThroughputAttributes(PSActionType.P, i);
-			PSAction pubI = new PSAction(PSActionType.P, pubDelay, pubAttribute, 0, 0L);
+			
+			Integer payloadSize = 0;
+			if(ms.equals(MessageSize.OneKiloByte))
+			{
+				payloadSize = 1000;
+			}
+			else if(ms.equals(MessageSize.OneHundredKiloBytes))
+			{
+				payloadSize = 100000;
+			}
+			
+			PSAction pubI = new PSAction(PSActionType.P, pubDelay, pubAttribute, payloadSize, 0L);
 			
 			boolean pubISendCheck = launchAction(PSActionType.P, pubI);
 			if(!pubISendCheck)
@@ -543,20 +640,17 @@ public abstract class PSClient extends PSNode
 				nodeLog.error(logHeader + "Couldn't send pub " + i + "!");
 				return false;
 			}
-
-			nodeLog.debug(logHeader + "pausing for " + pubDelay.toString() + "ns ...");
-			PSTBUtil.waitAPeriod(pubDelay);
 		}
 		
 		return true;
 	}
 	
-	private boolean afterPeriodAction()
+	private boolean afterPeriodAction(int givenPN)
 	{
 		if(cMode.equals(PSClientMode.TPSub))
 		{
 			int counter = 0;
-			currentDelay = new Double(0);
+			double delay = 0.0;
 			
 			ClientDiary currentDiary = null;
 			try
@@ -572,22 +666,37 @@ public abstract class PSClient extends PSNode
 			for(int j = 0 ; j < currentDiary.size() ; j++)
 			{
 				DiaryEntry pageI = currentDiary.getDiaryEntryI(j);
-				if(pageI.getPSActionType().equals(PSActionType.R))
+				PSActionType pageIsPSAT = pageI.getPSActionType();
+				if(pageIsPSAT != null && pageIsPSAT.equals(PSActionType.R))
 				{
 					Double delayI = pageI.getDelay(DiaryHeader.MessageDelay).doubleValue();
-					nodeLog.info(logHeader + "delayI = " + delayI + " | counter = " + counter + ".");
-					currentDelay += delayI;
+					nodeLog.debug(logHeader + "delayI = " + delayI + " | counter = " + counter + ".");
+					delay += delayI;
 					counter++;
 				}
 			}
 			
-			currentDelay /= counter;
-			nodeLog.info(logHeader + "CurrentDelay = " + currentDelay + ".");
+			if(counter == 0)
+			{
+				nodeLog.warn(logHeader + "No messages received.");
+			}
+			else
+			{
+				currentDelay = delay / counter;
+				messagesReceived += counter;
+				nodeLog.info(logHeader + "CurrentDelay = " + currentDelay + " | MessagesReceived = " + messagesReceived + ".");
+			}
 			
 			try
 			{
 				diaryLock.lock();
-				diary.clear();
+				diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.R);
+				DiaryEntry delayEntry = new DiaryEntry();
+				delayEntry.setRound(givenPN);
+				delayEntry.setRoundDelay(currentDelay);
+				delayEntry.setMessagesReceievedRound(counter);
+				delayEntry.setMessagesReceievedTotal(messagesReceived);
+				diary.addDiaryEntryToDiary(delayEntry);
 			}
 			finally
 			{
@@ -598,32 +707,31 @@ public abstract class PSClient extends PSNode
 		return true;
 	}
 	
-	private Boolean handleMaster(Double givenDelay)
+	private Boolean handleMaster(Integer givenMR, Double givenDelay)
 	{
 		nodeLog.debug(logHeader + "Waiting for master...");
-		Long masterCheck = connectToMaster(givenDelay);
-		nodeLog.info(logHeader + "Wait complete.");
+		Long masterValue = connectToMaster(givenMR, givenDelay);
+		nodeLog.debug(logHeader + "Wait complete.");
 		
-		if(masterCheck == null)
+		if(masterValue == null)
 		{
 			nodeLog.error(logHeader + "major error waiting for master!");
 			return null;
 		}
-		else if(masterCheck == TP_RUN_COMPLETE)
+		else if(masterValue == TP_RUN_COMPLETE)
 		{
 			nodeLog.info(logHeader + "Run complete.");
 			return false;
 		}
 		else
 		{
-			nodeLog.info(logHeader + "Continuing.");
-			pubDelay = masterCheck;
-			
+			pubDelay = masterValue;
+			nodeLog.info(logHeader + "Continuing...");
 			return true;
 		}
 	}
 	
-	private Long connectToMaster(Double givenDelay)
+	private Long connectToMaster(Integer givenMR, Double givenDelay)
 	{
 		Long retVal = null;
 		
@@ -638,7 +746,7 @@ public abstract class PSClient extends PSNode
 			nodeLog.error(logHeader + "error creating a new Socket: ", e);
 			return null;
 		}
-		nodeLog.info(logHeader + "Connected to Throughput Master.");
+		nodeLog.debug(logHeader + "Connected to Throughput Master.");
 		
 		OutputStream toMaster = null;
 		try
@@ -652,21 +760,28 @@ public abstract class PSClient extends PSNode
 		
 		if(toMaster != null)
 		{	
-			String delay = nodeName + "-" + givenDelay + "-" + "TODO"; 
+			String delay = nodeName + "_" + givenMR + "_" + givenDelay; 
 			
 			nodeLog.debug(logHeader + "Attempting to send delay to master...");
-			PSTBUtil.sendStringAcrossSocket(toMaster, delay, nodeLog, logHeader);
-			nodeLog.info(logHeader + "Delay sent.");
+			PSTBUtil.sendStringAcrossSocket(toMaster, delay);
+			nodeLog.debug(logHeader + "Delay sent.");
 			
 			String receivedMessage = PSTBUtil.readConnection(throughputMasterConnection, nodeLog, logHeader);
 			nodeLog.info(logHeader + receivedMessage + " received.");
 			
-			retVal = PSTBUtil.checkIfLong(receivedMessage, false, null);
-			if(retVal == null)
+			if(receivedMessage == null)
 			{
-				if(receivedMessage.equals(PSTBUtil.STOP))
+				nodeLog.error(logHeader + "Something happened with master - got null!");
+			}
+			else
+			{
+				retVal = PSTBUtil.checkIfLong(receivedMessage, false, null);
+				if(retVal == null)
 				{
-					retVal = new Long(TP_RUN_COMPLETE);
+					if(receivedMessage.equals(PSTBUtil.STOP))
+					{
+						retVal = new Long(TP_RUN_COMPLETE);
+					}
 				}
 			}
 		}
@@ -680,7 +795,7 @@ public abstract class PSClient extends PSNode
 			nodeLog.error(logHeader + "couldn't close " + nodeName + "'s socket: ", e);
 			return null;
 		}
-		nodeLog.info(logHeader + "Connection to master closed.");
+		nodeLog.debug(logHeader + "Connection to master closed.");
 		
 		return retVal;
 	}
@@ -729,6 +844,13 @@ public abstract class PSClient extends PSNode
 			return false;
 		}
 		
+		Long delayValue = givenAction.getActionDelay();
+		if(delayValue == null)
+		{
+			nodeLog.error(logHeader + "givenAction has a null delay!");
+			return false;
+		}
+		
 		// Variable initialization - DiaryEntry
 		DiaryEntry thisEntry = new DiaryEntry();
 		
@@ -746,12 +868,12 @@ public abstract class PSClient extends PSNode
 			String attributes = givenAction.getAttributes();
 			
 			// Add all recordings to DiaryEntry
-			thisEntry.addPSActionType(selectedAction);
+			thisEntry.setPSActionType(selectedAction);
 			thisEntry.addStartedAction(startAction);
 			thisEntry.addEndedAction(endAction);
 			thisEntry.addActionDelay(timeDiff);
-			thisEntry.addTimeActionStarted(startTime);
-			thisEntry.addTimeBrokerFinished(brokerFinished);
+			thisEntry.setTimeActionStarted(startTime);
+			thisEntry.setTimeFunctionReturned(brokerFinished);
 			thisEntry.addAttributes(attributes);
 			
 			if(selectedAction.equals(PSActionType.U) || selectedAction.equals(PSActionType.V))
@@ -762,11 +884,11 @@ public abstract class PSClient extends PSNode
 				
 				if(selectedAction.equals(PSActionType.U))
 				{
-					ascAction = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, attributes);
+					ascAction = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, attributes, nodeLog);
 				}
 				else // I can do this cause I limited the options above
 				{
-					ascAction = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, attributes);
+					ascAction = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, attributes, nodeLog);
 				}
 				
 				if (ascAction == null)
@@ -798,7 +920,9 @@ public abstract class PSClient extends PSNode
 			{
 				diaryLock.unlock();
 			}
-			nodeLog.info(logHeader + selectedAction + " " + attributes + " recorded");
+			nodeLog.debug(logHeader + selectedAction + " " + attributes + " recorded.");
+			
+			PSTBUtil.waitAPeriod(delayValue, nodeLog, logHeader);
 		}
 		
 		return actionSuccessful;

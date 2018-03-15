@@ -10,10 +10,16 @@ package pstb.analysis.diary;
  *
  */
 public enum DiaryHeader {
+	// Scenario
 	PSActionType,
-	TimeActionStarted, TimeBrokerFinished,
+	TimeActionStarted, TimeFunctionReturned,
 	StartedAction, EndedAction, ActionDelay,
 	MessageID, Attributes, PayloadSize, 
 	TimeActiveStarted, TimeActiveEnded,
-	TimeMessageCreated, TimeMessageReceived, MessageDelay
+	TimeMessageCreated, TimeMessageReceived, MessageDelay,
+	
+	// Throughput
+	Round, 
+	RoundDelay, MessagesReceievedRound, MessagesReceievedTotal,
+	MessageRate, CurrentThroughput, Secant, AverageThroughput
 }

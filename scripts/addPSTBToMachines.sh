@@ -6,7 +6,7 @@
 user=$1
 
 echo "Delpoying files to nodes"	
-for i in $(seq 12 15)
+for i in $(seq 1 24)
 do
 	if [ "$i" != "10" ]
 	then

@@ -15,8 +15,9 @@ import ca.utoronto.msrg.padres.common.message.parser.MessageFactory;
 import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.benchmark.object.client.PSClient;
+import pstb.benchmark.throughput.AttributeRatio;
+import pstb.benchmark.throughput.NumAttributes;
 import pstb.startup.workload.PSActionType;
-import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -33,8 +34,6 @@ public class PSClientPADRES extends PSClient
 {
 	// Constants
 	private static final long serialVersionUID = 1L;
-	private final String standardAttribute = "[class,eq,\"oneITS\"],[Date,isPresent,'some_date'],[ID,isPresent,0],[Name,isPresent,'some_name'],[Address,isPresent,'some_addr'],[Latitude,isPresent,0.0],[Longitude,isPresent,0.0],[LaneIndex,isPresent,0],[LoopOccupancy,isPresent,'some_occupancy'],[AvgSpeed,isPresent,0],[Vehicles/Interval,isPresent,0],[VdsDeviceID,isPresent,0],[RegionName,isPresent,'some_region']";
-	private final String stdPubAttribute = "[class,\"oneITS\"],[Date,'2012-06-25 00:00:00'],[ID,200],[Name,'ds0040dsa Allen05'],[Address,'SB Allen Road - 401'],[Latitude,43.7276177739601],[Longitude,-79.4490468206761],[LaneIndex,2],[LoopOccupancy,'null'],[AvgSpeed,73],[Vehicles/Interval,1],[VdsDeviceID,1271],[RegionName,'Allen Road']";
 	
 	// PADRES Client Variables
 	private PADRESClientExtension actualClient;
@@ -109,7 +108,7 @@ public class PSClientPADRES extends PSClient
 		// Successful
 		// If connecting was requested, that set would have also connected the client
 		
-		nodeLog.info(logHeader + "Initialized client " + nodeName);
+		nodeLog.debug(logHeader + "Initialized client " + nodeName);
 		return true;
 	}
 
@@ -120,7 +119,7 @@ public class PSClientPADRES extends PSClient
 	 */
 	public boolean shutdown() 
 	{
-		nodeLog.info(logHeader + "Attempting to shutdown client " + nodeName);
+		nodeLog.debug(logHeader + "Attempting to shutdown client " + nodeName);
 		
 		try 
 		{
@@ -132,7 +131,7 @@ public class PSClientPADRES extends PSClient
 			return false;
 		}
 		
-		nodeLog.info(logHeader + "Client " + nodeName + " shutdown");
+		nodeLog.debug(logHeader + "Client " + nodeName + " shutdown");
 		return true;
 	}
 
@@ -166,7 +165,7 @@ public class PSClientPADRES extends PSClient
 			connectedBrokers.add(brokerI);
 		}
 		
-		nodeLog.info(logHeader + "Added client " + nodeName + " to network.");
+		nodeLog.debug(logHeader + "Added client " + nodeName + " to network.");
 		return true;
 	}
 
@@ -186,36 +185,43 @@ public class PSClientPADRES extends PSClient
 	 */
 	public void storePublication(Message msg) 
 	{
-		ThreadContext.put("client", generateContext());
+		ThreadContext.put("client", generateNodeContext());
 		
-		if(msg instanceof PublicationMessage)
+		Boolean areWeRunning = getCurrentlyRunning();
+		if(areWeRunning == null)
 		{
-			Long currentTime = System.currentTimeMillis();
-			DiaryEntry receivedMsg = new DiaryEntry();
-			
-			Publication pub = ((PublicationMessage) msg).getPublication();
-			
-			Long timePubCreated = pub.getTimeStamp().getTime();
-			
-			receivedMsg.addPSActionType(PSActionType.R);
-			receivedMsg.addMessageID(pub.getPubID());
-			receivedMsg.addTimeCreated(timePubCreated);
-			receivedMsg.addTimeReceived(currentTime);
-			receivedMsg.addTimeDifference(currentTime - timePubCreated);
-			receivedMsg.addAttributes(pub.toString());
-			
-			try
+			nodeLog.error(logHeader + "CurrentlyRunning is null!");
+		}
+		else if(areWeRunning)
+		{
+			if(msg instanceof PublicationMessage)
 			{
-				diaryLock.lock();
-				diary.addDiaryEntryToDiary(receivedMsg);
-				receivedMessages++;
+				Long currentTime = System.currentTimeMillis();
+				DiaryEntry receivedMsg = new DiaryEntry();
+				
+				Publication pub = ((PublicationMessage) msg).getPublication();
+				
+				Long timePubCreated = pub.getTimeStamp().getTime();
+				
+				receivedMsg.setPSActionType(PSActionType.R);
+				receivedMsg.addMessageID(pub.getPubID());
+				receivedMsg.addTimeCreated(timePubCreated);
+				receivedMsg.addTimeReceived(currentTime);
+				receivedMsg.addTimeDifference(currentTime - timePubCreated);
+				receivedMsg.addAttributes(pub.toString());
+				
+				try
+				{
+					diaryLock.lock();
+					diary.addDiaryEntryToDiary(receivedMsg);
+				}
+				finally
+				{
+					diaryLock.unlock();
+				}
+				
+				nodeLog.debug(logHeader + "new publication received " + pub.toString());
 			}
-			finally
-			{
-				diaryLock.unlock();
-			}
-			
-			nodeLog.debug(logHeader + "new publication received " + pub.toString());
 		}
 	}
 	
@@ -253,7 +259,7 @@ public class PSClientPADRES extends PSClient
 	@Override
 	protected boolean unadvertise(String givenAttributes, DiaryEntry resultingEntry)
 	{
-		DiaryEntry originalAd = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, givenAttributes);
+		DiaryEntry originalAd = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, givenAttributes, nodeLog);
 		if(originalAd == null)
 		{
 			nodeLog.error(logHeader + "Couldn't find original advertisement!");
@@ -318,35 +324,46 @@ public class PSClientPADRES extends PSClient
 	@Override
 	protected boolean unsubscribe(String givenAttributes, DiaryEntry resultingEntry)
 	{
-		DiaryEntry originalSub = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, givenAttributes);
+		nodeLog.debug(logHeader + "Attempting to find original subscription...");
+		DiaryEntry originalSub = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, givenAttributes, nodeLog);
 		if(originalSub == null)
 		{
 			nodeLog.error(logHeader + "Couldn't find original subscription!");
 			return false;
 		}
+		nodeLog.info(logHeader + "Found original subscription.");
 		
+		nodeLog.debug(logHeader + "Accessing original sub message id...");
 		String originalSubID = originalSub.getMessageID();
+		if(originalSubID == null)
+		{
+			nodeLog.error(logHeader + "Original sub's message id was never set!");
+			return false;
+		}
+		nodeLog.info(logHeader + "Original sub id = " + originalSubID + ".");
+		
+		nodeLog.debug(logHeader + "Attempting to actually unsubscribe...");
 		Message result = null;
 		try
 		{
 			result = actualClient.unSubscribe(originalSubID);
 		}
-		catch(ClientException e)
+		catch(Exception e)
 		{
 			nodeLog.error(logHeader + "PADRES client couldn't unsubscribe " + givenAttributes + ": ", e);
 			return false;
 		}
-		
 		if(result == null)
 		{
 			nodeLog.error(logHeader + "Couldn't unsubscribe properly!");
 			return false;
 		}
-		else
-		{
-			resultingEntry.addMessageID(result.getMessageID());
-			return true;
-		}
+		nodeLog.info(logHeader + "Unsubscribe successful.");
+		
+		nodeLog.debug(logHeader + "Attempting to add unsubscribe ID to diary...");
+		resultingEntry.addMessageID(result.getMessageID());
+		nodeLog.info(logHeader + "Unsub ID added.");
+		return true;
 	}
 	
 	@Override
@@ -373,6 +390,9 @@ public class PSClientPADRES extends PSClient
 		}
 		else
 		{
+			byte[] payload = new byte[givenPayloadSize];
+			Arrays.fill( payload, (byte) 1 );
+			
 			Publication pubI = null;
 			try 
 			{
@@ -384,8 +404,6 @@ public class PSClientPADRES extends PSClient
 				return false;
 			}
 			
-			byte[] payload = new byte[givenPayloadSize];
-			Arrays.fill( payload, (byte) 1 );
 			pubI.setPayload(payload);
 			
 			try 
@@ -412,20 +430,322 @@ public class PSClientPADRES extends PSClient
 	}
 
 	@Override
-	protected String generateThroughputAttributes(PSActionType givenPSAT, int messageNumber) {
+	protected String generateThroughputAttributes(PSActionType givenPSAT, int messageNumber) 
+	{
 		if(givenPSAT == null)
 		{
 			return null;
 		}
-		else if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+		
+		String retVal = null;
+		
+		if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
 		{
-			Long currTime = System.currentTimeMillis();
-			String currTimeString = PSTBUtil.DATE_FORMAT.format(currTime);
-			return "[class,\"oneITS\"],[Name,'" + nodeName + "'],[Date,'" + currTimeString + "'],[Number," + messageNumber + "]";
+			//	Pub
+			retVal = "[class,\"oneITS\"]";
 		}
 		else
 		{
-			return "[class,eq,\"oneITS\"],[Name,isPresent,'some_name'],[Date,isPresent,'some_date'],[Number,isPresent,0]";
+			// Ad
+			retVal = "[class,eq,\"oneITS\"]";
 		}
+		
+		if(na.equals(NumAttributes.Twelve))
+		{
+			// Eleven Doubles, One String
+			if(ar.equals(AttributeRatio.String0P))
+			{
+				if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+				{
+					// Pub
+					retVal = retVal + ","
+							+"[Number," + messageNumber + "],"
+							+ "[Beetles,4],"
+							+ "[LeafCups,13],"
+							+ "[Temp,32],"
+							+ "[Tones,12],"
+							+ "[Guessings,2],"
+							+ "[Masters,2],"
+							+ "[NumBatmanMovies,13],"
+							+ "[Nice,69],"
+							+ "[Money,12345678],"
+							+ "[ChristmasDate,25]";
+				}
+				else
+				{
+					// Ad
+					retVal = retVal + ","
+							+ "[Number,>,0],"
+							+ "[Beetles,>,0],"
+							+ "[LeafCups,>,0],"
+							+ "[Temp,>,0],"
+							+ "[Tones,>,0],"
+							+ "[Guessings,>,0],"
+							+ "[Masters,>,0],"
+							+ "[NumBatmanMovies,>,0],"
+							+ "[Nice,>,0],"
+							+ "[Money,>,0],"
+							+ "[ChristmasDate,>,0]";
+				}
+			}
+			// Six Doubles, Six Strings
+			else if(ar.equals(AttributeRatio.String50P))
+			{
+				if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+				{
+					// Pub
+					retVal = retVal + ","
+							+ "[Number," + messageNumber + "],"
+							+ "[Band,'Coheed&Cambria'],"
+							+ "[HabCups,24],"
+							+ "[WillAnyOneKnow,'No...'],"
+							+ "[Tones,12],"
+							+ "[Location,'Hell'],"
+							+ "[NumBatmanMovies,13],"
+							+ "[WhatMatters,'Nothing'],"
+							+ "[Money,12345678],"
+							+ "[Time,'SpentWell'],"
+							+ "[ChristmasDate,25]";
+				}
+				else
+				{
+					// Ad
+					retVal = retVal + ","
+							+ "[Number,>,-1],"
+							+ "[Band,eq,'Coheed&Cambria'],"
+							+ "[HabCups,>,0],"
+							+ "[WillAnyOneKnow,eq,'No...'],"
+							+ "[Tones,>,0],"
+							+ "[Location,eq,'Hell'],"
+							+ "[NumBatmanMovies,>,0],"
+							+ "[WhatMatters,eq,'Nothing'],"
+							+ "[Money,>,0],"
+							+ "[Time,eq,'SpentWell'],"
+							+ "[ChristmasDate,>,0]";
+				}
+			}
+			// Zero Doubles, 12 Strings
+			else
+			{
+				if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+				{
+					// Pub
+					retVal = retVal + ","
+							+ "[Band,'Coheed&Cambria'],"
+							+ "[Album,'GoodApolloImBurningStarIV'],"
+							+ "[WillAnyOneKnow,'No...'],"
+							+ "[SongName,'MotherSuperior'],"
+							+ "[Location,'Hell'],"
+							+ "[FirstLyric,'Here-sleep...atTheBottomOfHell...'],"
+							+ "[WhatMatters,'Nothing'],"
+							+ "[GrowsInto,'Man'],"
+							+ "[Time,'SpentWell'],"
+							+ "[Cost,'Life']";
+				}
+				else
+				{
+					// Ad 
+					retVal = retVal + ","
+							+ "[Band,eq,'Coheed&Cambria'],"
+							+ "[Album,eq,'GoodApolloImBurningStarIV'],"
+							+ "[WillAnyOneKnow,eq,'No...'],"
+							+ "[SongName,eq,'MotherSuperior'],"
+							+ "[Location,eq,'Hell'],"
+							+ "[FirstLyric,eq,'Here-sleep...atTheBottomOfHell...'],"
+							+ "[WhatMatters,eq,'Nothing'],"
+							+ "[GrowsInto,eq,'Man'],"
+							+ "[Time,eq,'SpentWell'],"
+							+ "[Cost,eq,'Life']";
+				}
+			}
+		}
+		else if(na.equals(NumAttributes.TwentyFour))
+		{
+			// 23 Doubles, One String
+			if(ar.equals(AttributeRatio.String0P))
+			{
+				if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+				{
+					//  Pub
+					retVal = retVal + ","
+							+ "[Number," + messageNumber + "],"
+							+ "[Beetles,4],"
+							+ "[LeafCups,13],"
+							+ "[Temp,32],"
+							+ "[Tones,12],"
+							+ "[Guessings,2],"
+							+ "[Masters,2],"
+							+ "[NumBatmanMovies,13],"
+							+ "[Nice,69],"
+							+ "[Money,12345678],"
+							+ "[ChristmasDate,25],"
+							+ "[NumAttributes,24],"
+							+ "[Partridges,1],"
+							+ "[TurtleDoves,2],"
+							+ "[FrenchHens,3],"
+							+ "[CallingBirds,4],"
+							+ "[GoldenRings,5],"
+							+ "[LayingGeese,6],"
+							+ "[SwimmingSwans,7],"
+							+ "[MilkingMaids,8],"
+							+ "[DancingLadies,9],"
+							+ "[LeapingLords,10],"
+							+ "[PipingPipers,11],"
+							+ "[DrummingDrummers,12]";
+					
+				}
+				else
+				{
+					// Ad
+					retVal = retVal + ","
+							+ "[Number,>,-1],"
+							+ "[Beetles,>,0],"
+							+ "[LeafCups,>,0],"
+							+ "[Temp,>,0],"
+							+ "[Tones,>,0],"
+							+ "[Guessings,>,0],"
+							+ "[Masters,>,0],"
+							+ "[NumBatmanMovies,>,0],"
+							+ "[Nice,>,0],"
+							+ "[Money,>,0],"
+							+ "[ChristmasDate,>,0],"
+							+ "[NumAttributes,>,0],"
+							+ "[Partridges,>,0],"
+							+ "[TurtleDoves,>,0],"
+							+ "[FrenchHens,>,0],"
+							+ "[CallingBirds,>,0],"
+							+ "[GoldenRings,>,0],"
+							+ "[LayingGeese,>,0],"
+							+ "[SwimmingSwans,>,0],"
+							+ "[MilkingMaids,>,0],"
+							+ "[DancingLadies,>,0],"
+							+ "[LeapingLords,>,0],"
+							+ "[PipingPipers,>,0],"
+							+ "[DrummingDrummers,>,0]";
+				}
+			}
+			// Twelve Doubles, Twelve Strings
+			else if(ar.equals(AttributeRatio.String50P))
+			{
+				if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+				{
+					// Pub
+					retVal = retVal + "," 
+							+ "[Number," + messageNumber + "],"
+							+ "[Time,'LongGone'],"
+							+ "[Partridges,1],"
+							+ "[Answer,'Barrel'],"
+							+ "[TurtleDoves,2],"
+							+ "[Murder,'Just'],"
+							+ "[FrenchHens,3],"
+							+ "[Hurts,'NoMore'],"
+							+ "[CallingBirds,4],"
+							+ "[World,'Deserted'],"
+							+ "[GoldenRings,5],"
+							+ "[Calling,'Mercy'],"
+							+ "[LayingGeese,6],"
+							+ "[PrayFor,'Me'],"
+							+ "[SwimmingSwans,7],"
+							+ "[Goodbye,'Tomorrow'],"
+							+ "[MilkingMaids,8],"
+							+ "[CurseOf,'RadioByeBye'],"
+							+ "[DancingLadies,9],"
+							+ "[YouAre,'Unforgettable'],"
+							+ "[LeapingLords,10],"
+							+ "[TheEnd,'Complete'],"
+							+ "[PipingPipers,11]";					
+				}
+				else
+				{
+					// Ad
+					retVal = retVal + ","
+							+ "[Number,>,-1],"
+							+ "[Time,eq,'LongGone'],"
+							+ "[Partridges,>,0],"
+							+ "[Answer,eq,'Barrel'],"
+							+ "[TurtleDoves,>,0],"
+							+ "[Murder,eq,'Just'],"
+							+ "[FrenchHens,>,0],"
+							+ "[Hurts,eq,'NoMore'],"
+							+ "[CallingBirds,>,0],"
+							+ "[World,eq,'Deserted'],"
+							+ "[GoldenRings,>,0],"
+							+ "[Calling,eq,'Mercy'],"
+							+ "[LayingGeese,>,0],"
+							+ "[PrayFor,eq,'Me'],"
+							+ "[SwimmingSwans,>,0],"
+							+ "[Goodbye,eq,'Tomorrow'],"
+							+ "[MilkingMaids,>,0],"
+							+ "[CurseOf,eq,'RadioByeBye'],"
+							+ "[DancingLadies,>,0],"
+							+ "[YouAre,eq,'Unforgettable'],"
+							+ "[LeapingLords,>,0],"
+							+ "[TheEnd,eq,'Complete'],"
+							+ "[PipingPipers,>,0]";
+				}
+			}
+			// Zero Doubles, Twenty Four Strings
+			else
+			{
+				if(givenPSAT.equals(PSActionType.P) || givenPSAT.equals(PSActionType.R))
+				{
+					// Pub
+					retVal = retVal + ","
+							+ "[Done,'TheMath'],"
+							+ "[HowMuch,'Enough'],"
+							+ "[Why,'ToKnowTheDangers'],"
+							+ "[Of,'OurSecondGuessing'],"
+							+ "[IKnow,'ThePiecesFit'],"
+							+ "[FireHas,'BurnedAHoleBetweenUs'],"
+							+ "[ThePieces,'TumbledDown'],"
+							+ "[Fault,'None'],"
+							+ "[Watched,'TheTempleToppleOver'],"
+							+ "[Poetry,'ComesFromTheSquaring'],"
+							+ "[BeautyIs,'InTheDissonance'],"
+							+ "[Doomed,'ToCrumble'],"
+							+ "[Unless,'WeGrow'],"
+							+ "[Strengthen,'Communication'],"
+							+ "[ColdSilence,'HasATendancyToAtrophy'],"
+							+ "[What,'AnySenseofCompassion'],"
+							+ "[Between,'SupposedLovers'],"
+							+ "[And,'SupposedBrothers'],"
+							+ "[TimeSequence,'LOL'],"
+							+ "[SongIs,'Schism'],"
+							+ "[Length,'SevenMin'],"
+							+ "[Desire,'PointTheFinger'],"
+							+ "[Circling,'WorthIt']";
+				}
+				else
+				{
+					// Ad
+					retVal = retVal + ","
+							+ "[Done,eq,'TheMath'],"
+							+ "[HowMuch,eq,'Enough'],"
+							+ "[Why,eq,'ToKnowTheDangers'],"
+							+ "[Of,eq,'OurSecondGuessing'],"
+							+ "[IKnow,eq,'ThePiecesFit'],"
+							+ "[FireHas,eq,'BurnedAHoleBetweenUs'],"
+							+ "[ThePieces,eq,'TumbledDown'],"
+							+ "[Fault,eq,'None'],"
+							+ "[Watched,eq,'TheTempleToppleOver'],"
+							+ "[Poetry,eq,'ComesFromTheSquaring'],"
+							+ "[BeautyIs,eq,'InTheDissonance'],"
+							+ "[Doomed,eq,'ToCrumble'],"
+							+ "[Unless,eq,'WeGrow'],"
+							+ "[Strengthen,eq,'Communication'],"
+							+ "[ColdSilence,eq,'HasATendancyToAtrophy'],"
+							+ "[What,eq,'AnySenseofCompassion'],"
+							+ "[Between,eq,'SupposedLovers'],"
+							+ "[And,eq,'SupposedBrothers'],"
+							+ "[TimeSequence,eq,'LOL'],"
+							+ "[SongIs,eq,'Schism'],"
+							+ "[Length,eq,'SevenMin'],"
+							+ "[Desire,eq,'PointTheFinger'],"
+							+ "[Circling,eq,'WorthIt']";
+				}
+			}
+		}
+		
+		return retVal;
 	}
 }

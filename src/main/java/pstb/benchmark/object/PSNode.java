@@ -2,7 +2,9 @@ package pstb.benchmark.object;
 
 import org.apache.logging.log4j.Logger;
 
-import pstb.analysis.diary.DistributedFlagValue;
+import pstb.benchmark.throughput.AttributeRatio;
+import pstb.benchmark.throughput.MessageSize;
+import pstb.benchmark.throughput.NumAttributes;
 import pstb.startup.config.BenchmarkMode;
 import pstb.startup.config.NetworkProtocol;
 import pstb.util.PSTBUtil;
@@ -16,7 +18,6 @@ public abstract class PSNode implements java.io.Serializable
 {
 	// Constants
 	protected static final long serialVersionUID = 1L;
-	private static final int CONTEXT_COMPONENTS = 7;
 	
 	// Variables needed by user to produce output
 	protected String benchmarkStartTime;
@@ -26,8 +27,9 @@ public abstract class PSNode implements java.io.Serializable
 	protected BenchmarkMode mode;
 	protected Long runLength;
 	protected Integer runNumber;
-//	protected Long initialDelay;
-//	protected Integer initialPayload;
+	protected AttributeRatio ar;
+	protected NumAttributes na;
+	protected MessageSize ms;
 	protected Long periodLength;
 	protected String nodeName;
 	
@@ -43,8 +45,9 @@ public abstract class PSNode implements java.io.Serializable
 		protocol = null;
 		runLength = null;
 		runNumber = null;
-//		initialDelay = null;
-//		initialPayload = null;
+		ar = null;
+		na = null;
+		ms = null;
 		periodLength = null;
 		nodeName = null;
 		
@@ -122,25 +125,20 @@ public abstract class PSNode implements java.io.Serializable
 		runNumber = givenRN;
 	}
 	
-	/**
-	 * Sets the initialDelay value
-	 * 
-	 * @param givenID - the initialDelay value to be set
-	 */
-//	public void setInitialDelay(Long givenID)
-//	{
-//		initialDelay = givenID;
-//	}
+	public void setAR(AttributeRatio givenAR)
+	{
+		ar = givenAR;
+	}
 	
-	/**
-	 * Sets the initialPayload
-	 * 
-	 * @param givenIP - the given initialPayload
-	 */
-//	public void setInitialPayload(Integer givenIP)
-//	{
-//		initialPayload = givenIP;
-//	}
+	public void setNA(NumAttributes givenNA)
+	{
+		na = givenNA;
+	}
+	
+	public void setMS(MessageSize givenMS)
+	{
+		ms = givenMS;
+	}
 	
 	/**
 	 * Sets the periodLength
@@ -216,7 +214,7 @@ public abstract class PSNode implements java.io.Serializable
 			nodeLog.error("No mode was given!");
 			everythingPresent = false;
 		}
-		else if(mode.equals(BenchmarkMode.Normal))
+		else if(mode.equals(BenchmarkMode.Scenario))
 		{
 			if(runLength == null)
 			{
@@ -236,16 +234,21 @@ public abstract class PSNode implements java.io.Serializable
 				nodeLog.error("No periodLength was given!");
 				everythingPresent = false;
 			}
-//			if(initialDelay == null)
-//			{
-//				nodeLog.error("No startingDelay was given!");
-//				everythingPresent = false;
-//			}
-//			if(initialPayload == null)
-//			{
-//				nodeLog.error("No startingPayload was given!");
-//				everythingPresent = false;
-//			}
+			if(ar == null)
+			{
+				nodeLog.error("No AttributeRatio was given!");
+				everythingPresent = false;
+			}
+			if(na == null)
+			{
+				nodeLog.error("No NumAttributes was given!");
+				everythingPresent = false;
+			}
+			if(ms == null)
+			{
+				nodeLog.error("No MessageSize was given!");
+				everythingPresent = false;
+			}
 		}
 		
 		if(nodeName.isEmpty())
@@ -262,7 +265,7 @@ public abstract class PSNode implements java.io.Serializable
 	 * 
 	 * @return the generated context
 	 */
-	public String generateContext()
+	public String generateNodeContext()
 	{
 		//Check that we have everything
 		if(!contextVariableCheck())
@@ -272,56 +275,9 @@ public abstract class PSNode implements java.io.Serializable
 		}
 		// We do
 		
-		// Convert the distributed value into a flag
-		DistributedFlagValue distributedFlag = null;
-		if(distributed.booleanValue() == true)
-		{
-			distributedFlag = DistributedFlagValue.D;
-		}
-		else if(distributed.booleanValue() == false)
-		{
-			distributedFlag = DistributedFlagValue.L;
-		}
-		else
-		{
-			nodeLog.error(logHeader + "error with distributed");
-			return null;
-		}
+		String retVal = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, runLength, 
+				runNumber, periodLength, ar, na, ms, nodeName, nodeLog, logHeader);
 		
-		String[] contextArr = new String[CONTEXT_COMPONENTS];
-		contextArr[0] = benchmarkStartTime;
-		contextArr[1] = topologyFileString;
-		contextArr[2] = distributedFlag.toString();
-		contextArr[3] = protocol.toString();
-		contextArr[6] = nodeName;
-		
-		if(mode.equals(BenchmarkMode.Normal))
-		{
-			// Convert the nanosecond runLength into milliseconds
-			// WHY: neatness / it's what the user gave us->why confuse them?
-			Long milliRunLength = (long) (runLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
-			
-			contextArr[4] = milliRunLength.toString();
-			contextArr[5] = runNumber.toString();
-		}
-		else if(mode.equals(BenchmarkMode.Throughput))
-		{
-//			contextArr[4] = initialDelay.toString();
-//			contextArr[5] = initialPayload.toString();
-			
-			// Convert the nanosecond runLength into milliseconds
-			// WHY: neatness / it's what the user gave us->why confuse them?
-			Long convertedPL = (long) (periodLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
-			
-			contextArr[4] = convertedPL.toString();
-			contextArr[5] = "Throughput";
-		}
-		else
-		{
-			return null;
-		}
-		
-		String retVal = String.join(PSTBUtil.DIARY_SEPARATOR, contextArr);
 		return retVal;
 	}
 }

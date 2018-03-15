@@ -19,6 +19,9 @@ import pstb.benchmark.object.PSNode;
 import pstb.benchmark.object.broker.PSBroker;
 import pstb.benchmark.object.client.PSClient;
 import pstb.benchmark.object.client.PSClientMode;
+import pstb.benchmark.throughput.AttributeRatio;
+import pstb.benchmark.throughput.MessageSize;
+import pstb.benchmark.throughput.NumAttributes;
 import pstb.creation.server.PSTBServer;
 import pstb.startup.config.BenchmarkMode;
 import pstb.startup.config.NetworkProtocol;
@@ -35,8 +38,10 @@ import pstb.util.PSTBUtil;
  */
 public abstract class PhysicalTopology {
 	// Constants
-	private final Integer MEM_CLIENT = 256;
-	private final Integer MEM_BROKER = 256;
+	private final int AVAILABLE_MACHINE_MEM = 8192;
+	private final double BROKER_WEIGHT = 0.75;
+	private final int STARTING_BROKER_MEM = (int) (AVAILABLE_MACHINE_MEM * BROKER_WEIGHT);
+	private final int STARTING_CLIENT_MEM = (int) (AVAILABLE_MACHINE_MEM * (1 - BROKER_WEIGHT));
 	private final Integer LOCAL_START_PORT = 1100;
 	private final int INIT_TERMINATION_VALUE = 9999;
 	
@@ -67,11 +72,13 @@ public abstract class PhysicalTopology {
 	protected Boolean distributed;
 	
 	// Variables set during Object creation
-	protected HashMap<String, String> nodeMachine;
+	private HashMap<String, String> nodeMachine;
+	private HashMap<String, HashMap<NodeRole, Integer>> numNodesMachine;
 		
 	// Objects
 	protected HashMap<String, PSNode> brokerObjects;
 	protected HashMap<String, PSNode> clientObjects;
+	private int numThroughputPubs;
 	
 	// Server
 	protected PSTBServer masterServer;
@@ -132,9 +139,11 @@ public abstract class PhysicalTopology {
 		distributed = null;
 		
 		nodeMachine = new HashMap<String, String>();
+		numNodesMachine = new HashMap<String, HashMap<NodeRole, Integer>>();
 				
 		brokerObjects = new HashMap<String, PSNode>();
 		clientObjects = new HashMap<String, PSNode>();
+		numThroughputPubs = 0;
 		
 		masterServer = null;
 		
@@ -312,6 +321,22 @@ public abstract class PhysicalTopology {
 			return false;
 		}
 		
+		if(mode.equals(BenchmarkMode.Throughput))
+		{
+			if(numThroughputPubs == 0)
+			{
+				logger.error(logHeader + "No throughput publishers created!");
+				return false;
+			}
+			else
+			{
+				clientObjects.forEach((clientName, client)->{
+					PSClient actualClient = (PSClient) client;
+					actualClient.setNumPubs(numThroughputPubs);
+				});
+			}
+		}
+		
 		logger.info(logHeader + "Physical Topology developed successfully.");
 		return true;
 	}
@@ -339,6 +364,7 @@ public abstract class PhysicalTopology {
 			brokerObjects.put(brokerI, actBrokerI);
 			
 			nodeMachine.put(brokerI, hostName);
+			updateNNM(hostName, NodeRole.B);
 		}
 		
 		// Now loop through the brokerObject, accessing the brokerList to find a given broker's connections
@@ -356,6 +382,8 @@ public abstract class PhysicalTopology {
 					logger.error(logHeader + brokerIName + " isn't connected to anything, but other nodes exist!");
 					return false;
 				}
+				String[] nURIs = new String[0];
+				brokerI.setNeighbourURIs(nURIs);
 			}
 			else
 			{
@@ -384,7 +412,7 @@ public abstract class PhysicalTopology {
 			brokerObjects.put(brokerIName, brokerI);
 		}
 		
-		logger.info(logHeader + "All broker objects developed.");
+		logger.debug(logHeader + "All broker objects developed.");
 		return true;
 	}
 	
@@ -482,13 +510,25 @@ public abstract class PhysicalTopology {
 			
 			String workloadFileString = clientINotes.getRequestedWorkload();
 			ArrayList<PSAction> clientIWorkload = null;
-			if(mode.equals(BenchmarkMode.Throughput))
+			if(mode.equals(BenchmarkMode.Scenario))
 			{
-				if(workloadFileString.contains("pub"))
+				clientIWorkload = masterWorkload.get(workloadFileString);
+				if(clientIWorkload == null)
+				{
+					logger.error(logHeader + "Client " + clientIName + " is requesting a non-existant workload!");
+					return false;
+				}
+				
+				clientI.setClientMode(PSClientMode.Scenario);
+			}
+			else if(mode.equals(BenchmarkMode.Throughput))
+			{
+				if(workloadFileString.contains("pub") || workloadFileString.contains("Pub"))
 				{
 					clientI.setClientMode(PSClientMode.TPPub);
+					numThroughputPubs++;
 				}
-				else if(workloadFileString.contains("sub"))
+				else if(workloadFileString.contains("sub") || workloadFileString.contains("Sub"))
 				{
 					clientI.setClientMode(PSClientMode.TPSub);
 				}
@@ -497,6 +537,7 @@ public abstract class PhysicalTopology {
 					if(isThroughputPub)
 					{
 						clientI.setClientMode(PSClientMode.TPPub);
+						numThroughputPubs++;
 					}
 					else
 					{
@@ -507,13 +548,7 @@ public abstract class PhysicalTopology {
 			}
 			else
 			{
-				clientIWorkload = masterWorkload.get(workloadFileString);
-				if(clientIWorkload == null)
-				{
-					logger.error(logHeader + "Client " + clientIName + " is requesting a non-existant workload!");
-					return false;
-				}
-				clientI.setClientMode(PSClientMode.TPSub);
+				return false;
 			}
 			
 			ArrayList<String> clientIConnections = clientINotes.getConnections();
@@ -531,7 +566,6 @@ public abstract class PhysicalTopology {
 				String brokerJName = clientIConnections.get(j);
 				
 				boolean doesBrokerJExist = brokerObjects.containsKey(brokerJName);
-				
 				if(!doesBrokerJExist)
 				{
 					logger.error(logHeader + "Client " + clientIName + " references a broker " + brokerJName + " that doesn't exist");
@@ -556,9 +590,10 @@ public abstract class PhysicalTopology {
 			
 			String clientIMachine = getClientMachine();
 			nodeMachine.put(clientIName, clientIMachine);
+			updateNNM(clientIMachine, NodeRole.C);
 		}
 		
-		logger.info(logHeader + "All client objects developed.");
+		logger.debug(logHeader + "All client objects developed.");
 		return true;
 	}
 	
@@ -594,6 +629,32 @@ public abstract class PhysicalTopology {
 		return machineName;
 	}
 	
+	private void updateNNM(String givenMachine, NodeRole givenNR)
+	{
+		HashMap<NodeRole, Integer> numNodesMachineI = numNodesMachine.get(givenMachine);
+		if(numNodesMachineI == null)
+		{
+			numNodesMachineI = new HashMap<NodeRole, Integer>();
+			numNodesMachineI.put(givenNR, 1);
+		}
+		else
+		{
+			Integer numGivenNodeMachineI = numNodesMachineI.get(givenNR);
+			
+			if(numGivenNodeMachineI == null)
+			{
+				numNodesMachineI.put(givenNR, 1);
+			}
+			else
+			{
+				numGivenNodeMachineI++;
+				numNodesMachineI.put(givenNR, numGivenNodeMachineI);
+			}
+		}
+		
+		numNodesMachine.put(givenMachine, numNodesMachineI);
+	}
+	
 	/**
 	 * Prepares the topology for a run
 	 * 
@@ -616,7 +677,7 @@ public abstract class PhysicalTopology {
 			return false;
 		}
 		
-		setupServer(givenStartSignal);
+		setupServer(givenStartSignal, null, null);
 		
 		clientObjects.forEach((clientName, actualClient)->{
 			actualClient.setRunLength(givenRunLength);
@@ -636,11 +697,15 @@ public abstract class PhysicalTopology {
 	 * Prepares the topology for a run
 	 * 
 	 * @param givenStartSignal - the signal that will be used to let key threads know the run has started
+	 * @param msI 
+	 * @param naI 
+	 * @param arI 
 	 * @param givenStartingDelay - the amount of time this run will last
 	 * @param givenStartingPayload - the current run we're on
 	 * @return false if there is an issue; true otherwise
 	 */
-	public boolean prepareThroughputRun(CountDownLatch givenStartSignal, Long givenPeriodLength)
+	public boolean prepareThroughputRun(CountDownLatch givenStartSignal, Long givenPeriodLength, 
+			AttributeRatio arI, NumAttributes naI, MessageSize msI)
 	{
 		if(brokerObjects.isEmpty())
 		{
@@ -654,15 +719,24 @@ public abstract class PhysicalTopology {
 			return false;
 		}
 		
-		setupServer(givenStartSignal);
-		
 		clientObjects.forEach((clientName, actualClient)->{
 			actualClient.setPeriodLength(givenPeriodLength);
+			actualClient.setAR(arI);
+			actualClient.setNA(naI);
+			actualClient.setMS(msI);
 		});
 		
 		brokerObjects.forEach((brokerName, actualBroker)->{
 			actualBroker.setPeriodLength(givenPeriodLength);
+			actualBroker.setAR(arI);
+			actualBroker.setNA(naI);
+			actualBroker.setMS(msI);
 		});
+		
+		String context = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, null, 
+				null, givenPeriodLength, arI, naI, msI, "Master", logger, logHeader);
+		
+		setupServer(givenStartSignal, givenPeriodLength, context);
 		
 		boolean retVal = generateBrokerAndClientProcesses();
 		return retVal;
@@ -673,13 +747,13 @@ public abstract class PhysicalTopology {
 	 * 
 	 * @param givenStartSignal - the signal that will be used to let key threads know the run has started
 	 */
-	private void setupServer(CountDownLatch givenStartSignal)
+	private void setupServer(CountDownLatch givenStartSignal, Long givenPL, String context)
 	{
 		unstartedBrokers = new CountDownLatch(brokerObjects.size());
 		linkedBrokers = new CountDownLatch(1);
 		
 		masterServer = new PSTBServer(brokerObjects, clientObjects, givenStartSignal, unstartedBrokers, linkedBrokers, 
-				benchmarkStartTime, mode);
+				context, mode, givenPL);
 		
 		masterServer.generatePort();
 	}
@@ -726,7 +800,7 @@ public abstract class PhysicalTopology {
 		for( ; iteratorNO.hasNext() ; )
 		{
 			String nodeIName = iteratorNO.next();
-			String nodeIContext = givenNodeObjects.get(nodeIName).generateContext();
+			String nodeIContext = givenNodeObjects.get(nodeIName).generateNodeContext();
 			
 			ProcessBuilder brokerIProcess = generateNodeProcess(nodeIName, nodeIContext, isBroker);
 			if(brokerIProcess == null)
@@ -779,12 +853,12 @@ public abstract class PhysicalTopology {
 		String nodetype = null;
 		if(isBroker)
 		{
-			memory = MEM_BROKER.toString();
+			memory = calculateMemoryForNode(nodeName, NodeRole.B).toString();
 			nodetype = NodeRole.B.toString();
 		}
 		else
 		{
-			memory = MEM_CLIENT.toString();
+			memory = calculateMemoryForNode(nodeName, NodeRole.C).toString();
 			nodetype = NodeRole.C.toString();
 		}
 		PSEngine engine = getEngine();
@@ -818,10 +892,42 @@ public abstract class PhysicalTopology {
 		command.add(nodetype);
 		
 		String[] finalCommand = command.toArray(new String[0]);
+		System.out.println(memory);
 		ProcessBuilder createdProcessShell = new ProcessBuilder(finalCommand);
 		createdProcessShell.redirectErrorStream(true);
 		
 		return createdProcessShell;
+	}
+	
+	private Integer calculateMemoryForNode(String nodeName, NodeRole givenNT)
+	{
+		if(givenNT == null)
+		{
+			return null;
+		}
+		
+		String machineName = nodeMachine.get(nodeName);
+		HashMap<NodeRole, Integer> numNodesMachineI = numNodesMachine.get(machineName);
+		Integer numNodeNTMachineI = numNodesMachineI.get(givenNT);
+		Integer memory = AVAILABLE_MACHINE_MEM;
+		
+		if(numNodesMachineI.size() != 1)
+		{
+			if(givenNT.equals(NodeRole.B))
+			{
+				memory = STARTING_BROKER_MEM;
+			}
+			else if(givenNT.equals(NodeRole.C))
+			{
+				memory = STARTING_CLIENT_MEM;
+			}
+			else
+			{
+				return null;
+			}
+		}
+		
+		return memory / numNodeNTMachineI;
 	}
 	
 	protected abstract PSEngine getEngine();
@@ -843,17 +949,11 @@ public abstract class PhysicalTopology {
 		
 		masterServer.start();
 		
+		int numBrokers = brokerProcesses.size();
 		boolean startBrokersCheck = startMultipleNodeProcesses(brokerProcesses, true);
 		if(!startBrokersCheck)
 		{
 			logger.error(logHeader + "Failed to start all brokers!");
-			return false;
-		}
-		
-		boolean startClientsCheck = startMultipleNodeProcesses(clientProcesses, false);
-		if(!startClientsCheck)
-		{
-			logger.error(logHeader + "Failed to start all clients!");
 			return false;
 		}
 		
@@ -867,6 +967,8 @@ public abstract class PhysicalTopology {
 			return false;
 		}
 		
+		PSTBUtil.waitAPeriod(numBrokers * PSTBUtil.SEC_TO_NANOSEC, logger, logHeader);
+		
 		boolean connectBrokersCheck = connectAllBrokers();
 		if(!connectBrokersCheck)
 		{
@@ -874,12 +976,18 @@ public abstract class PhysicalTopology {
 			return false;
 		}
 		
+		PSTBUtil.waitAPeriod(numBrokers * PSTBUtil.SEC_TO_NANOSEC, logger, logHeader);
+		
+		boolean startClientsCheck = startMultipleNodeProcesses(clientProcesses, false);
+		if(!startClientsCheck)
+		{
+			logger.error(logHeader + "Failed to start all clients!");
+			return false;
+		}
+		
 		linkedBrokers.countDown();
 		
 		logger.info(logHeader + "Everything launched.");
-		
-		
-		
 		return true;
 	}
 	
@@ -930,6 +1038,7 @@ public abstract class PhysicalTopology {
 			logger.error(logHeader + "Couldn't start node " + nodeName + ": ", e);
 			return false;
 		}
+		
 		logger.info(logHeader + "Node " + nodeName + " process started.");
 		
 		if(isBroker)

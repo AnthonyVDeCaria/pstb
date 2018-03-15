@@ -85,15 +85,15 @@ public class TPHandler extends Thread {
 						messageDelay = masterOfPuppets.getMessageDelay();
 					}
 					String messageDelayString = messageDelay.toString();
-					log.debug(logHeader + "Sending client " + inputLine + " message delay " + messageDelayString + "...");
-					PSTBUtil.sendStringAcrossSocket(pipeOut, messageDelayString, log, logHeader);
-					log.info(logHeader + "Delay sent to client " + inputLine + ".");
+					log.info(logHeader + "Sending client " + inputLine + " message delay " + messageDelayString + "...");
+					PSTBUtil.sendStringAcrossSocket(pipeOut, messageDelayString);
+					log.debug(logHeader + "Delay sent to client " + inputLine + ".");
 				}
 				else
 				{
-					log.debug(logHeader + "Telling client " + inputLine + " to stop...");
-					PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.STOP, log, logHeader);
-					log.info(logHeader + "Told client " + inputLine + ".");
+					log.info(logHeader + "Telling client " + inputLine + " to stop...");
+					PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.STOP);
+					log.debug(logHeader + "Told client " + inputLine + ".");
 				}
 				
 				break;
@@ -114,7 +114,7 @@ public class TPHandler extends Thread {
 		{
 			endFailedThread(logHeader + "Couldn't get close the pipe OutputStream: ", e, true);
 		}
-		log.info(logHeader + "Connection ended with " + inputLine + ".");
+		log.debug(logHeader + "Connection ended with " + inputLine + ".");
 		
 		threadEnding.countDown();
 	}

@@ -8,5 +8,5 @@ package pstb.startup.config;
  *
  */
 public enum BenchmarkMode {
-	Throughput, Normal
+	Throughput, Scenario
 }

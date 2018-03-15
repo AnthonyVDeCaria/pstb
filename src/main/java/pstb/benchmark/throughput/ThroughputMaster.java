@@ -3,11 +3,15 @@
  */
 package pstb.benchmark.throughput;
 
+import java.awt.geom.Point2D;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -15,8 +19,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
+import pstb.analysis.diary.ClientDiary;
+import pstb.analysis.diary.DiaryEntry;
 import pstb.benchmark.object.client.PSClientMode;
 import pstb.creation.server.PSTBServer;
+import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
 
 /**
@@ -25,20 +32,23 @@ import pstb.util.PSTBUtil;
  */
 public class ThroughputMaster extends Thread {
 	// Constants
-	private final Double TOLERANCE_LIMIT = 0.5;
-	private final int INIT_MESSAGES_PER_SECOND = 10;
-	private final int MPS_SUM_VALUE = 5;
-	private final int LOC_CLIENT_NAME = 0;
-	private final int LOC_DELAY = 1;
-//	private final int LOC_TODO = 2;
+	private final double TOLERANCE_LIMIT = 0.1;
+	private final double INIT_MESSAGES_PER_SECOND = 10.0;
+	private final int FUCKED_UP_LIMIT = 4;
+	private final int MR_CONSTANT = 20;
+//	private final int LOC_CLIENT_NAME = 0;
+	private final int LOC_NUMBER_MESSAGES_RECEIEVED = 1;
+	private final int LOC_DELAY = 2;
+	private final int QUEUE_SIZE = 4;
 	
 	// Just Master - Database
 	private HashMap<String, PSClientMode> database;
 	private int numPubs;
 	private int numSubs;
+	private Long periodLength;
 	
 	// Just Master - Message Rate
-	private long messagesPerSecond;
+	private Double messageRate;
 	
 	// Just Master - Delay
 	private Double firstDelay;
@@ -58,11 +68,11 @@ public class ThroughputMaster extends Thread {
 	private ServerSocket objectConnection;
 	
 	// Logger
-	private String benchmarkStartTime;
+	private String context;
 	private String logHeader = "TPMaster: ";
 	private Logger log = LogManager.getLogger(PSTBServer.class);
 	
-	public ThroughputMaster(HashMap<String, PSClientMode> givenDatabase, Integer givenPort, String givenBST)
+	public ThroughputMaster(HashMap<String, PSClientMode> givenDatabase, Long givenPL, Integer givenPort, String givenContext)
 	{
 		database = givenDatabase;
 		numPubs = 0;
@@ -78,7 +88,9 @@ public class ThroughputMaster extends Thread {
 			}
 		});
 		
-		messagesPerSecond = INIT_MESSAGES_PER_SECOND;
+		periodLength = givenPL;
+		
+		messageRate = INIT_MESSAGES_PER_SECOND;
 		updateMessageDelay();
 		
 		firstDelay = null;
@@ -89,7 +101,7 @@ public class ThroughputMaster extends Thread {
 		port = givenPort;
 		objectConnection = null;
 		
-		benchmarkStartTime = givenBST;
+		context = givenContext;
 	}
 	
 	public PSClientMode getClientMode(String clientName)
@@ -101,19 +113,19 @@ public class ThroughputMaster extends Thread {
 		return database.containsKey(clientName);
 	}
 	
-	private void updateMessagesPerSecond()
+	private void updateMessageRate(Double givenDir)
 	{
-		messagesPerSecond += MPS_SUM_VALUE;
+		messageRate += MR_CONSTANT * givenDir;
 	}
 	
 	private void updateMessageDelay()
 	{
-		Double messagesPerSecondPub = ((double) messagesPerSecond) / numPubs;
+		Double messagesPerSecondPub = ((double) messageRate) / numPubs;
 		Double secondsPubPerMessage = 1 / messagesPerSecondPub;
 		messageDelay = (long) (secondsPubPerMessage * PSTBUtil.SEC_TO_NANOSEC);
 		
-		log.info(logHeader 
-				+ "messagesPerSecond = " + messagesPerSecond
+		log.debug(logHeader 
+				+ "messagesPerSecond = " + messageRate
 				+ " messagesPerSecondPub = " + messagesPerSecondPub 
 				+ " secondsPubsPerMessage = " + secondsPubPerMessage
 				+ " messageDelay = " + messageDelay);
@@ -124,11 +136,11 @@ public class ThroughputMaster extends Thread {
 		Long temp;
 		try
 		{
-			lockSD.lock();
+			lockMD.lock();
 			temp = messageDelay;
 		}
 		finally {
-			lockSD.unlock();
+			lockMD.unlock();
 		}
 		
 		return temp;
@@ -208,14 +220,14 @@ public class ThroughputMaster extends Thread {
 	
 	public void run()
 	{
-		String serverName = "Server-" + benchmarkStartTime; 
+		String serverName = "Server-" + context; 
 		setName(serverName);
 		ThreadContext.put("server", serverName);
 		Thread.currentThread().setName(serverName);
 		
 		log.info(logHeader + "Server started.");
 		
-		log.info(logHeader + messageDelay);
+		ClientDiary serverDiary = new ClientDiary();
 		
 		log.debug(logHeader + "Attempting to create socket.");
 		boolean socketCheck = createServerSocket();
@@ -223,18 +235,23 @@ public class ThroughputMaster extends Thread {
 		{
 			endServerFailure(logHeader + "Couldn't create socket!", null, false);
 		}
-		log.info(logHeader + "Socket created.");
+		log.debug(logHeader + "Socket created.");
 		
+		ArrayBlockingQueue<Point2D.Double> queue = new ArrayBlockingQueue<Point2D.Double>(QUEUE_SIZE);
+		queue.add(new Point2D.Double());
 		int numClients = database.size();
 		int roundNum = 0;
+		int fuckedUpCounter = 0;
 		while(experimentRunning)
 		{
-			log.debug(logHeader + "Beginning round " + roundNum + "...");
+			log.info(logHeader + "Beginning round " + roundNum + "...");
+			DiaryEntry entryI = new DiaryEntry();
+			entryI.setRound(roundNum);
 			
 			CountDownLatch missingDelays = new CountDownLatch(numClients);
 			CountDownLatch masterComplete = new CountDownLatch(1);
 			CountDownLatch threadsActive = new CountDownLatch(numClients);
-			log.info(logHeader + "Latches set.");
+			log.debug(logHeader + "Latches set.");
 			
 			log.debug(logHeader + "Attempting to send all clients the current message delay...");
 			int i = 0;
@@ -251,7 +268,7 @@ public class ThroughputMaster extends Thread {
 					endServerFailure(logHeader + "Couldn't create an object pipe: ", e, true);
 				}
 				
-				log.info(logHeader + "Got a new connection.");
+				log.debug(logHeader + "Got a new connection.");
 				
 				Thread.UncaughtExceptionHandler nodeHandlerExceptionNet = new Thread.UncaughtExceptionHandler() {
 					@Override
@@ -266,7 +283,7 @@ public class ThroughputMaster extends Thread {
 							
 				i++;
 			}
-			log.info(logHeader + "All clients connected.");
+			log.debug(logHeader + "All clients connected.");
 			
 			log.debug(logHeader + "Waiting for delays to arrive...");
 			try 
@@ -280,67 +297,112 @@ public class ThroughputMaster extends Thread {
 			log.info(logHeader + "All delays receieved.");
 			
 			// Read all the delays
-			log.debug(logHeader + "Beginning to process delays...");
-			ArrayList<String> currentSubDelays = getCurrentSubDelays();
-			double currentDelay = 0;
-			int numNull = 0;
-			int numDelays = currentSubDelays.size();
-			for(int j = 0 ; j < numDelays ; j++)
-			{
-				String delayJ = currentSubDelays.get(j);
-				String[] brokenDelayJ = delayJ.split("-");
-				Double actualDelayJ = PSTBUtil.checkIfDouble(brokenDelayJ[LOC_DELAY], false, null);
-				if(actualDelayJ == null || actualDelayJ.isNaN())
-				{
-					String clientJ = brokenDelayJ[LOC_CLIENT_NAME];
-					PSClientMode clientJMode = database.get(clientJ);
-					if(clientJMode.equals(PSClientMode.TPSub))
-					{
-						numNull++;
-					}
-				}
-				else
-				{
-					currentDelay += actualDelayJ;
-				}
-			}
 			if(roundNum != 0)
 			{
-				if(numNull > 0)
+				log.debug(logHeader + "Beginning to process delays...");
+				log.debug(logHeader + "fuc = " + fuckedUpCounter);
+				ArrayList<String> currentSubDelays = getCurrentSubDelays();
+				double currentDelay = 0;
+				int currentNMR = 0;
+				int numDelays = currentSubDelays.size();
+				for(int j = 0 ; j < numDelays ; j++)
 				{
-					endServerFailure(logHeader + "Null delay receieved!", null, false);
-				}
-				else
-				{
-					currentDelay /= numSubs;
-					
-					// Should we stop yes or no?
-					if(firstDelay == null)
+					String messageJ = currentSubDelays.get(j);
+					String[] brokenMessageJ = messageJ.split("_");
+					Integer messagesReceivedJ = PSTBUtil.checkIfInteger(brokenMessageJ[LOC_NUMBER_MESSAGES_RECEIEVED], false, null);
+					Double delayJ = PSTBUtil.checkIfDouble(brokenMessageJ[LOC_DELAY], false, null);
+					if(messagesReceivedJ == null || delayJ == null)
 					{
-						log.info(logHeader + "First delay is " + currentDelay + ".");
-						firstDelay = currentDelay;
+						endServerFailure(logHeader + "Null delay received!", null, false);
 					}
 					else
 					{
-						Double ratio = firstDelay / currentDelay;
-						log.info(logHeader + "Current delay = " + currentDelay + " | Ratio is " + ratio + ".");
-						
-						if(ratio <= TOLERANCE_LIMIT)
-						{
-							log.info(logHeader + "Tolerance limit reached.");
-							stopExperiment();
-						}
+						currentNMR += messagesReceivedJ;
+						currentDelay += delayJ;
+					}
+				}
+				
+				if(firstDelay == null)
+				{
+					currentDelay /= numSubs;
+					log.debug(logHeader + "First delay is " + currentDelay + ".");
+					firstDelay = currentDelay;
+				}
+				
+				Double denominator = (roundNum * periodLength.doubleValue() / PSTBUtil.SEC_TO_NANOSEC);
+				Double currentThroughput = currentNMR / denominator;
+				log.info(logHeader + "currentThroughput = " + currentThroughput + " | currentNMR = " + currentNMR 
+						+ " | denominator = " + denominator);
+				entryI.setCurrentThroughput(currentThroughput);
+				if(currentThroughput <= 0.0)
+				{
+					fuckedUpCounter++;
+					
+					if(fuckedUpCounter > FUCKED_UP_LIMIT)
+					{
+						entryI.setAverageThroughput(Double.NaN);
+						stopExperiment();
+					}
+				}
+				else
+				{
+					Point2D.Double startingPoint = null;
+					if(queue.remainingCapacity() != 0)
+					{
+						startingPoint = queue.peek();
+					}
+					else
+					{
+						startingPoint = queue.remove();
 					}
 					
-					if(isExperimentRunning())
+					if(startingPoint == null)
 					{
-						log.info(logHeader + "Updating message delay.");
-						updateMessagesPerSecond();
-						updateMessageDelay();
+						endServerFailure(logHeader + "Queue got empty!", null, false);
+					}
+					else
+					{
+						Double sNumerator = currentThroughput - startingPoint.getY();
+						Double sDenominator = messageRate - startingPoint.getX();
+						Double secant = sNumerator / sDenominator;
+						log.info(logHeader + "secant = " + secant + " | num = " + sNumerator + " | dem = " + sDenominator 
+								+ " | startY = " + startingPoint.getY() + " | startX = " + startingPoint.getX());
+						entryI.setSecant(secant);
+						
+						Double avgNum = 0.0;
+						Object[] currentPairs = queue.toArray();
+						int numPairs = queue.size();
+						for(int j = 0 ; j < numPairs ; j++)
+						{
+							Point2D.Double pairI = (Point2D.Double) currentPairs[j];
+							avgNum += pairI.getY();
+						}
+						Double avg = avgNum / numPairs;
+						entryI.setAverageThroughput(avg);
+						
+						if(secant == null || secant.isNaN())
+						{
+							endServerFailure(logHeader + "Null delay received!", null, false);
+						}
+						else if(secant < TOLERANCE_LIMIT)
+						{
+							stopExperiment();
+						}
+						else
+						{
+							log.debug(logHeader + "Updating queue.");
+							Point2D.Double newPoint = new Point2D.Double(messageRate, currentThroughput);
+							queue.add(newPoint);
+							
+							log.debug(logHeader + "Updating message delay.");
+							updateMessageRate(secant);
+							updateMessageDelay();
+						}
 					}
 				}
 			}
-			log.info(logHeader + "Calucaltions complete.");
+			
+			log.debug(logHeader + "Calucaltions complete.");
 			resetSubDelays();
 			masterComplete.countDown();
 			
@@ -353,7 +415,9 @@ public class ThroughputMaster extends Thread {
 			{
 				endServerFailure(logHeader + "Error waiting for all delays: ", e, true);
 			}
-			log.info(logHeader + "All clients should have the current message delay.");
+			log.debug(logHeader + "All clients should have the current message delay.");
+			
+			serverDiary.addDiaryEntryToDiary(entryI);
 			
 			log.info(logHeader + "Round " + roundNum + " complete.");
 			roundNum++;
@@ -369,6 +433,7 @@ public class ThroughputMaster extends Thread {
 			endServerFailure("Error closing objectPipe: ", eIO, true);
 		}
 		
+		recordDiary(serverDiary);
 		log.info(logHeader + "Server ending.");
 	}
 		
@@ -385,6 +450,35 @@ public class ThroughputMaster extends Thread {
 		}
 		
 		return true;
+	}
+	
+	private void recordDiary(ClientDiary givenDiary)
+	{
+		FileOutputStream out = null;
+		try 
+		{
+			out = new FileOutputStream(context + ".dia");
+		} 
+		catch (FileNotFoundException e) 
+		{
+			endServerFailure(logHeader + "Couldn't create a FileOutputStream to record diary object: ", e, true);
+		}
+		
+		boolean diaryCheck = PSTBUtil.sendObject(givenDiary, out, log, logHeader);
+		if(!diaryCheck)
+		{
+			endServerFailure(logHeader + "Couldn't record server " + context + "'s diary object!", null, false);
+		}
+		log.info(logHeader + "Diary Inserted.");
+		
+		try 
+		{
+			out.close();
+		} 
+		catch (IOException e) 
+		{
+			endServerFailure(logHeader + "error closing diary OutputStream: ", e, true);
+		}
 	}
 	
 	private void endServerFailure(String record, Exception givenException, boolean exceptionPresent)
@@ -410,6 +504,7 @@ public class ThroughputMaster extends Thread {
 			}
 		}
 		
-		throw new RuntimeException(record, givenException);
+		PSTBUtil.killAllProcesses(false, null, log);
+		System.exit(PSTBError.M_EXPERIMENT);
 	}
 }

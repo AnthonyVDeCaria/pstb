@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import org.apache.logging.log4j.Logger;
 
@@ -69,13 +70,18 @@ public class ClientDiary implements java.io.Serializable
 	 * @param givenAttri - the associated attributes
 	 * @return Either the given diary entry, or null
 	 */
-	public DiaryEntry getDiaryEntryGivenActionTypeNAttributes(PSActionType givenAction, String givenAttri)
+	public DiaryEntry getDiaryEntryGivenActionTypeNAttributes(PSActionType givenAction, String givenAttri, Logger log)
 	{
 		DiaryEntry appropriateDiary = null;
 		for(int i = 0; i < diary.size() ; i++)
 		{
 			DiaryEntry iTHEntry = diary.get(i);
-			if(iTHEntry.containsValue(givenAction.toString()) && iTHEntry.containsValue(givenAttri))
+			if(iTHEntry == null)
+			{
+				log.error("Diary contains an entry that's null!");
+				break;
+			}
+			if(iTHEntry.containsValue(givenAction) && iTHEntry.containsValue(givenAttri))
 			{
 				appropriateDiary = iTHEntry;
 				break;
@@ -164,5 +170,19 @@ public class ClientDiary implements java.io.Serializable
 
 	public void clear() {
 		diary.clear();
+	}
+	
+	public void removeDiaryEntiresWithGivenPSActionType(PSActionType givenAT)
+	{
+		Iterator<DiaryEntry> itD = diary.iterator();
+		while(itD.hasNext())
+		{
+			DiaryEntry entryI = itD.next();
+			PSActionType entryIsAT = entryI.getPSActionType();
+			if(entryIsAT != null && entryIsAT.equals(givenAT))
+			{
+				itD.remove();
+			}
+		}
 	}
 }
