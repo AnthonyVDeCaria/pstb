@@ -1,0 +1,25 @@
+B00	B	B10,B11
+B10	B	B00,B20,B21
+B11	B	B00,B22,B23
+B20	B	B10,B30,B31
+B21	B	B10,B32,B33
+B22	B	B11,B34,B35
+B23	B	B11,B36,B37
+B30	B	B20
+B31	B	B20
+B32	B	B21
+B33	B	B21
+B34	B	B22
+B35	B	B22
+B36	B	B23
+B37	B	B23
+
+P0	C	B00	etc/samplePub.pdrs
+S0	C	B30	etc/sampleSub.pdrs
+S1	C	B31	etc/sampleSub.pdrs
+S2	C	B32	etc/sampleSub.pdrs
+S3	C	B33	etc/sampleSub.pdrs
+S4	C	B34	etc/sampleSub.pdrs
+S5	C	B35	etc/sampleSub.pdrs
+S6	C	B36	etc/sampleSub.pdrs
+S7	C	B37	etc/sampleSub.pdrs

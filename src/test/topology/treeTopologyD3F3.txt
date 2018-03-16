@@ -1,0 +1,69 @@
+B00	B	B10,B11,B12
+B10	B	B00,B20,B21,B22
+B11	B	B00,B23,B24,B25
+B12	B	B00,B26,B27,B28
+B20	B	B10,B30,B31,B32
+B21	B	B10,B33,B34,B35
+B22	B	B10,B36,B37,B38
+B23	B	B11,B39,B310,B311
+B24	B	B11,B312,B313,B314
+B25	B	B11,B315,B316,B317
+B26	B	B12,B318,B319,B320
+B27	B	B12,B321,B322,B323
+B28	B	B12,B324,B325,B326
+B30	B	B20
+B31	B   B20
+B32	B   B20
+B33	B   B21
+B34	B   B21
+B35	B   B21
+B36	B   B22
+B37	B   B22
+B38	B   B22
+B39	B	B23
+B310	B	B23
+B311	B	B23
+B312	B	B24
+B313	B   B24
+B314	B   B24
+B315	B   B25
+B316	B   B25
+B317	B   B25
+B318	B   B26
+B319	B   B26
+B320	B   B26
+B321	B	B27
+B322	B	B27
+B323	B	B27
+B324	B	B28
+B325	B	B28
+B326	B	B28
+
+P0	C	B00	etc/samplePub.pdrs
+S0	C	B30	etc/sampleSub.pdrs
+S1	C	B31	etc/sampleSub.pdrs
+S2	C	B32	etc/sampleSub.pdrs
+S3	C	B33	etc/sampleSub.pdrs
+S4	C	B34	etc/sampleSub.pdrs
+S5	C	B35	etc/sampleSub.pdrs
+S6	C	B36	etc/sampleSub.pdrs
+S7	C	B37	etc/sampleSub.pdrs
+S8	C	B38	etc/sampleSub.pdrs
+S9	C	B39	etc/sampleSub.pdrs
+S10	C	B310	etc/sampleSub.pdrs
+S11	C	B311	etc/sampleSub.pdrs
+S12	C	B312	etc/sampleSub.pdrs
+S13	C	B313	etc/sampleSub.pdrs
+S14	C	B314	etc/sampleSub.pdrs
+S15	C	B315	etc/sampleSub.pdrs
+S16	C	B316	etc/sampleSub.pdrs
+S17	C	B317	etc/sampleSub.pdrs
+S18	C	B318	etc/sampleSub.pdrs
+S19	C	B319	etc/sampleSub.pdrs
+S20	C	B320	etc/sampleSub.pdrs
+S21	C	B321	etc/sampleSub.pdrs
+S22	C	B322	etc/sampleSub.pdrs
+S23	C	B323	etc/sampleSub.pdrs
+S24	C	B324	etc/sampleSub.pdrs
+S25	C	B325	etc/sampleSub.pdrs
+S26	C	B326	etc/sampleSub.pdrs

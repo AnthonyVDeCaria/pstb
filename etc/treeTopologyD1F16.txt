@@ -1,0 +1,35 @@
+B00	B	B10,B11,B12,B13,B14,B15,B16,B17,B18,B19,B110,B111,B112,B113,B114,B115
+B10	B	B00
+B11	B	B00
+B12	B	B00
+B13	B	B00
+B14	B	B00
+B15	B	B00
+B16	B	B00
+B17	B	B00
+B18	B	B00
+B19	B	B00
+B110	B	B00
+B111	B	B00
+B112	B	B00
+B113	B	B00
+B114	B	B00
+B115	B	B00
+
+P0	C	B00	etc/samplePub.pdrs
+S0	C	B10	etc/sampleSub.pdrs
+S1	C	B11	etc/sampleSub.pdrs
+S2	C	B12	etc/sampleSub.pdrs
+S3	C	B13	etc/sampleSub.pdrs
+S4	C	B14	etc/sampleSub.pdrs
+S5	C	B15	etc/sampleSub.pdrs
+S6	C	B16	etc/sampleSub.pdrs
+S7	C	B17	etc/sampleSub.pdrs
+S8	C	B18	etc/sampleSub.pdrs
+S9	C	B19	etc/sampleSub.pdrs
+S10	C	B110	etc/sampleSub.pdrs
+S11	C	B111	etc/sampleSub.pdrs
+S12	C	B112	etc/sampleSub.pdrs
+S13	C	B113	etc/sampleSub.pdrs
+S14	C	B114	etc/sampleSub.pdrs
+S15	C	B115	etc/sampleSub.pdrs

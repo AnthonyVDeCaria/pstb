@@ -1,0 +1,23 @@
+B0	B	
+
+P0	C	B0	src/test/workloads/testpub2.cna
+P1	C	B0	src/test/workloads/testpub2.cna
+P2	C	B0	src/test/workloads/testpub2.cna
+P3	C	B0	src/test/workloads/testpub2.cna
+P4	C	B0	src/test/workloads/testpub2.cna
+P5	C	B0	src/test/workloads/testpub2.cna
+P6	C	B0	src/test/workloads/testpub2.cna
+P7	C	B0	src/test/workloads/testpub2.cna
+P8	C	B0	src/test/workloads/testpub2.cna
+P9	C	B0	src/test/workloads/testpub2.cna
+
+S0	C	B0	src/test/workloads/testsub.cna
+S1	C	B0	src/test/workloads/testsub.cna
+S2	C	B0	src/test/workloads/testsub.cna
+S3	C	B0	src/test/workloads/testsub.cna
+S4	C	B0	src/test/workloads/testsub.cna
+S5	C	B0	src/test/workloads/testsub.cna
+S6	C	B0	src/test/workloads/testsub.cna
+S7	C	B0	src/test/workloads/testsub.cna
+S8	C	B0	src/test/workloads/testsub.cna
+S9	C	B0	src/test/workloads/testsub.cna

@@ -84,8 +84,6 @@ public class BenchmarkConfig {
 		
 		wantThroughput = false;
 		periodLength = null;
-//		initialDelay = null;
-//		initialPayload = null;
 		
 		workloadFilesStrings = new ArrayList<String>();
 	}
@@ -538,8 +536,6 @@ public class BenchmarkConfig {
 		}
 		if(wantThroughput)
 		{
-//			logger.info(logHeader + "initialDelay = " + initialDelay + ".");
-//			logger.info(logHeader + "initialPayload = " + initialPayload + ".");
 			logger.info(logHeader + "periodLength = " + periodLength + ".");
 		}
 		logger.info(logHeader + "workloadFilesStrings = " + Arrays.toString(workloadFilesStrings.toArray()) + ".");

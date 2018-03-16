@@ -579,9 +579,6 @@ public class PSTBUtil {
 			return null;
 		}
 		
-		StreamGobbler errorGobbler = new StreamGobbler(pNewProcess.getErrorStream(), log, "Script: ");
-		errorGobbler.start();
-		
 		if(seeProcess)
 		{
 			BufferedReader pNewProcessReader = new BufferedReader(new InputStreamReader(pNewProcess.getInputStream()));

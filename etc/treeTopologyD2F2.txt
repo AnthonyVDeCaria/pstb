@@ -1,0 +1,13 @@
+B00	B	B10,B11
+B10	B	B00,B20,B21
+B11	B	B00,B22,B23
+B20	B	B10
+B21	B	B10
+B22	B	B11
+B23	B	B11
+
+P0	C	B00	etc/samplePub.pdrs
+S0	C	B20	etc/sampleSub.pdrs
+S1	C	B21	etc/sampleSub.pdrs
+S2	C	B22	etc/sampleSub.pdrs
+S3	C	B23	etc/sampleSub.pdrs

@@ -1,0 +1,7 @@
+B00	B	B10,B11
+B10	B	B00
+B11	B	B00
+
+P0	C	B00	etc/samplePub.pdrs
+S0	C	B10	etc/sampleSub.pdrs
+S1	C	B11	etc/sampleSub.pdrs
