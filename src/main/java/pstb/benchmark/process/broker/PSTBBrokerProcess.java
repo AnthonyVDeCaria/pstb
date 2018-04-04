@@ -52,6 +52,7 @@ public abstract class PSTBBrokerProcess extends PSTBProcess{
 		if(!setupCheck)
 		{
 			log.error("Couldn't setup broker!");
+			error();
 			System.exit(PSTBError.B_SETUP);
 		}
 		log.info(logHeader + "Broker setup.");
@@ -61,6 +62,7 @@ public abstract class PSTBBrokerProcess extends PSTBProcess{
 		if(!runCheck)
 		{
 			log.error("Couldn't run broker!");
+			error();
 			System.exit(PSTBError.B_RUN);
 		}
 		log.info(logHeader + "Broker running.");

@@ -77,6 +77,7 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 		if(!setupCheck)
 		{
 			log.error("Couldn't setup client!");
+			error();
 			System.exit(PSTBError.C_SETUP);
 		}
 		log.debug(logHeader + "Client setup.");
@@ -85,12 +86,13 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 		
 		log.debug(logHeader + "Attempting to get start signal from master...");
 		String start = PSTBUtil.readConnection(connection, log, logHeader);
-		if(start == null || !start.equals(PSTBUtil.START))
+		if(start != null && !start.equals(PSTBUtil.START))
 		{
 			log.error(logHeader + "Didn't get start signal from master!");
+			error();
 			System.exit(PSTBError.C_START);
 		}
-		log.info(logHeader + "Start signal received.");
+		log.debug(logHeader + "Start signal received.");
 		
 		log.debug(logHeader + "Attempting to run experiment...");
 		boolean runCheck = run();
@@ -110,25 +112,25 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 //		}
 //		log.info(logHeader + "Clean up complete.");
 		
-		log.debug(logHeader + "recording a diary object with name " + context);
-		String diaryFileString = context + ".dia";
-		FileOutputStream out = null;
-		try 
-		{
-			out = new FileOutputStream(diaryFileString);
-		} 
-		catch (FileNotFoundException e) 
-		{
-			log.error(logHeader + "Couldn't create a FileOutputStream to record diary object: ", e);
-			System.exit(PSTBError.C_DIARY);
-		}
-		
 		if(givenMode.equals(PSClientMode.TPPub))
 		{
-			log.error(logHeader + "No diary record needed.");
+			log.info(logHeader + "No diary record needed.");
 		}
 		else
 		{
+			log.debug(logHeader + "recording a diary object with name " + context);
+			String diaryFileString = context + ".dia";
+			FileOutputStream out = null;
+			try 
+			{
+				out = new FileOutputStream(diaryFileString);
+			} 
+			catch (FileNotFoundException e) 
+			{
+				log.error(logHeader + "Couldn't create a FileOutputStream to record diary object: ", e);
+				System.exit(PSTBError.C_DIARY);
+			}
+			
 			ClientDiary currentDiary = givenClient.getDiary();
 			boolean diaryCheck = PSTBUtil.sendObject(currentDiary, out, log, logHeader);
 			if(!diaryCheck)
@@ -147,19 +149,19 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 				System.exit(PSTBError.C_DIARY);
 			}
 			
-//			if(distributed)
-//			{
-//				String[] command = {"scripts/sendDiaryUpstream.sh", username, masterIPAddress, diaryFileString};
-//				boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, log, false,
-//																		"Error creating process to send " + nodeName + "'s diary: ", 
-//																		"Sent " + nodeName + "'s diary upstream.", 
-//																		"Couldn't send " + nodeName + "'s diary upstream.");
-//				if(!sendDiaryCheck)
-//				{
-//					log.error(logHeader + "error sending diary!");
-//					System.exit(PSTBError.C_DIARY);
-//				}
-//			}
+			if(distributed)
+			{
+				String[] command = {"./sendDiaryUpstream.sh", username, masterIPAddress, diaryFileString};
+				Boolean sendDiaryCheck = PSTBUtil.createANewProcess(command, log, true, true,
+																		"Error creating process to send " + nodeName + "'s diary: ", 
+																		"Sent " + nodeName + "'s diary upstream.", 
+																		"Couldn't send " + nodeName + "'s diary upstream.");
+				if(sendDiaryCheck == null || !sendDiaryCheck.booleanValue())
+				{
+					log.error(logHeader + "error sending diary!");
+					System.exit(PSTBError.C_DIARY);
+				}
+			}
 		}
 		
 		log.info("Successful run with client " + nodeName);

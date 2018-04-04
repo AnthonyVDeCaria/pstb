@@ -8,13 +8,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.analysis.analysisobjects.PSTBAnalysisObject;
+import pstb.analysis.analysisobjects.PSTBAvgDelay;
+import pstb.analysis.analysisobjects.PSTBDataCounter;
+import pstb.analysis.analysisobjects.PSTBHistogram;
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DiaryHeader;
@@ -24,6 +31,7 @@ import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
+import pstb.util.PSTBUtil.TimeType;
 
 /**
  * @author padres-dev-4187
@@ -176,6 +184,113 @@ public class Analyzer {
 				System.exit(PSTBError.A_RECORD_ANALYSIS);
 			}
 			logger.info("All analysis in files.");
+			
+			logger.info("Starting graphs...");
+			int numAO = analyzedInformation.size();
+			for(int i = 0; i < numAO ; i++)
+			{
+				AnalysisType atI = analyzedCheck.get(i);
+				
+				String[] command = new String[11];
+				command[0] = "python";
+				command[1] = "graph.py";
+				
+				if(atI.equals(AnalysisType.DelayCounter))
+				{
+					PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
+					Map<Long, Integer> t = temp.getFrequency();
+					PSActionType tempsType = temp.getType();
+					
+					if(t.size() > 1)
+					{
+						ArrayList<Long> x = new ArrayList<Long>();
+						ArrayList<Integer> y = new ArrayList<Integer>();
+						
+						t.forEach((tX, tY)->{
+							x.add(tX);
+							y.add(tY);
+						});
+						
+						command[2] = "delayCounter";
+						command[3] = delayFolderString;
+						command[4] = temp.getName();
+						if(tempsType.equals(PSActionType.R))
+						{
+							command[5] = "Delay (ms)";
+						}
+						else
+						{
+							command[5] = "Delay (ns)";
+						}
+						command[6] = "Frequency";
+						command[7] = Arrays.toString(x.toArray());
+						command[8] = "long";
+						command[9] = Arrays.toString(y.toArray());
+						command[10] = "long";
+						
+						PSTBUtil.createANewProcess(command, logger, false, false,
+								"Couldn't create graph process!", 
+								"Graph complete.", 
+								"Graph process failed!");
+					}
+					
+				}
+				else if(atI.equals(AnalysisType.Histogram))
+				{
+					PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
+					
+					int[] y = temp.getHistogram();
+					PSActionType tempsType = temp.getType();
+					
+					if(y != null)
+					{
+						int yLength = y.length;
+						
+						String[] x = new String[yLength];
+						
+						long floorValue = temp.getFloorValue();
+						Double range = temp.getRange();
+						
+						for(int j = 0 ; j < yLength ; j++)
+						{
+							Double binFloor = floorValue + range*j;
+							Double binCeiling = floorValue + range*(j+1);
+							
+							String convertedFloor = null;
+							String convertedCeiling = null;
+							
+							if(tempsType.equals(PSActionType.R))
+							{
+								convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Milli, TimeUnit.MILLISECONDS);
+								convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Milli, TimeUnit.MILLISECONDS);
+							}
+							else
+							{
+								convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Nano, TimeUnit.MILLISECONDS);
+								convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Nano, TimeUnit.MILLISECONDS);
+							}
+							
+							x[j] = convertedFloor + " - " + convertedCeiling;
+						}
+						
+						command[2] = "histogram";
+						command[3] = histogramFolderString;
+						command[4] = temp.getName();
+						command[5] = "";
+						command[6] = "Frequency";
+						command[7] = Arrays.toString(x);
+						command[8] = "string";
+						command[9] = Arrays.toString(y);
+						command[10] = "long";
+						
+						PSTBUtil.createANewProcess(command, logger, true, false,
+								"Couldn't create graph process!", 
+								"Graph complete.", 
+								"Graph process failed!");
+					}
+				}
+			}
+			logger.info("Graphs complete.");
 		}
 	}
 	
@@ -353,7 +468,7 @@ public class Analyzer {
 			}
 			
 			ArrayList<Object> requestedBST = analysisI.get(AnalysisInput.BenchmarkStartTime);
-			ArrayList<Object> requestedTPF = analysisI.get(AnalysisInput.TopologyFilePath);
+			ArrayList<Object> requestedTFS = analysisI.get(AnalysisInput.TopologyFilePath);
 			ArrayList<Object> requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
 			ArrayList<Object> requestedP = analysisI.get(AnalysisInput.Protocol);
 			ArrayList<Object> requestedRL = analysisI.get(AnalysisInput.RunLength);
@@ -361,14 +476,18 @@ public class Analyzer {
 			ArrayList<Object> requestedCN = analysisI.get(AnalysisInput.ClientName);
 			
 			// From the given lists of options, get the related diary's names 
-			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedBST, requestedTPF, requestedDFV, requestedP, 
+			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedBST, requestedTFS, requestedDFV, requestedP, 
 					requestedRL, requestedRN, requestedCN);
 			
 			// Now that we have all of the names, let's do the actual analysis
 			PSTBAnalysisObject analysisObjectI = null;
-			if(requestedAT.equals(AnalysisType.DelayCounter) || requestedAT.equals(AnalysisType.FrequencyCounter))
+			if(requestedAT.equals(AnalysisType.DelayCounter))
 			{
-				analysisObjectI = new PSTBDataCounter();
+				analysisObjectI = new PSTBDataCounter(true);
+			}
+			else if(requestedAT.equals(AnalysisType.FrequencyCounter))
+			{
+				analysisObjectI = new PSTBDataCounter(false);
 			}
 			else if(requestedAT.equals(AnalysisType.AverageDelay))
 			{
@@ -385,7 +504,45 @@ public class Analyzer {
 				return false;
 			}
 			
-			analysisObjectI.setName(requestedPSAT + "-" + requestedDH);
+			// AO Name
+			String BST = null;
+			String TFS = null;
+			String DFV = null;
+			String P = null;
+			String RL = null;
+			String RN = null;
+			String CN = null;
+			
+			if(requestedBST != null)
+			{
+				BST = Arrays.toString(requestedBST.toArray()).replace("[", "").replace("]", "");
+			}
+			if(requestedTFS != null)
+			{
+				TFS = Arrays.toString(requestedTFS.toArray()).replace("[", "").replace("]", "");
+			}
+			if(requestedDFV != null)
+			{
+				DFV = Arrays.toString(requestedDFV.toArray()).replace("[", "").replace("]", "");
+			}
+			if(requestedP != null)
+			{
+				P = Arrays.toString(requestedP.toArray()).replace("[", "").replace("]", "");
+			}
+			if(requestedRL != null)
+			{
+				RL = Arrays.toString(requestedRL.toArray()).replace("[", "").replace("]", "");
+			}
+			if(requestedRN != null)
+			{
+				RN = Arrays.toString(requestedRN.toArray()).replace("[", "").replace("]", "");
+			}
+			if(requestedCN != null)
+			{
+				CN = Arrays.toString(requestedCN.toArray()).replace("[", "").replace("]", "");
+			}
+			
+			analysisObjectI.setName(requestedPSAT + "_" + BST + "_" + TFS + "_" + DFV + "_" + P + "_" + RL + "_" + RN + "_" + CN);
 			analysisObjectI.setType(requestedPSAT);
 			
 			for(int j = 0 ; j < requestedDiaryNames.size() ; j++)
@@ -585,7 +742,7 @@ public class Analyzer {
 										nameTestArray[LOC_CLIENT_NAME] = (String) requestedCN.get(iCN);
 									}
 									
-									String nameTestString = String.join(PSTBUtil.DIARY_SEPARATOR, nameTestArray);
+									String nameTestString = String.join(PSTBUtil.CONTEXT_SEPARATOR, nameTestArray);
 									
 									Pattern nameTest = Pattern.compile(nameTestString);
 									Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
@@ -615,12 +772,7 @@ public class Analyzer {
 	 * @return false on an error; true otherwise
 	 */
 	private static boolean recordAllAnalyzedInformation()
-	{
-		int numDCs = 0;
-		int numFCs = 0;
-		int numAvgDelays = 0;
-		int numHistograms = 0;
-		
+	{		
 		Path delayFolderPath = Paths.get(delayFolderString);
 		Path frequencyFolderPath = Paths.get(frequencyFolderString);
 		Path avgDelayFolderPath = Paths.get(avgDelayFolderString);
@@ -667,26 +819,22 @@ public class Analyzer {
 			{
 				case DelayCounter:
 				{
-					objectFileString = delayFolderString + temp.getName() + "-" + numDCs + ".txt";
-					numDCs++;
+					objectFileString = delayFolderString + temp.getName() + ".txt";
 					break;
 				}
 				case FrequencyCounter:
 				{	
-					objectFileString = frequencyFolderString + temp.getName() + "-" + numFCs + ".txt";
-					numFCs++;
+					objectFileString = frequencyFolderString + temp.getName() + ".txt";
 					break;
 				}
 				case AverageDelay:
 				{
-					objectFileString = avgDelayFolderString + temp.getName() + "-" + numAvgDelays + ".txt";
-					numAvgDelays++;
+					objectFileString = avgDelayFolderString + temp.getName() + ".txt";
 					break;
 				}
 				case Histogram:
 				{
-					objectFileString = histogramFolderString + temp.getName() + "-" + numHistograms + ".txt";
-					numHistograms++;
+					objectFileString = histogramFolderString + temp.getName() + ".txt";
 					break;
 				}
 				default:

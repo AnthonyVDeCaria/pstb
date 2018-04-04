@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.analysis;
+package pstb.analysis.analysisobjects;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,6 +10,7 @@ import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
@@ -43,6 +44,21 @@ public class PSTBHistogram extends PSTBAnalysisObject {
 	public ArrayList<Long> getDataset()
 	{
 		return dataset;
+	}
+	
+	public int[] getHistogram()
+	{
+		return histogram;
+	}
+	
+	public Double getRange()
+	{
+		return range;
+	}
+	
+	public Long getFloorValue()
+	{
+		return floorValue;
 	}
 	
 	public boolean buildHistogram()
@@ -95,7 +111,7 @@ public class PSTBHistogram extends PSTBAnalysisObject {
 		if(dataset.isEmpty())
 		{
 			log.error("No data exists to print our histogram!");
-			return false;
+			return true;
 		}
 		
 		buildHistogram();
@@ -112,21 +128,22 @@ public class PSTBHistogram extends PSTBAnalysisObject {
 			
 			if(type.equals(PSActionType.R))
 			{
-				convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Milli);
-				convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Milli);
+				convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Milli, TimeUnit.MILLISECONDS);
+				convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Milli, TimeUnit.MILLISECONDS);
 			}
 			else
 			{
-				convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Nano);
-				convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Nano);
+				convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Nano, TimeUnit.MILLISECONDS);
+				convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Nano, TimeUnit.MILLISECONDS);
 			}
 			
 			String cleanFloor = binFormat.format(binFloor);
 			String cleanCeiling = binFormat.format(binCeiling);
 			
-			String lineI = convertedFloor + "-" + convertedCeiling 
-					+ "	" + "(" + cleanFloor + "-" + cleanCeiling + ")" 
+			String lineI = convertedFloor + " - " + convertedCeiling 
+					+ "	" + "(" + cleanFloor + " - " + cleanCeiling + ")" 
 					+ "	" + "->" + " " + histogram[i] + "\n";
+			
 			try
 			{
 				Files.write(givenFilePath, lineI.getBytes(), StandardOpenOption.APPEND);

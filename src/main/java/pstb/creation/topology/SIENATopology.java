@@ -3,6 +3,7 @@
  */
 package pstb.creation.topology;
 
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -15,9 +16,10 @@ import pstb.benchmark.object.broker.PSBroker;
 import pstb.benchmark.object.broker.PSBrokerSIENA;
 import pstb.benchmark.object.client.PSClient;
 import pstb.benchmark.object.client.siena.PSClientSIENA;
-import pstb.startup.config.BenchmarkMode;
+import pstb.startup.config.ExperimentType;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.config.SupportedEngines.PSEngine;
+import pstb.startup.distributed.Machine;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.topology.VisitedState;
 import pstb.startup.workload.PSAction;
@@ -37,18 +39,18 @@ public class SIENATopology extends PhysicalTopology {
 	 * @param givenTopo - the LogicalTopology this PhysicalTopology is build on top of
 	 * @param givenProtocol - the NetworkProtocol this experiment will use
 	 * @param givenUser
-	 * @param givenHostsAndPorts
+	 * @param givenMachines
 	 * @param givenWorkload
 	 * @param givenBST
 	 * @param givenTFS
 	 * @throws UnknownHostException
 	 */
-	public SIENATopology(BenchmarkMode givenMode, LogicalTopology givenTopo,  
-			NetworkProtocol givenProtocol, String givenUser, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
+	public SIENATopology(ExperimentType givenMode, LogicalTopology givenTopo,  
+			NetworkProtocol givenProtocol, String givenUser, ArrayList<Machine> givenMachines, 
 			HashMap<String, ArrayList<PSAction>> givenWorkload, 
-			String givenBST, String givenTFS) throws UnknownHostException 
+			String givenBST, String givenTFS, ServerSocket givenSS) throws Exception 
 	{
-		super(givenMode, givenTopo, givenProtocol, givenUser, givenHostsAndPorts, givenWorkload, givenBST, givenTFS);
+		super(givenMode, givenTopo, givenProtocol, givenUser, givenMachines, givenWorkload, givenBST, givenTFS, givenSS);
 		
 		logHeader = "SIENA Topology: ";
 		BROKER_PROCESS_CLASS_NAME = "siena.StartDVDRPServer -id";
@@ -142,7 +144,7 @@ public class SIENATopology extends PhysicalTopology {
 						
 						String[] connectCommand = {"./connectSBrokers.sh", brokerIURI, brokerJID, brokerJURI};
 						
-						Boolean connectCheck = PSTBUtil.createANewProcess(connectCommand, logger, false, 
+						Boolean connectCheck = PSTBUtil.createANewProcess(connectCommand, logger, true, true,
 								"Problem connecting brokers " + brokerIURI + " & " + brokerJURI + ":", 
 								"Connected brokers " + brokerIURI + " & " + brokerJURI + ".",
 								"Couldn't connect brokers " + brokerIURI + " & " + brokerJURI + "!");

@@ -1,9 +1,9 @@
-1000	a	[class,eq,"oneITS"],[area,eq,'tor'],[value,<,100]
-1000	p	[class,"oneITS"],[area,'tor'],[value,80]	500
-1000	p	[class,"oneITS"],[area,'tor'],[value,10]	500
-1000	p	[class,"oneITS"],[area,'tor'],[value,20]	500
-1000	p	[class,"oneITS"],[area,'tor'],[value,50]	500
-1000	p	[class,"oneITS"],[area,'tor'],[value,40]	500
-1000	p	[class,"oneITS"],[area,'tor'],[value,60]	500
-1000	p	[class,"oneITS"],[area,'tor'],[value,30]	500
-1000	p	[class,"oneITS"],[area,'tor'],[value,70]	500
+1000000000	a	[class,eq,"oneITS"],[area,eq,'tor'],[value,<,100]
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,80]	500
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,10]	500
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,20]	500
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,50]	500
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,40]	500
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,60]	500
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,30]	500
+1000000000	p	[class,"oneITS"],[area,'tor'],[value,70]	500

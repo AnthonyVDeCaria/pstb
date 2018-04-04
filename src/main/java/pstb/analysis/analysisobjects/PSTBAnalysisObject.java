@@ -1,6 +1,5 @@
-package pstb.analysis;
+package pstb.analysis.analysisobjects;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -72,7 +71,7 @@ public abstract class PSTBAnalysisObject {
 			Files.deleteIfExists(givenFilePath);
 			Files.createFile(givenFilePath);
 		}
-		catch(IOException e)
+		catch(Exception e)
 		{
 			log.error(logHeader + "Couldn't recreate file " + givenFilePath + ": ", e);
 			return false;

@@ -7,13 +7,13 @@ import java.io.IOException;
 
 import pstb.analysis.diary.DiaryEntry;
 import pstb.benchmark.object.client.PSClient;
+import pstb.benchmark.object.client.padres.PSClientPADRES;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 import siena.Filter;
 import siena.Notification;
 import siena.Op;
-import siena.SienaException;
 import siena.ThinClient;
 import siena.comm.InvalidSenderException;
 import siena.comm.KAPacketReceiver;
@@ -112,7 +112,7 @@ public class PSClientSIENA extends PSClient
 	}
 	
 	@Override
-	protected boolean advertise(String givenAttributes, DiaryEntry resultingEntry)
+	protected void advertise(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{
 		nodeLog.warn("SIENA is bullshit... so... this isn't working rn...");
 		
@@ -134,103 +134,62 @@ public class PSClientSIENA extends PSClient
 //		}
 //		
 //		nodeLog.debug(logHeader + "Advertise successful.");
-		return true;
 	}
 	
 	@Override
-	protected boolean unadvertise(String givenAttributes, DiaryEntry resultingEntry)
+	protected void unadvertise(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{
 		Filter unAdI = generateFilterFromAttributes(givenAttributes);
 		if(unAdI == null)
 		{
-			nodeLog.error(logHeader + "Couldn't create unad filter!");
-			return false;
+			throw new Exception("Couldn't create unad filter!");
 		}
 		
-		try
-		{
-			actualClient.unadvertise(unAdI, nodeName);
-		}
-		catch (Exception e) 
-		{
-			nodeLog.error(logHeader + "Couldn't unadvertise " + givenAttributes + ": ", e);
-			return false;
-		}
+		actualClient.unadvertise(unAdI, nodeName);
 		
 		nodeLog.debug(logHeader + "Unadvertise successful.");
-		return true;
 	}
 	
 	@Override
-	protected boolean subscribe(String givenAttributes, DiaryEntry resultingEntry)
+	protected void subscribe(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{
 		Filter subI = generateFilterFromAttributes(givenAttributes);
 		if(subI == null)
 		{
-			nodeLog.error(logHeader + "Couldn't create sub filter!");
-			return false;
+			throw new Exception("Couldn't create sub filter!");
 		}
 		
-		try
-		{
-			actualClient.subscribe(subI, actualSub);
-		}
-		catch (SienaException e) 
-		{
-			nodeLog.error(logHeader + "Couldn't subscribe to " + givenAttributes + ": ", e);
-			return false;
-		}
+		actualClient.subscribe(subI, actualSub);
 		
 		nodeLog.debug(logHeader + "Subscription successful.");
-		return true;
 	}
 	
 	@Override
-	protected boolean unsubscribe(String givenAttributes, DiaryEntry resultingEntry)
+	protected void unsubscribe(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{		
 		Filter unSubI = generateFilterFromAttributes(givenAttributes);
 		if(unSubI == null)
 		{
-			nodeLog.error(logHeader + "Couldn't create unsub filter!");
-			return false;
+			throw new Exception("Couldn't create unsub filter!");
 		}
 		
-		try
-		{
-			actualClient.unsubscribe(unSubI, actualSub);
-		}
-		catch (Exception e) 
-		{
-			nodeLog.error(logHeader + "Couldn't unsubscribe from " + givenAttributes + ": ", e);
-			return false;
-		}
+		actualClient.unsubscribe(unSubI, actualSub);
 		
 		nodeLog.debug(logHeader + "Unsubscription successful.");
-		return true;
 	}
 	
 	@Override
-	protected boolean publish(String givenAttributes, DiaryEntry resultingEntry, Integer givenPayloadSize)
+	protected void publish(String givenAttributes, DiaryEntry resultingEntry, Integer givenPayloadSize) throws Exception
 	{
 		Notification pubI = generateNotificationFromAttributes(givenAttributes);
 		if(pubI == null)
 		{
-			nodeLog.error(logHeader + "Couldn't create notification!");
-			return false;
+			throw new Exception("Couldn't create notification!");
 		}
 		
-		try
-		{
-			actualClient.publish(pubI);
-		}
-		catch (SienaException e) 
-		{
-			nodeLog.error(logHeader + "Couldn't unsubscribe from " + givenAttributes + ": ", e);
-			return false;
-		}
+		actualClient.publish(pubI);
 		
 		nodeLog.debug(logHeader + "Publication successful.");
-		return true;
 	}
 	
 	/**

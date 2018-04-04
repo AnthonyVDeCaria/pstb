@@ -8,10 +8,9 @@ do
 	if [ "$i" != "10" ]
 	then
 		echo "Killing nodes on machine n$i"
-		ssh -t -t $user@n$i<<-EOF
-			cd PSTB/scripts
-			./killAllNodesOnThisMachine.sh
+		ssh $user@n$i bash <<-EOF
+			./PSTB/scripts/killAllNodesOnThisMachine.sh
 			exit
-		EOF
+EOF
 	fi
 done

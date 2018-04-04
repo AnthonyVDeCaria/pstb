@@ -1,5 +1,6 @@
 package pstb.creation.topology;
 
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -10,9 +11,10 @@ import pstb.benchmark.object.broker.PSBroker;
 import pstb.benchmark.object.broker.PSBrokerPADRES;
 import pstb.benchmark.object.client.PSClient;
 import pstb.benchmark.object.client.padres.PSClientPADRES;
-import pstb.startup.config.BenchmarkMode;
+import pstb.startup.config.ExperimentType;
 import pstb.startup.config.NetworkProtocol;
 import pstb.startup.config.SupportedEngines.PSEngine;
+import pstb.startup.distributed.Machine;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.workload.PSAction;
 
@@ -33,17 +35,17 @@ public class PADRESTopology extends PhysicalTopology {
 	 * @param givenTopo - the LogicalTopology that will be used as a basis
 	 * @param givenProtocol - the 
 	 * @param givenTFS
-	 * @param givenHostsAndPorts
+	 * @param givenMachines
 	 * @param givenBST
 	 * @param givenWorkload
 	 * @throws UnknownHostException
 	 */
-	public PADRESTopology(BenchmarkMode givenMode, LogicalTopology givenTopo,  
-			NetworkProtocol givenProtocol, String givenUser, HashMap<String, ArrayList<Integer>> givenHostsAndPorts, 
+	public PADRESTopology(ExperimentType givenMode, LogicalTopology givenTopo,  
+			NetworkProtocol givenProtocol, String givenUser, ArrayList<Machine> givenMachines, 
 			HashMap<String, ArrayList<PSAction>> givenWorkload, 
-			String givenBST, String givenTFS) throws UnknownHostException
+			String givenBST, String givenTFS, ServerSocket givenSS) throws Exception
 	{
-		super(givenMode, givenTopo, givenProtocol, givenUser, givenHostsAndPorts, givenWorkload, givenBST, givenTFS);
+		super(givenMode, givenTopo, givenProtocol, givenUser, givenMachines, givenWorkload, givenBST, givenTFS, givenSS);
 		
 		logHeader = "PADRES Topology: ";
 		BROKER_PROCESS_CLASS_NAME = "pstb.benchmark.process.PSTBProcess";

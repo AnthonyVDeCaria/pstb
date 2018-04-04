@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Logger;
 
@@ -335,12 +336,12 @@ public class DiaryEntry  implements java.io.Serializable
 								|| header.equals(DiaryHeader.TimeActiveEnded)
 								)
 						{
-							formatted = PSTBUtil.createTimeString(convertedData, TimeType.Nano);
+							formatted = PSTBUtil.createTimeString(convertedData, TimeType.Nano, TimeUnit.MILLISECONDS);
 						}
 						// This time stamp is in milliseconds
 						else if(header.equals(DiaryHeader.MessageDelay))
 						{
-							formatted = PSTBUtil.createTimeString(convertedData, TimeType.Milli);
+							formatted = PSTBUtil.createTimeString(convertedData, TimeType.Milli, TimeUnit.MILLISECONDS);
 						}
 						// The other 2 (for now) are dates 
 						else

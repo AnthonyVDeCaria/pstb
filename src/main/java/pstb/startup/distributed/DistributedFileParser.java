@@ -1,13 +1,12 @@
 /**
  * 
  */
-package pstb.startup;
+package pstb.startup.distributed;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +19,7 @@ import pstb.util.PSTBUtil;
  */
 public class DistributedFileParser {
 	String disFileString;
-	HashMap<String, ArrayList<Integer>> hostsAndPorts;
+	ArrayList<Machine> machines;
 	
 	private final int NUM_ELEMENTS = 2;
 	private final int LOC_HOST = 0;
@@ -38,12 +37,12 @@ public class DistributedFileParser {
 	public DistributedFileParser(String givenDFS)
 	{
 		disFileString = givenDFS;
-		hostsAndPorts = new HashMap<String, ArrayList<Integer>>();
+		machines = new ArrayList<Machine>();
     }
 	
-	public HashMap<String, ArrayList<Integer>> getHostsAndPorts()
+	public ArrayList<Machine> getHostsAndPorts()
 	{
-		return hostsAndPorts;
+		return machines;
 	}
 	
 	public boolean parse(int numPortsNeeded)
@@ -146,7 +145,8 @@ public class DistributedFileParser {
 						
 						if(isParseSuccessful)
 						{
-							hostsAndPorts.put(splitLine[LOC_HOST], lineIsPorts);
+							Machine machineI = new Machine(splitLine[LOC_HOST], lineIsPorts);
+							machines.add(machineI);
 						}
 					}
 				}
@@ -161,11 +161,11 @@ public class DistributedFileParser {
 		
 		if(!isParseSuccessful)
 		{
-			hostsAndPorts.clear();
+			machines.clear();
 		}
 		else if(numPortsRead < numPortsNeeded)
 		{
-			hostsAndPorts.clear();
+			machines.clear();
 			log.error(logHeader + "Not enough ports were found!");
 			isParseSuccessful = false;
 		}

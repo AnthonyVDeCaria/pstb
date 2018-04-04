@@ -256,9 +256,16 @@ public abstract class PSTBProcess {
 	
 	protected void initalized()
 	{
-		log.debug(logHeader + "Letting master know we've initialized...");
+		log.debug(logHeader + "Letting server know we've initialized...");
 		PSTBUtil.sendStringAcrossSocket(connOut, PSTBUtil.INIT);
-		log.info(logHeader + "Master should know.");
+		log.debug(logHeader + "Server should know of initialization.");
+	}
+	
+	protected void error()
+	{
+		log.debug(logHeader + "Letting server know we've failed...");
+		PSTBUtil.sendStringAcrossSocket(connOut, PSTBUtil.ERROR);
+		log.debug(logHeader + "Server should know of failure.");
 	}
 	
 	protected abstract void complete(PSNode givenNode);

@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
+import pstb.benchmark.object.PSNode;
 import pstb.util.PSTBUtil;
 
 /**
@@ -22,47 +23,51 @@ import pstb.util.PSTBUtil;
  */
 public class NodeHandler extends Thread
 {
-	private PSTBServer master;
-	private Socket objectPipe;
-	
-	private CountDownLatch clientsNotWaiting;
-	private CountDownLatch brokersNotStarted;
-	private CountDownLatch brokersNotLinked;
-	private CountDownLatch start;
-	private CountDownLatch startSent;
-	
-	private Boolean nodeIsClient;
-	
 	private enum ServerMode {
 		Object, Init, Done; 
 	}
 	
+	// Other Variables
+	private ObjectServer master;
+	private Socket objectPipe;
+	
+	// Mercy Latches
+	private CountDownLatch start;
+	
+	// Controlled Latches
+	private CountDownLatch nodeInitalized;
+	private CountDownLatch nodeHandlerFinished;
+	
+	// Updated Variables
 	private ServerMode sMode;
 	
 	private final String logHeader = "NodeHandler: ";
-	private final Logger log = LogManager.getLogger(PSTBServer.class);
+	private final Logger log = LogManager.getLogger(ObjectServer.class);
 	
-	public NodeHandler(Socket givenPipe, CountDownLatch clientsReadySignal, CountDownLatch brokersStartedSignal,
-			CountDownLatch brokersReadySignal, CountDownLatch startSignal, CountDownLatch startSentSignal, PSTBServer givenServer)
+	public NodeHandler(ObjectServer givenServer, Socket givenPipe, CountDownLatch nodeInitalizedSignal, 
+			CountDownLatch startSignal, 
+			CountDownLatch nodeHandlerFinishedSignal)
 	{
-		objectPipe = givenPipe;
-		clientsNotWaiting = clientsReadySignal;
-		brokersNotStarted = brokersStartedSignal;
-		brokersNotLinked = brokersReadySignal;
-		start = startSignal;
-		startSent = startSentSignal;
 		master = givenServer;
+		objectPipe = givenPipe;
 		
-		nodeIsClient = null;
+		start = startSignal;
+		
+		nodeInitalized = nodeInitalizedSignal;
+		nodeHandlerFinished = nodeHandlerFinishedSignal;
 		
 		sMode = ServerMode.Object;
 	}
 	
+	@Override
 	public void run()
 	{
-		String serverName = master.getName();
+		Integer shit = master.getAndUpdateNHI();
+		String serverName = master.getName() + "-" + shit;
 		ThreadContext.put("server", serverName);
 		Thread.currentThread().setName(serverName);
+		
+		log.debug("Starting Node Handler...");
 		
 		OutputStream pipeOut = null;	
 		try
@@ -81,117 +86,102 @@ public class NodeHandler extends Thread
 			BufferedReader bufferedIn = new BufferedReader(new InputStreamReader(objectPipe.getInputStream()));
 			String inputLine = new String();
 			
-			while ((inputLine = bufferedIn.readLine()) != null)
+			while((inputLine = bufferedIn.readLine()) != null)
 			{
+				if(inputLine.equals(PSTBUtil.ERROR))
+				{
+					nodeHandlerFailed(logHeader + "Node is reporting an error!", null, false);
+				}
+				
 				if(sMode.equals(ServerMode.Object))
 				{
+					log.debug(logHeader + "Object mode.");
+					
 					nodeName = inputLine;
-					PSTBServerPacket nodeObject = master.getNode(nodeName);
+					PSNode nodeObject = master.getNode(nodeName);
 						
 					if(nodeObject == null)
 			        {
-			        	endFailedThread(logHeader + "Process requested " + nodeName + " - a name not in the database!", null, false);
+			        	nodeHandlerFailed(logHeader + "Process requested " + nodeName + " - a name not in the database!", null, false);
 			        }
 					
-					nodeIsClient = new Boolean(nodeObject.isClient());
-					
-					if(nodeIsClient)
-					{
-						try 
-						{
-							brokersNotLinked.await();
-						} 
-						catch (InterruptedException e) 
-						{
-							endFailedThread(logHeader + "Interrupted waiting for brokers to complete signal: ", e, true);
-						}
-					}
-					
 					log.debug(logHeader + "Sending object data to node " + inputLine + "...");
-					PSTBUtil.sendObject(nodeObject.getNode(), pipeOut, log, logHeader);
-					log.info(logHeader + "Object data sent to node " + nodeName + ".");
+					PSTBUtil.sendObject(nodeObject, pipeOut, log, logHeader);
+					log.debug(logHeader + "Object data sent to node " + nodeName + ".");
 					
+					log.debug(logHeader + "Changing mode...");
 					sMode = ServerMode.Init;
 				}
 				else if(sMode.equals(ServerMode.Init))
 				{
+					log.debug(logHeader + "Init mode.");
+					
 					if(!inputLine.equals(PSTBUtil.INIT))
 					{
-						endFailedThread(logHeader + "Init not received from node " + nodeName + "!", null, false);
+						nodeHandlerFailed(logHeader + "Init not received from node " + nodeName + " - receieved " + inputLine + "!", 
+								null, false);
 					}
 					log.info(logHeader + "Init received from node " + nodeName + ".");
 					
-					if(nodeIsClient == null)
+					log.debug(logHeader + "Letting server know node has initialized...");
+					nodeInitalized.countDown();
+					log.debug(logHeader + "Server should know.");
+					
+					if(master.isClientServer())
 					{
-						// This should never trigger, but just in case
-						endFailedThread(logHeader + "Unknown what " + nodeName + " is!", null, false);
-					}
-					else if(!nodeIsClient.booleanValue())
-					{
-						brokersNotStarted.countDown();
-					}
-					else
-					{
-						log.debug(logHeader + "Letting server know client " + nodeName + " is waiting for start...");
-						clientsNotWaiting.countDown();
-						log.info(logHeader + "Server should know client " + nodeName + " is waiting.");
-						
 						try 
 						{
 							start.await();
 						} 
 						catch (InterruptedException e) 
 						{
-							endFailedThread(logHeader + "Interrupted waiting for start signal: ", e, true);
+							nodeHandlerFailed(logHeader + "Interrupted waiting for start signal: ", e, true);
 						}
 						
 						log.debug(logHeader + "Sending " + nodeName + " the start signal...");
 						PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.START);
 						log.info(logHeader + "Start signal sent to " + nodeName + ".");
-						
-						startSent.countDown();
 					}
 					
-					sMode = ServerMode.Done;
-				}
-				else if(sMode.equals(ServerMode.Done))
-				{
 					try 
 					{
 						objectPipe.close();
 					} 
 					catch (IOException e) 
 					{
-						endFailedThread(logHeader + "Couldn't get close the pipe OutputStream: ", e, true);
+						nodeHandlerFailed(logHeader + "Couldn't get close the pipe OutputStream: ", e, true);
 					}
 					
+					sMode = ServerMode.Done;
 					break;
 				}
 				else
 				{
-					endFailedThread(logHeader + "Invaild mode " + sMode + "!", null, false);
+					nodeHandlerFailed(logHeader + "Invaild mode " + sMode + "!", null, false);
 				}
 			}
 		} 
 		catch (IOException e) 
 		{
-			endFailedThread(logHeader + "Couldn't get connected node's name: ", e, true);
+			nodeHandlerFailed(logHeader + "Couldn't get connected node's name: ", e, true);
 		}
-		log.info(logHeader + "Object loop complete.");
 		
-		return;
+		if(!sMode.equals(ServerMode.Done))
+		{
+			nodeHandlerFailed(logHeader + "SMode is not proper upon exiting!", null, false);
+		}
+		
+		log.debug(logHeader + "Letting server know we're complete...");
+		nodeHandlerFinished.countDown();
+		log.debug(logHeader + "Server should know.");
+		
+		log.info(logHeader + "Object loop complete.");
 	}
 	
-	private void endFailedThread(String record, Exception givenException, boolean exceptionPresent)
+	private void nodeHandlerFailed(String record, Exception givenException, boolean exceptionPresent)
 	{
-		if(exceptionPresent)
-		{
-			log.error(record, givenException);
-		}
-		else
-		{
-			log.error(record);
-		}
+		nodeInitalized.countDown();
+		nodeHandlerFinished.countDown();
 		
 		try 
 		{

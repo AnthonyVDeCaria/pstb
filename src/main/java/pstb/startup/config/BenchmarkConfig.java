@@ -28,10 +28,13 @@ public class BenchmarkConfig {
 	private final String runLengthsString = "startup.runLengths";
 	private final String nrpeString = "startup.numRunsPerExperiment";
 	private final String periodLengthString = "startup.periodLength";
+	private final String msString = "startup.messageSize";
+	private final String naString = "startup.numAttribute";
+	private final String arString = "startup.attributeRatio";
 	private final String wfsString = "startup.workloadFilesStrings";
 	
 	private ArrayList<PSEngine> engines;
-	private ArrayList<BenchmarkMode> modes;
+	private ArrayList<ExperimentType> modes;
 	
 	private ArrayList<String> topologyFilesStrings;
 	
@@ -44,11 +47,14 @@ public class BenchmarkConfig {
 	private boolean wantSIENA;
 	
 	private boolean wantNormal;
-	private ArrayList<Long> runLengths; // Milliseconds
+	private ArrayList<Long> runLengths; // Nanoseconds
 	private Integer numRunsPerExperiment;
 	
 	private boolean wantThroughput;
 	private Long periodLength;
+	private ArrayList<MessageSize> messageSizes;
+	private ArrayList<NumAttribute> numAttributes;
+	private ArrayList<AttributeRatio> attributeRatios;
 	
 	private ArrayList<String> workloadFilesStrings;
 	
@@ -66,7 +72,7 @@ public class BenchmarkConfig {
 		logger = log;
 		
 		engines = new ArrayList<PSEngine>();
-		modes = new ArrayList<BenchmarkMode>();
+		modes = new ArrayList<ExperimentType>();
 		
 		topologyFilesStrings = new ArrayList<String>();
 		
@@ -84,6 +90,9 @@ public class BenchmarkConfig {
 		
 		wantThroughput = false;
 		periodLength = null;
+		messageSizes = new ArrayList<MessageSize>();
+		numAttributes = new ArrayList<NumAttribute>();
+		attributeRatios = new ArrayList<AttributeRatio>();
 		
 		workloadFilesStrings = new ArrayList<String>();
 	}
@@ -147,6 +156,7 @@ public class BenchmarkConfig {
 			everythingisProper = false;
 		}
 		
+		// ExperimentTypes
 		String unsplitModes = givenProperty.getProperty(modesString);
 		if(unsplitModes != null)
 		{
@@ -157,10 +167,10 @@ public class BenchmarkConfig {
 				for(int i = 0 ; i < numModes ; i++ )
 				{
 					String stringMI = splitModes[i];
-					BenchmarkMode mI = null;
+					ExperimentType mI = null;
 					try
 					{
-						mI = BenchmarkMode.valueOf(stringMI);
+						mI = ExperimentType.valueOf(stringMI);
 					}
 					catch(IllegalArgumentException e)
 					{
@@ -170,11 +180,11 @@ public class BenchmarkConfig {
 						break;
 					}
 					
-					if(mI.equals(BenchmarkMode.Scenario))
+					if(mI.equals(ExperimentType.Scenario))
 					{
 						wantNormal = true;
 					}
-					else if(mI.equals(BenchmarkMode.Throughput))
+					else if(mI.equals(ExperimentType.Throughput))
 					{
 						wantThroughput = true;
 					}
@@ -363,6 +373,111 @@ public class BenchmarkConfig {
 				everythingisProper = false;
 			}
 			periodLength = temp * PSTBUtil.MILLISEC_TO_NANOSEC;
+			
+			// MessageSize
+			String unsplitMessageSizes = givenProperty.getProperty(msString);
+			if(unsplitMessageSizes != null)
+			{
+				String[] splitMS = unsplitMessageSizes.split(PSTBUtil.ITEM_SEPARATOR);
+				int numRequestedMS = splitMS.length;
+				if(numRequestedMS <= MessageSize.values().length)
+				{
+					for(int i = 0 ; i < numRequestedMS ; i++ )
+					{
+						String stringMSI = splitMS[i];
+						try
+						{
+							MessageSize msI = MessageSize.valueOf(stringMSI);
+							
+							messageSizes.add(msI);
+						}
+						catch(IllegalArgumentException e)
+						{
+							everythingisProper = false;
+							messageSizes.clear();
+							logger.error(logHeader + stringMSI + " is not a valid MessageSize: ", e);
+						}
+					}
+				}
+				else
+				{
+					everythingisProper = false;
+				}
+			}
+			else
+			{
+				everythingisProper = false;
+			}
+			
+			// NumAttributes
+			String unsplitNumAttributes = givenProperty.getProperty(naString);
+			if(unsplitNumAttributes != null)
+			{
+				String[] splitNA = unsplitNumAttributes.split(PSTBUtil.ITEM_SEPARATOR);
+				int numRequestedNA = splitNA.length;
+				if(numRequestedNA <= NumAttribute.values().length)
+				{
+					for(int i = 0 ; i < numRequestedNA ; i++ )
+					{
+						String stringNAI = splitNA[i];
+						try
+						{
+							NumAttribute naI = NumAttribute.valueOf(stringNAI);
+							
+							numAttributes.add(naI);
+						}
+						catch(IllegalArgumentException e)
+						{
+							everythingisProper = false;
+							numAttributes.clear();
+							logger.error(logHeader + stringNAI + " is not a valid NumAttributes: ", e);
+						}
+					}
+				}
+				else
+				{
+					everythingisProper = false;
+				}
+			}
+			else
+			{
+				everythingisProper = false;
+			}
+			
+			// AttributeRatios
+			String unsplitAttributeRatios = givenProperty.getProperty(arString);
+			if(unsplitAttributeRatios != null)
+			{
+				String[] splitAR = unsplitAttributeRatios.split(PSTBUtil.ITEM_SEPARATOR);
+				int numRequestedAR = splitAR.length;
+				if(numRequestedAR <= AttributeRatio.values().length)
+				{
+					for(int i = 0 ; i < numRequestedAR ; i++ )
+					{
+						String stringARI = splitAR[i];
+						try
+						{
+							AttributeRatio arI = AttributeRatio.valueOf(stringARI);
+							
+							attributeRatios.add(arI);
+						}
+						catch(IllegalArgumentException e)
+						{
+							everythingisProper = false;
+							attributeRatios.clear();
+							logger.error(logHeader + stringARI + " is not a valid AttributeRatio: ", e);
+						}
+					}
+				}
+				else
+				{
+					everythingisProper = false;
+				}
+			}
+			else
+			{
+				everythingisProper = false;
+			}
 		}
 		
 		// workloadFilesStrings
@@ -395,7 +510,7 @@ public class BenchmarkConfig {
 	 * 
 	 * @return modes - the list of modes to be used
 	 */
-	public ArrayList<BenchmarkMode> getModes()
+	public ArrayList<ExperimentType> getModes()
 	{
 		return modes;
 	}
@@ -451,16 +566,6 @@ public class BenchmarkConfig {
 	}
 	
 	/**
-	 * Gets the protocols
-	 * 
-	 * @return protocols - the list of protocols to be used in different runs
-	 */
-	public ArrayList<NetworkProtocol> getProtocols()
-	{
-		return protocols;
-	}
-	
-	/**
 	 * Gets the wantSIENA value
 	 * 
 	 * @return wantSIENA - NOTE: this value is false if setBenchmarkConfig isn't run
@@ -468,6 +573,16 @@ public class BenchmarkConfig {
 	public boolean sienaRequested() 
 	{
 		return wantSIENA;
+	}
+	
+	/**
+	 * Gets the protocols
+	 * 
+	 * @return protocols - the list of protocols to be used in different runs
+	 */
+	public ArrayList<NetworkProtocol> getProtocols()
+	{
+		return protocols;
 	}
 	
 	/**
@@ -483,7 +598,7 @@ public class BenchmarkConfig {
 	/**
 	 * Gets the numRunsPerExperiment
 	 * 
-	 * @return numRunsPerExperiment - the number of runs an experiment has to complete
+	 * @return numRunsPerExperiment - the number of runs an Scenario experiment has to complete
 	 */
 	public Integer getNumRunsPerExperiment()
 	{
@@ -493,11 +608,41 @@ public class BenchmarkConfig {
 	/**
 	 * Gets the periodLength
 	 * 
-	 * @return periodLength - the length of a period in a throughput experiment
+	 * @return periodLength - the length of a period in a Throughput experiment
 	 */
 	public Long getPeriodLength()
 	{
 		return periodLength;
+	}
+	
+	/**
+	 * Gets the messageSizes
+	 * 
+	 * @return messageSizes - the payload sizes requested in a Throughput experiment
+	 */
+	public ArrayList<MessageSize> getMessageSizes()
+	{
+		return messageSizes;
+	}
+	
+	/**
+	 * Gets the numAttributes
+	 * 
+	 * @return numAttributes - the number of attributes requested in a Throughput experiment
+	 */
+	public ArrayList<NumAttribute> getNumAttributes()
+	{
+		return numAttributes;
+	}
+	
+	/**
+	 * Gets the attributeRatios
+	 * 
+	 * @return attributeRatios - the attribute ratios requested in a Throughput experiment
+	 */
+	public ArrayList<AttributeRatio> getAttributeRatios()
+	{
+		return attributeRatios;
 	}
 	
 	/**
@@ -537,6 +682,9 @@ public class BenchmarkConfig {
 		if(wantThroughput)
 		{
 			logger.info(logHeader + "periodLength = " + periodLength + ".");
+			logger.info(logHeader + "messageSizes = " + Arrays.toString(messageSizes.toArray()) + ".");
+			logger.info(logHeader + "numAttributes = " + Arrays.toString(numAttributes.toArray()) + ".");
+			logger.info(logHeader + "attributeRatios = " + Arrays.toString(attributeRatios.toArray()) + ".");
 		}
 		logger.info(logHeader + "workloadFilesStrings = " + Arrays.toString(workloadFilesStrings.toArray()) + ".");
 	}
@@ -594,6 +742,21 @@ public class BenchmarkConfig {
 		if(wantThroughput && periodLength == null)
 		{
 			logger.error(logHeader + "No Period Length was given!");
+			anyFieldNull = true;
+		}
+		if(wantThroughput && messageSizes.isEmpty())
+		{
+			logger.error(logHeader + "No Message Size(s) were given!");
+			anyFieldNull = true;
+		}
+		if(wantThroughput && numAttributes.isEmpty())
+		{
+			logger.error(logHeader + "No Number of Attribute(s) were given!");
+			anyFieldNull = true;
+		}
+		if(wantThroughput && attributeRatios.isEmpty())
+		{
+			logger.error(logHeader + "No AttributeRatio(s) were given!");
 			anyFieldNull = true;
 		}
 		if(workloadFilesStrings.isEmpty())

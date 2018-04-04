@@ -49,7 +49,7 @@ public class SIENABrokerProcess extends PSTBBrokerProcess {
 		String brokerURI = actualNode.getBrokerURI();
 		
 		String[] runCommand = {"./startSBroker.sh", nodeName, brokerURI};
-		Boolean scriptCheck = PSTBUtil.createANewProcess(runCommand, log, false,
+		Boolean scriptCheck = PSTBUtil.createANewProcess(runCommand, log, true, true,
 				"Couldn't run SIENA Broker process :", 
 				"SIENA Broker process process successfull.", 
 				"SIENA Broker process process failed!"

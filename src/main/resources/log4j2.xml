@@ -12,7 +12,7 @@
         <Routing name="Server">
 	        <Routes pattern="${ctx:server}">
 	            <Route>
-	                <File name="${ctx:server}" fileName="logs/${ctx:server}.log" immediateFlush="false" append="false">
+	                <File name="${ctx:server}" fileName="logs/Server/${ctx:server}.log" immediateFlush="false" append="false">
 	                   <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
 	                </File>
 	            </Route>
@@ -123,20 +123,20 @@
     </Appenders>
     
     <Loggers>
-        <Root level="info" additivity="false">
+        <Root level="debug" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Root"/>
         </Root>
-        <Logger name="pstb.creation.server.PSTBServer" level="info" additivity="false">
+        <Logger name="pstb.creation.server.ObjectServer" level="debug" additivity="false">
         	<AppenderRef ref="Server"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.PSTBProcess" level="info" additivity="false">
+        <Logger name="pstb.benchmark.process.PSTBProcess" level="debug" additivity="false">
         	<AppenderRef ref="Node"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="info" additivity="false">
+        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="debug" additivity="false">
         	<AppenderRef ref="Broker"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="info" additivity="false">
+        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="debug" additivity="false">
         	<AppenderRef ref="Client"/>
         </Logger>
         <Logger name="SystemError" level="fatal" additivity="false">

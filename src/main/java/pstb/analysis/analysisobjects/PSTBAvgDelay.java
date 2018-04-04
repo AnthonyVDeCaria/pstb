@@ -1,12 +1,14 @@
 /**
  * 
  */
-package pstb.analysis;
+package pstb.analysis.analysisobjects;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
+import pstb.analysis.Analyzer;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
 import pstb.util.PSTBUtil.TimeType;
@@ -60,20 +62,21 @@ public class PSTBAvgDelay extends PSTBAnalysisObject {
 		if(value == null)
 		{
 			log.error(logHeader + "No average value exists!");
-			return false;
+			return true;
 		}
 		
-		String line = null;
+		String correctedValue = null;
 		
 		if(type.equals(PSActionType.R))
 		{
-			line = PSTBUtil.createTimeString(value, TimeType.Milli);
+			correctedValue = PSTBUtil.createTimeString(value, TimeType.Milli, TimeUnit.MILLISECONDS);
 		}
 		else
 		{
-			line = PSTBUtil.createTimeString(value, TimeType.Nano);
+			correctedValue = PSTBUtil.createTimeString(value, TimeType.Nano, TimeUnit.MILLISECONDS);
 		}
 		
+		String line = correctedValue + " (" + value + ")";		
 		try
 		{
 			Files.deleteIfExists(givenFilePath);

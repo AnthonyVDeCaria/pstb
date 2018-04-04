@@ -33,11 +33,11 @@ import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.process.broker.PSTBBrokerProcess;
 import pstb.benchmark.process.client.PSTBClientProcess;
-import pstb.benchmark.throughput.AttributeRatio;
-import pstb.benchmark.throughput.MessageSize;
-import pstb.benchmark.throughput.NumAttributes;
-import pstb.startup.config.BenchmarkMode;
+import pstb.startup.config.AttributeRatio;
+import pstb.startup.config.ExperimentType;
+import pstb.startup.config.MessageSize;
 import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.NumAttribute;
 
 public class PSTBUtil {
 	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
@@ -50,10 +50,12 @@ public class PSTBUtil {
 	
 	public static final String COLUMN_SEPARATOR = "	";
 	public static final String ITEM_SEPARATOR = ",";
-	public static final String DIARY_SEPARATOR = "_";
+	public static final String CONTEXT_SEPARATOR = "_";
 	public static final String FOLDER_REPLACEMENT = "-";
 	
 	public static final String LOCAL = "localhost";
+	
+	public static final Integer PORT = 4444;
 	
 	public static final String INIT = "On your command.";
 	public static final String START = "start";
@@ -308,7 +310,7 @@ public class PSTBUtil {
 	 * @param givenTT - the units of this time value
 	 * @return the associated converted string
 	 */
-	public static String createTimeString(Long givenTimeValue, TimeType givenTT)
+	public static String createTimeStringOLD(Long givenTimeValue, TimeType givenTT)
 	{
 		String retVal = null;
 		Long hours = new Long(0);
@@ -517,6 +519,96 @@ public class PSTBUtil {
 		return retVal;
 	}
 	
+	public static String createTimeString(Long givenTimeValue, TimeType givenTT, TimeUnit units)
+	{
+		String retVal = null;
+		Long seconds = new Long(0);
+		Long milliseconds = new Long(0);
+		Long microseconds = new Long(0);
+		Long nanoseconds = new Long(0);
+		
+		if(units.equals(TimeUnit.SECONDS) || units.equals(TimeUnit.MILLISECONDS) 
+				|| units.equals(TimeUnit.MICROSECONDS) || units.equals(TimeUnit.NANOSECONDS))
+		{
+			if(givenTT.equals(TimeType.Nano))
+			{
+				seconds = TimeUnit.NANOSECONDS.toSeconds(givenTimeValue);
+				milliseconds = TimeUnit.NANOSECONDS.toMillis(givenTimeValue);
+				microseconds = TimeUnit.NANOSECONDS.toMicros(givenTimeValue);
+				nanoseconds = TimeUnit.NANOSECONDS.toNanos(givenTimeValue);
+				
+				if(units.equals(TimeUnit.SECONDS))
+				{
+					Long sMillis = milliseconds - TimeUnit.SECONDS.toMillis(seconds);
+					
+					if(sMillis.compareTo(0L) > 0)
+					{
+						retVal = String.format("%02d.%02d s", seconds, sMillis);
+					}
+					else
+					{
+						retVal = String.format("%02d s", seconds);
+					}
+				}
+				else if(units.equals(TimeUnit.MILLISECONDS))
+				{
+					Long miMicros = microseconds - TimeUnit.MILLISECONDS.toMicros(milliseconds);
+					
+					if(miMicros.compareTo(0L) > 0)
+					{
+						retVal = String.format("%02d.%02d ms", milliseconds, miMicros);
+					}
+					else
+					{
+						retVal = String.format("%02d ms", milliseconds);
+					}
+				}
+				else if(units.equals(TimeUnit.MICROSECONDS) )
+				{
+					Long muNanos = nanoseconds - TimeUnit.MICROSECONDS.toNanos(microseconds);
+					
+					if(muNanos.compareTo(0L) > 0)
+					{
+						retVal = String.format("%02d.%02d us", microseconds, muNanos);
+					}
+					else
+					{
+						retVal = String.format("%02d us", microseconds);
+					}
+				}
+				else
+				{
+					retVal = String.format("%02d ns", nanoseconds);
+				}
+			}
+			else if(givenTT.equals(TimeType.Milli))
+			{
+				seconds = TimeUnit.MILLISECONDS.toSeconds(givenTimeValue);
+				milliseconds = TimeUnit.MILLISECONDS.toMillis(givenTimeValue);
+				
+				if(units.equals(TimeUnit.SECONDS) )
+				{
+					Long sMillis = milliseconds - TimeUnit.SECONDS.toMillis(seconds);
+					
+					if(sMillis.compareTo(0L) > 0)
+					{
+						retVal = String.format("%02d.%02d s", seconds, sMillis);
+					}
+					else
+					{
+						retVal = String.format("%02d s", seconds);
+					}
+				}
+				else
+				{
+					retVal = String.format("%02d ms", milliseconds);
+				}
+			}
+		}
+		
+		return retVal;
+	}
+	
 	/**
 	 * Cleans a given TopologyFileString
 	 * by replacing / and \ with _.
@@ -561,8 +653,8 @@ public class PSTBUtil {
 		return i;
 	}
 	
-	public static Boolean createANewProcess(String[] command, Logger log, boolean seeProcess, String newProcessException, 
-												String processSuccessful, String processFailure)
+	public static Boolean createANewProcess(String[] command, Logger log, boolean seeProcess, boolean seeMessages, 
+			String newProcessException, String processSuccessful, String processFailure)
 	{
 		ProcessBuilder newProcess = new ProcessBuilder(command);
 		
@@ -593,7 +685,7 @@ public class PSTBUtil {
 			catch (IOException e)
 			{
 				log.error("Couldn't read output from new Process: ", e);
-				return false;
+				return null;
 			}
 		}
 		
@@ -604,19 +696,25 @@ public class PSTBUtil {
 		catch (InterruptedException e)
 		{
 			log.error("Couldn't end new process: ", e);
-			return false;
+			return null;
 		}
 		
 		int exitValue = pNewProcess.exitValue();
 		
 		if(exitValue != 0)
 		{
-			log.error(processFailure + " | Error = " + exitValue);
+			if(seeMessages)
+			{
+				log.error(processFailure + " | Error = " + exitValue);
+			}
 			return false;
 		}
 		else
 		{
-			log.info(processSuccessful);
+			if(seeMessages)
+			{
+				log.info(processSuccessful);
+			}
 			return true;
 		}
 	}
@@ -673,41 +771,20 @@ public class PSTBUtil {
 	
 	public static void waitAPeriod(long periodToWait, Logger log, String logHeader)
 	{
-		log.debug(logHeader + "pausing for " + periodToWait + " ns ...");
+		String convertedPeriod = createTimeString(periodToWait, TimeType.Nano, TimeUnit.SECONDS);
+		
+		log.debug(logHeader + "Pausing for " + convertedPeriod + "...");
 		long endTime = System.nanoTime() + periodToWait;
 		while(endTime > System.nanoTime())
 		{
 			// Nothing
 		}
-		log.debug(logHeader + "pause complete.");
-	}
-	
-	public static Boolean killAllProcesses(boolean distributed, String username, Logger logger)
-	{
-		ArrayList<String> command = new ArrayList<String>();
-		
-		if(distributed)
-		{
-			command.add("scripts/killAllNodes.sh");
-			command.add(username);
-		}
-		else
-		{
-			command.add("scripts/killAllNodesOnThisMachine.sh");
-		}
-		
-		String[] kill = command.toArray(new String[0]);
-		
-		return PSTBUtil.createANewProcess(kill, logger, false,
-												"Couldn't run kill process :", 
-												"Kill process successfull.", 
-												"Kill process failed!"
-											);
+		log.debug(logHeader + "Pause complete.");
 	}
 	
 	public static String generateContext(Boolean distributed, String benchmarkStartTime, String topologyFileString, 
-			NetworkProtocol protocol, BenchmarkMode mode, Long runLength, Integer runNumber, Long periodLength,
-			AttributeRatio ar, NumAttributes na, MessageSize ms, String givenName,
+			NetworkProtocol protocol, ExperimentType mode, Long runLength, Integer runNumber, Long periodLength,
+			AttributeRatio ar, NumAttribute na, MessageSize ms, String name,
 			Logger nodeLog, String logHeader)
 	{
 		// Convert the distributed value into a flag
@@ -732,7 +809,7 @@ public class PSTBUtil {
 		context.add(distributedFlag.toString());
 		context.add(protocol.toString());
 		
-		if(mode.equals(BenchmarkMode.Scenario))
+		if(mode.equals(ExperimentType.Scenario))
 		{
 			// Convert the nanosecond runLength into milliseconds
 			// WHY: neatness / it's what the user gave us->why confuse them?
@@ -741,25 +818,25 @@ public class PSTBUtil {
 			context.add(milliRunLength.toString());
 			context.add(runNumber.toString());
 		}
-		else if(mode.equals(BenchmarkMode.Throughput))
+		else if(mode.equals(ExperimentType.Throughput))
 		{
 			// Convert the nanosecond runLength into milliseconds
 			// WHY: neatness / it's what the user gave us->why confuse them?
 			Long convertedPL = (long) (periodLength / PSTBUtil.MILLISEC_TO_NANOSEC.doubleValue());
 			
 			context.add(convertedPL.toString());
-			context.add(ar.toString());
-			context.add(na.toString());
 			context.add(ms.toString());
+			context.add(na.toString());
+			context.add(ar.toString());
 		}
 		else
 		{
 			return null;
 		}
 		
-		context.add(givenName);
+		context.add(name);
 		
-		String retVal = String.join(PSTBUtil.DIARY_SEPARATOR, context);
+		String retVal = String.join(PSTBUtil.CONTEXT_SEPARATOR, context);
 		return retVal;
 	}
 }

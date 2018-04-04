@@ -14,7 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
-import pstb.creation.server.PSTBServer;
 import pstb.util.PSTBUtil;
 
 /**
@@ -26,12 +25,12 @@ public class TPHandler extends Thread {
 	private CountDownLatch delayAdded;
 	private CountDownLatch masterReady;
 	private CountDownLatch threadEnding;
-	private ThroughputMaster masterOfPuppets;
+	private TPMaster masterOfPuppets;
 	
 	private String logHeader = "TPHandler: ";
-	private Logger log = LogManager.getLogger(PSTBServer.class);
+	private Logger log = LogManager.getRootLogger();
 
-	public TPHandler(Socket givenOP, CountDownLatch givenDD, CountDownLatch givenMR, CountDownLatch givenTE, ThroughputMaster givenTM)
+	public TPHandler(Socket givenOP, CountDownLatch givenDD, CountDownLatch givenMR, CountDownLatch givenTE, TPMaster givenTM)
 	{
 		objectPipe = givenOP;
 		delayAdded = givenDD;

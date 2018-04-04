@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.analysis;
+package pstb.analysis.analysisobjects;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
@@ -30,12 +31,22 @@ public class PSTBDataCounter extends PSTBAnalysisObject{
 	/**
 	 * Empty Constructor
 	 */
-	public PSTBDataCounter()
+	public PSTBDataCounter(boolean givenRBK)
 	{
 		super();
 		frequency = new TreeMap<Long, Integer>();
-		recordByKey = true;
+		recordByKey = givenRBK;
 		logHeader = "PSTBDC: ";
+	}
+	
+	public Map<Long, Integer> getFrequency()
+	{
+		if(!recordByKey)
+		{
+			return PSTBUtil.sortGivenMapByValue(frequency);
+		}
+		
+		return frequency;
 	}
 	
 	/**
@@ -58,22 +69,6 @@ public class PSTBDataCounter extends PSTBAnalysisObject{
 	}
 	
 	/**
-	 * Changes the recordByKey variable to false
-	 */
-	public void recordByValues()
-	{
-		recordByKey = false;
-	}
-	
-	/**
-	 * Changes the recordByKey variable to true
-	 */
-	public void recordByKeys()
-	{
-		recordByKey = true;
-	}
-	
-	/**
 	 * Gets the occurrences of a certain dataPoint
 	 * 
 	 * @param dataPoint - the data point requested
@@ -90,7 +85,7 @@ public class PSTBDataCounter extends PSTBAnalysisObject{
 		if(frequency.isEmpty())
 		{
 			log.error(logHeader + "No data exists to be printed!");
-			return false;
+			return true;
 		}
 		
 		Long[] sortedTimes = null;
@@ -112,11 +107,11 @@ public class PSTBDataCounter extends PSTBAnalysisObject{
 			String convertedTimeI = null;
 			if(type.equals(PSActionType.R))
 			{
-				convertedTimeI = PSTBUtil.createTimeString(timeI, TimeType.Milli);
+				convertedTimeI = PSTBUtil.createTimeString(timeI, TimeType.Milli, TimeUnit.MILLISECONDS);
 			}
 			else
 			{
-				convertedTimeI = PSTBUtil.createTimeString(timeI, TimeType.Nano);
+				convertedTimeI = PSTBUtil.createTimeString(timeI, TimeType.Nano, TimeUnit.MILLISECONDS);
 			}
 			
 			String lineI = convertedTimeI + "	" + "(" + timeI + ")" + "	" + "occurred" + " " + frequencyI + "\n";

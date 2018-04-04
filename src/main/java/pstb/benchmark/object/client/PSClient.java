@@ -1,6 +1,5 @@
 package pstb.benchmark.object.client;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -13,8 +12,8 @@ import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DiaryHeader;
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.process.client.PSTBClientProcess;
-import pstb.benchmark.throughput.MessageSize;
-import pstb.startup.config.BenchmarkMode;
+import pstb.startup.config.ExperimentType;
+import pstb.startup.config.MessageSize;
 import pstb.startup.workload.PSAction;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBUtil;
@@ -261,7 +260,7 @@ public abstract class PSClient extends PSNode
 		}
 		else if(cMode.equals(PSClientMode.Scenario))
 		{
-			if(!mode.equals(BenchmarkMode.Scenario))
+			if(!mode.equals(ExperimentType.Scenario))
 			{
 				nodeLog.error("Mode mismatch - Client Mode is Scenario but Benchmark Mode isn't!");
 				everythingPresent = false;
@@ -273,7 +272,7 @@ public abstract class PSClient extends PSNode
 				everythingPresent = false;
 			}
 		}
-		else if((cMode.equals(PSClientMode.TPPub) || (cMode.equals(PSClientMode.TPSub))) && !mode.equals(BenchmarkMode.Throughput) )
+		else if((cMode.equals(PSClientMode.TPPub) || (cMode.equals(PSClientMode.TPSub))) && !mode.equals(ExperimentType.Throughput) )
 		{
 			nodeLog.error("Mode mismatch!");
 			everythingPresent = false;
@@ -287,6 +286,8 @@ public abstract class PSClient extends PSNode
 		ArrayList<PSAction> activeList = new ArrayList<PSAction>();
 		int numActions = workload.size();
 		
+		Long pauseTime = runLength / 10;
+		
 		int i = 0;
 		Long runStart = System.nanoTime();
 		Long currentTime = System.nanoTime();
@@ -296,7 +297,11 @@ public abstract class PSClient extends PSNode
 			updateActiveList(activeList);
 			nodeLog.info(logHeader + "Updated active lists.");
 			
-			if(i < numActions)
+			if(i >= numActions)
+			{
+				PSTBUtil.waitAPeriod(pauseTime, nodeLog, (logHeader + "resting for " + pauseTime + "..."));
+			}
+			else
 			{
 				PSAction actionI = workload.get(i);
 				PSActionType actionIsActionType = actionI.getActionType();
@@ -623,11 +628,11 @@ public abstract class PSClient extends PSNode
 			String pubAttribute = generateThroughputAttributes(PSActionType.P, i);
 			
 			Integer payloadSize = 0;
-			if(ms.equals(MessageSize.OneKiloByte))
+			if(ms.equals(MessageSize.TenKilobytes))
 			{
 				payloadSize = 1000;
 			}
-			else if(ms.equals(MessageSize.OneHundredKiloBytes))
+			else if(ms.equals(MessageSize.OneHundredKilobytes))
 			{
 				payloadSize = 100000;
 			}
@@ -741,7 +746,7 @@ public abstract class PSClient extends PSNode
 		{
 			throughputMasterConnection = new Socket(masterIPAddress, portNumber);
 		}
-		catch (IOException e) 
+		catch (Exception e) 
 		{
 			nodeLog.error(logHeader + "error creating a new Socket: ", e);
 			return null;
@@ -753,7 +758,7 @@ public abstract class PSClient extends PSNode
 		{
 			toMaster = throughputMasterConnection.getOutputStream();
 		}
-		catch (IOException e) 
+		catch (Exception e) 
 		{
 			nodeLog.error(logHeader + "error creating a new OutputStream: ", e);
 		}
@@ -790,7 +795,7 @@ public abstract class PSClient extends PSNode
 		{
 			throughputMasterConnection.close();
 		} 
-		catch (IOException e) 
+		catch (Exception e) 
 		{
 			nodeLog.error(logHeader + "couldn't close " + nodeName + "'s socket: ", e);
 			return null;
@@ -836,7 +841,7 @@ public abstract class PSClient extends PSNode
 				return false;
 			}
 		}
-		// This function should be used for the R(eceived) ActionType
+		// This function should not be used for the R(eceived) ActionType
 		// That should be limited to storePublication
 		if(selectedAction.equals(PSActionType.R))
 		{
@@ -858,8 +863,8 @@ public abstract class PSClient extends PSNode
 		Long startTime = System.currentTimeMillis();
 		Long startAction = System.nanoTime();
 		boolean actionSuccessful = executeAction(selectedAction, givenAction, thisEntry);
-		Long endAction = System.nanoTime();
 		Long brokerFinished = System.currentTimeMillis();
+		Long endAction = System.nanoTime();
 		
 		if(actionSuccessful)
 		{
@@ -939,55 +944,63 @@ public abstract class PSClient extends PSNode
 	{
 		String generalLog = "Attempting to ";
 		String givenAttributes = givenAction.getAttributes();
-		boolean successfulExecution = false;
+		boolean successfulExecution = true;
 		
-		switch(selectedAction)
+		try
 		{
-			case A:
+			switch(selectedAction)
 			{
-				nodeLog.debug(logHeader + generalLog + "advertize " + givenAttributes);
-				successfulExecution = advertise(givenAttributes, givenEntry);
-				break;
+				case A:
+				{
+					nodeLog.debug(logHeader + generalLog + "advertize " + givenAttributes);
+					advertise(givenAttributes, givenEntry);
+					break;
+				}
+				case V:
+				{
+					nodeLog.debug(logHeader + generalLog + "unadvertize " + givenAttributes + ".");
+					unadvertise(givenAttributes, givenEntry);
+					break;
+				}
+				case S:
+				{
+					nodeLog.debug(logHeader + generalLog + "subscribe to " + givenAttributes + ".");
+					subscribe(givenAttributes, givenEntry);
+					break;
+				}
+				case U:
+				{
+					nodeLog.debug(logHeader + generalLog + "unsubscribe from " + givenAttributes + ".");
+					unsubscribe(givenAttributes, givenEntry);
+					break;
+				}
+				case P:
+				{
+					nodeLog.debug(logHeader + generalLog + "publish " + givenAttributes);
+					publish(givenAttributes, givenEntry, givenAction.getPayloadSize());
+					break;
+				}
+				default:
+					break;
 			}
-			case V:
-			{
-				nodeLog.debug(logHeader + generalLog + "unadvertize " + givenAttributes + ".");
-				successfulExecution = unadvertise(givenAttributes, givenEntry);
-				break;
-			}
-			case S:
-			{
-				nodeLog.debug(logHeader + generalLog + "subscribe to " + givenAttributes + ".");
-				successfulExecution = subscribe(givenAttributes, givenEntry);
-				break;
-			}
-			case U:
-			{
-				nodeLog.debug(logHeader + generalLog + "unsubscribe from " + givenAttributes + ".");
-				successfulExecution = unsubscribe( givenAttributes, givenEntry);
-				break;
-			}
-			case P:
-			{
-				nodeLog.debug(logHeader + generalLog + "publish " + givenAttributes);
-				successfulExecution = publish(givenAttributes, givenEntry, givenAction.getPayloadSize());
-				break;
-			}
-			default:
-				break;
+		}
+		catch(Exception e)
+		{
+			nodeLog.error(logHeader + "Issue executing action " + selectedAction + " " + givenAttributes + ": ");
+			successfulExecution = false;
 		}
 		
 		return successfulExecution;
 	}
 	
-	protected abstract boolean advertise(String givenAttributes, DiaryEntry resultingEntry);
+	protected abstract void advertise(String givenAttributes, DiaryEntry resultingEntry) throws Exception;
 	
-	protected abstract boolean unadvertise(String givenAttributes, DiaryEntry resultingEntry);
-	
-	protected abstract boolean subscribe(String givenAttributes, DiaryEntry resultingEntry);
-	
-	protected abstract boolean unsubscribe(String givenAttributes, DiaryEntry resultingEntry);
-	
-	protected abstract boolean publish(String givenAttributes, DiaryEntry resultingEntry, Integer givenPayLoadSize);
+	protected abstract void unadvertise(String givenAttributes, DiaryEntry resultingEntry) throws Exception;
+
+	protected abstract void subscribe(String givenAttributes, DiaryEntry resultingEntry) throws Exception;
+	                  
+	protected abstract void unsubscribe(String givenAttributes, DiaryEntry resultingEntry) throws Exception;
+	                   
+	protected abstract void publish(String givenAttributes, DiaryEntry resultingEntry, Integer givenPayLoadSize) throws Exception;
 
 }

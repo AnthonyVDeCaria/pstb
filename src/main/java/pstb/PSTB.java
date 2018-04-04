@@ -2,31 +2,31 @@ package pstb;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.UnknownHostException;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.benchmark.throughput.AttributeRatio;
-import pstb.benchmark.throughput.MessageSize;
-import pstb.benchmark.throughput.NumAttributes;
 import pstb.creation.topology.PADRESTopology;
 import pstb.creation.topology.PhysicalTopology;
 import pstb.creation.topology.PhysicalTopology.ActiveProcessRetVal;
 import pstb.creation.topology.SIENATopology;
-import pstb.startup.DistributedFileParser;
+import pstb.startup.config.AttributeRatio;
 import pstb.startup.config.BenchmarkConfig;
-import pstb.startup.config.BenchmarkMode;
 import pstb.startup.config.DistributedState;
+import pstb.startup.config.ExperimentType;
+import pstb.startup.config.MessageSize;
 import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.NumAttribute;
 import pstb.startup.config.SupportedEngines.PSEngine;
+import pstb.startup.distributed.DistributedFileParser;
+import pstb.startup.distributed.Machine;
 import pstb.startup.topology.LogicalTopology;
 import pstb.startup.topology.TopologyFileParser;
 import pstb.startup.workload.PSAction;
@@ -41,10 +41,15 @@ import pstb.util.UI;
  * The main PSTB function and its helpers.
  */
 public class PSTB {
+	// Constants
 	private static final String DEFAULT_ANALYSIS_FILE_STRING = "etc/defaultAnalysis.txt";
 	private static final String DEFAULT_BENCHMARK_PROPERTIES_FILE_STRING = "etc/defaultBenchmark.properties";
 	private static final int EXCEUTED_PROPERLY_VALUE = 0;
 	private static final int TOO_FEW_ANALYSIS_ARGS = 2;
+	
+	// Working Boolean
+	protected static Boolean experimentRunning;
+	
 	private static final Logger logger = LogManager.getRootLogger();
 	
 	/**
@@ -248,7 +253,7 @@ public class PSTB {
 		}
 		logger.debug("All topologies valid!!");
 		
-		HashMap<String, ArrayList<Integer>> disHostsAndPorts = new HashMap<String, ArrayList<Integer>>();
+		ArrayList<Machine> disMachines = new ArrayList<Machine>();
 		String disUsername = new String();
 		
 		if(benchmarkRules.distributedRequested())
@@ -264,9 +269,9 @@ public class PSTB {
 				endProgram(PSTBError.M_DISTRIBUTED, userInput);
 			}
 			
-			disHostsAndPorts = dfp.getHostsAndPorts();
+			disMachines = dfp.getHostsAndPorts();
 			
-			if(numNodesLargestTopo > disHostsAndPorts.size())
+			if(numNodesLargestTopo > disMachines.size())
 			{
 				logger.warn("Not enough hosts given for each node - there will be multiple nodes on a single machine.");
 			}
@@ -280,7 +285,7 @@ public class PSTB {
 			{
 				String [] command = {"scripts/addPSTBToMachines.sh", disUsername};
 				
-				Boolean addToNodesCheck = PSTBUtil.createANewProcess(command, logger, false,
+				Boolean addToNodesCheck = PSTBUtil.createANewProcess(command, logger, true, false,
 																			"Couldn't launch process to give all nodes PSTB: ", 
 																			"Added PSTB to all nodes!", 
 																			"Failed adding PSTB to all nodes!");
@@ -296,20 +301,36 @@ public class PSTB {
 		Long currTime = System.currentTimeMillis();
 		String currTimeString = PSTBUtil.DATE_FORMAT.format(currTime);
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
-		ArrayList<BenchmarkMode> askedModes = benchmarkRules.getModes();
+		ArrayList<ExperimentType> askedModes = benchmarkRules.getModes();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
+		
+		ServerSocket masterSocket = null;
+		try
+		{
+			masterSocket = new ServerSocket(PSTBUtil.PORT);
+		}
+		catch(Exception e)
+		{
+			logger.error("Couldn't make a universial ServerSocket: ", e);
+			endProgram(PSTBError.M_TOPO_PHY, userInput);
+		}
 		
 		logger.info("Beginning to create Physical Topology...");
 		int numModes = askedModes.size();
 		for(int i = 0 ; i < numModes ; i++)
 		{
-			BenchmarkMode modeI = askedModes.get(i);
+			ExperimentType modeI = askedModes.get(i);
 			
 			for( ; iteratorLT.hasNext() ; )
 			{
 				String topologyI = iteratorLT.next();
 				LogicalTopology actualTopologyI = allLTs.get(topologyI);
 				DistributedState givenDS = askedDistributed.get(topologyI);
+				
+				ArrayList<Machine> localMachines = new ArrayList<Machine>();
+				Machine localMachine = new Machine(actualTopologyI.numBrokers());
+				localMachines.add(localMachine);
+				
 				ArrayList<NetworkProtocol> askedProtocols = benchmarkRules.getProtocols();
 				
 				for(int j = 0 ; j < askedProtocols.size() ; j++)
@@ -325,12 +346,12 @@ public class PSTB {
 					{
 						try
 						{
-							local = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, null, null, PADRESWorkload, 
-									currTimeString, topologyI);
-							dis = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, disUsername, disHostsAndPorts, 
-									PADRESWorkload, currTimeString, topologyI);
+							local = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, null, localMachines, PADRESWorkload, 
+									currTimeString, topologyI, masterSocket);
+							dis = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, disUsername, disMachines, 
+									PADRESWorkload, currTimeString, topologyI, masterSocket);
 						}
-						catch (UnknownHostException e)
+						catch (Exception e)
 						{
 							logger.error("Couldn't create PhysicalTopolgies: ", e);
 							endProgram(PSTBError.M_TOPO_PHY, userInput);
@@ -340,12 +361,12 @@ public class PSTB {
 					{
 						try
 						{
-							local = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, null, null, SIENAWorkload, 
-									currTimeString, topologyI);
-							dis = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, disUsername, disHostsAndPorts, SIENAWorkload, 
-									currTimeString, topologyI);
+							local = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, null, localMachines, SIENAWorkload, 
+									currTimeString, topologyI, masterSocket);
+							dis = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, disUsername, disMachines, SIENAWorkload, 
+									currTimeString, topologyI, masterSocket);
 						}
-						catch (UnknownHostException e)
+						catch (Exception e)
 						{
 							logger.error("Couldn't create PhysicalTopolgies: ", e);
 							endProgram(PSTBError.M_TOPO_PHY, userInput);
@@ -369,34 +390,50 @@ public class PSTB {
 					
 					logger.info("Beginning experiment...");
 					boolean successfulExperiment = true;
-					if(modeI.equals(BenchmarkMode.Scenario))
+					if(modeI.equals(ExperimentType.Scenario))
 					{
 						if(local.doAnyObjectsExist())
 						{
-							successfulExperiment = conductNormalExperiment(local, benchmarkRules.getRunLengths(),
+							successfulExperiment = conductScenarioExperiment(local, benchmarkRules.getRunLengths(),
 																		benchmarkRules.getNumRunsPerExperiment());
 						}
 						if(dis.doAnyObjectsExist())
 						{
-							successfulExperiment = conductNormalExperiment(dis, benchmarkRules.getRunLengths(),
+							successfulExperiment = conductScenarioExperiment(dis, benchmarkRules.getRunLengths(),
 																		benchmarkRules.getNumRunsPerExperiment());
 						}
 					}
-					else if(modeI.equals(BenchmarkMode.Throughput))
+					else if(modeI.equals(ExperimentType.Throughput))
 					{
 						if(local.doAnyObjectsExist())
 						{
-							successfulExperiment = conductThroughputExperiment(local, benchmarkRules.getPeriodLength());
+							successfulExperiment = conductThroughputExperiment(local, benchmarkRules.getPeriodLength(),
+									benchmarkRules.getMessageSizes(), benchmarkRules.getNumAttributes(), 
+									benchmarkRules.getAttributeRatios());
 						}
 						if(dis.doAnyObjectsExist())
 						{
-							successfulExperiment = conductThroughputExperiment(dis, benchmarkRules.getPeriodLength());
+							successfulExperiment = conductThroughputExperiment(dis, benchmarkRules.getPeriodLength(),
+									benchmarkRules.getMessageSizes(), benchmarkRules.getNumAttributes(), 
+									benchmarkRules.getAttributeRatios());
 						}
+					}
+					
+					try
+					{
+						masterSocket.close();
+					}
+					catch(Exception e)
+					{
+						logger.error("Couldn't close universial ServerSocket: ", e);
+						endProgram(PSTBError.M_TOPO_PHY, userInput);
 					}
 					
 					if(!successfulExperiment)
 					{
 						logger.error("Error conducting the experiment!");
+						local.destroyAllNodes();
+						dis.destroyAllNodes();
 						endProgram(PSTBError.M_EXPERIMENT, userInput);
 					}
 				}
@@ -443,7 +480,7 @@ public class PSTB {
 		{
 			String[] analyze = analyzeCommand.toArray(new String [0]);
 			
-			Boolean analyszeCheck = PSTBUtil.createANewProcess(analyze, logger, false, 
+			Boolean analyszeCheck = PSTBUtil.createANewProcess(analyze, logger, true, false,
 					"Couldn't run analysis :", 
 					"Analysis successfull.", 
 					"Analysis failed!");
@@ -498,35 +535,22 @@ public class PSTB {
 	 * @param givenPT - the Experiment's PhysicalTopology
 	 * @param givenRLs - the length a given run of the Experiment should be
 	 * @param givenNumberOfRunsPerExperiment - the number of times an Experiment should run, given its other parameters
-	 * @param givenWorkload - the Experiment's Workload
-	 * @param givenAnalyzer - the Benchmark's analyzer
 	 * @return false if there is a failure; true otherwise
 	 */
-	private static boolean conductNormalExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
+	private static boolean conductScenarioExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
 	{
-		// We'll need this in case there is an error, so...
-		Boolean givenPTDis = givenPT.getDistributed();
-		
-		if(givenPTDis == null)
-		{
-			logger.error("Error with givenPT - distributed value not set properly!");
-			return false;
-		}
-		
 		// Loop through the Run Lengths
 		for(int runLengthI = 0 ; runLengthI < givenRLs.size(); runLengthI++)
 		{
 			Long iTHRunLengthMilli = givenRLs.get(runLengthI);
 			Long iTHRunLengthNano = iTHRunLengthMilli * PSTBUtil.MILLISEC_TO_NANOSEC;
-			Long sleepLengthMilli = iTHRunLengthMilli / 10;
+			Long sleepLength = iTHRunLengthNano / 10;
 			Long bufferTimeNano = iTHRunLengthNano / 10;
 			
 			// Loop through the runs
 			for(int runI = 0 ; runI < givenNumberOfRunsPerExperiment ; runI++)
 			{
-				CountDownLatch start = new CountDownLatch(1);
-																
-				boolean prepCheck = givenPT.prepareNormalRun(start, iTHRunLengthNano, runI);
+				boolean prepCheck = givenPT.prepareScenarioExperiment(iTHRunLengthNano, runI);
 				if(!prepCheck)
 				{
 					logger.error("Couldn't prepare experiment!");
@@ -539,17 +563,8 @@ public class PSTB {
 					logger.error("Error starting run!");
 					return false;
 				}
-				logger.debug("Run starting...");
 				
-				try 
-				{
-					start.await();
-				} 
-				catch (InterruptedException e) 
-				{
-					logger.error("Interrupted waiting for start signal: ", e);
-				}
-				logger.info("Start signal receieved.");
+				logger.debug("Run starting...");
 				
 				PSTBUtil.synchronizeRun();
 				logger.info("Synchronization complete.");
@@ -562,14 +577,14 @@ public class PSTB {
 					if(valueCAP.equals(ActiveProcessRetVal.Error))
 					{
 						logger.error("Run " + runI + " ran into an error!");
-						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+						givenPT.destroyAllNodes();
 						return false;
 					}
 					// If all of our processes have finished, we have an error - brokers should never self-terminate
 					else if(valueCAP.equals(ActiveProcessRetVal.AllOff))
 					{
 						logger.error("Run " + runI + " has no more client or broker processes!");
-						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+						givenPT.destroyAllNodes();
 						return false;
 					}
 					// If there are brokers with no clients, has the experiment already finished?
@@ -579,7 +594,7 @@ public class PSTB {
 						if((currentTime - startTime) < (iTHRunLengthNano - bufferTimeNano))
 						{
 							logger.error("Run " + runI + " finished early!");
-							PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+							givenPT.destroyAllNodes();
 							return false;
 						}
 						else
@@ -594,32 +609,18 @@ public class PSTB {
 						if((currentTime - startTime) > (iTHRunLengthNano + bufferTimeNano))
 						{
 							logger.error("Run " + runI + " hasn't finished within the experiment period!");
-							PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+							givenPT.destroyAllNodes();
 							return false;
 						}
 					}
 					
 					// So that we don't continuously check, let's put this thread to sleep for a tenth of the run
-					try 
-					{				
-						logger.trace("Pausing main.");
-						Thread.sleep(sleepLengthMilli);
-					} 
-					catch (InterruptedException e) 
-					{
-						logger.error("Error sleeping in main:", e);
-						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
-						return false;
-					}
+					PSTBUtil.waitAPeriod(sleepLength, logger, "Main: ");
 					
 					valueCAP = givenPT.checkActiveProcesses();
 				}
-				
 				logger.info("Run ended.");
 				
-				PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
-				
-				givenPT.destroyAllActiveNodes();
 				givenPT.resetSystemAfterRun();
 				logger.info("Run " + runI + " complete.");
 			}
@@ -636,7 +637,8 @@ public class PSTB {
 	 * @param givenRLs - the length a given run of the Experiment should be
 	 * @return false if there is a failure; true otherwise
 	 */
-	private static boolean conductThroughputExperiment(PhysicalTopology givenPT, Long givenPL)
+	private static boolean conductThroughputExperiment(PhysicalTopology givenPT, Long givenPL, 
+			ArrayList<MessageSize> givenMS, ArrayList<NumAttribute> givenNA, ArrayList<AttributeRatio> givenAR)
 	{
 		// We'll need this in case there is an error, so...
 		Boolean givenPTDis = givenPT.getDistributed();
@@ -646,19 +648,22 @@ public class PSTB {
 			return false;
 		}
 		
-		for(MessageSize msI : MessageSize.values())
+		for(int i = 0 ; i < givenMS.size() ; i++)
 		{
-			for(NumAttributes naI : NumAttributes.values())
+			MessageSize msI = givenMS.get(i);
+			
+			for(int j = 0 ; j < givenNA.size() ; j++)
 			{
+				NumAttribute naJ = givenNA.get(j);
+				
 				boolean oneAttributeComplete = false;
-				for(AttributeRatio arI : AttributeRatio.values())
+				for(int k = 0 ; k < givenAR.size() ; k++)
 				{
-					logger.info("Variables are: " + arI + " " + naI + " " + msI + ".");
+					AttributeRatio arK = givenAR.get(k);
 					
-					CountDownLatch start = new CountDownLatch(1);
-					
+					logger.info("Variables are: " + msI + " " + naJ + " " + arK + ".");
 					boolean run = true;
-					if(naI.equals(NumAttributes.One))
+					if(naJ.equals(NumAttribute.One))
 					{
 						if(oneAttributeComplete)
 						{
@@ -672,7 +677,7 @@ public class PSTB {
 					
 					if(run)
 					{
-						boolean prepCheck = givenPT.prepareThroughputRun(start, givenPL, arI, naI, msI);
+						boolean prepCheck = givenPT.prepareThroughputRun(givenPL, msI, naJ, arK);
 						if(!prepCheck)
 						{
 							logger.error("Couldn't prepare experiment!");
@@ -686,17 +691,7 @@ public class PSTB {
 							return false;
 						}
 						logger.debug("Run starting...");
-								
-						try 
-						{
-							start.await();
-						} 
-						catch (InterruptedException e) 
-						{
-							logger.error("Interrupted waiting for start signal: ", e);
-						}
-						logger.info("Start signal receieved.");
-							
+						
 						PSTBUtil.synchronizeRun();
 						logger.info("Synchronization complete.");
 								
@@ -707,37 +702,24 @@ public class PSTB {
 							if(valueCAP.equals(ActiveProcessRetVal.Error))
 							{
 								logger.error("Run ran into an error!");
-								PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+								givenPT.destroyAllNodes();
 								return false;
 							}
 							// If all of our processes have finished, we have an error - brokers should never self-terminate
 							else if(valueCAP.equals(ActiveProcessRetVal.AllOff))
 							{
 								logger.error("Run has no more client or broker processes!");
-								PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
+								givenPT.destroyAllNodes();
 								return false;
 							}
 									
 							// So that we don't continuously check, let's put this thread to sleep for two seconds
-							try 
-							{				
-								logger.trace("Pausing main.");
-								Thread.sleep(2000);
-							} 
-							catch (InterruptedException e) 
-							{
-								logger.error("Error sleeping in main:", e);
-								PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
-								return false;
-							}
-									
+							PSTBUtil.waitAPeriod(givenPL, logger, "");
+							
 							valueCAP = givenPT.checkActiveProcesses();
 						}	
 						logger.debug("Run ended.");
-								
-						PSTBUtil.killAllProcesses(givenPTDis.booleanValue(), givenPT.getUser(), logger);
-								
-						givenPT.destroyAllActiveNodes();
+						
 						givenPT.resetSystemAfterRun();
 						logger.info("Run complete.");
 					}

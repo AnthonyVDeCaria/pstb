@@ -12,11 +12,10 @@ import ca.utoronto.msrg.padres.common.message.Message;
 import ca.utoronto.msrg.padres.common.message.Publication;
 import ca.utoronto.msrg.padres.common.message.PublicationMessage;
 import ca.utoronto.msrg.padres.common.message.parser.MessageFactory;
-import ca.utoronto.msrg.padres.common.message.parser.ParseException;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.benchmark.object.client.PSClient;
-import pstb.benchmark.throughput.AttributeRatio;
-import pstb.benchmark.throughput.NumAttributes;
+import pstb.startup.config.AttributeRatio;
+import pstb.startup.config.NumAttribute;
 import pstb.startup.workload.PSActionType;
 
 /**
@@ -185,151 +184,89 @@ public class PSClientPADRES extends PSClient
 	 */
 	public void storePublication(Message msg) 
 	{
-		ThreadContext.put("client", generateNodeContext());
-		
-		Boolean areWeRunning = getCurrentlyRunning();
-		if(areWeRunning == null)
+		try
 		{
-			nodeLog.error(logHeader + "CurrentlyRunning is null!");
-		}
-		else if(areWeRunning)
-		{
-			if(msg instanceof PublicationMessage)
+			ThreadContext.put("client", generateNodeContext());
+			
+			Boolean areWeRunning = getCurrentlyRunning();
+			if(areWeRunning == null)
 			{
-				Long currentTime = System.currentTimeMillis();
-				DiaryEntry receivedMsg = new DiaryEntry();
-				
-				Publication pub = ((PublicationMessage) msg).getPublication();
-				
-				Long timePubCreated = pub.getTimeStamp().getTime();
-				
-				receivedMsg.setPSActionType(PSActionType.R);
-				receivedMsg.addMessageID(pub.getPubID());
-				receivedMsg.addTimeCreated(timePubCreated);
-				receivedMsg.addTimeReceived(currentTime);
-				receivedMsg.addTimeDifference(currentTime - timePubCreated);
-				receivedMsg.addAttributes(pub.toString());
-				
-				try
+				nodeLog.error(logHeader + "CurrentlyRunning is null!");
+			}
+			else if(areWeRunning)
+			{
+				if(msg instanceof PublicationMessage)
 				{
-					diaryLock.lock();
-					diary.addDiaryEntryToDiary(receivedMsg);
+					Long currentTime = System.currentTimeMillis();
+					DiaryEntry receivedMsg = new DiaryEntry();
+					
+					Publication pub = ((PublicationMessage) msg).getPublication();
+					
+					Long timePubCreated = pub.getTimeStamp().getTime();
+					
+					receivedMsg.setPSActionType(PSActionType.R);
+					receivedMsg.addMessageID(pub.getPubID());
+					receivedMsg.addTimeCreated(timePubCreated);
+					receivedMsg.addTimeReceived(currentTime);
+					receivedMsg.addTimeDifference(currentTime - timePubCreated);
+					receivedMsg.addAttributes(pub.toString());
+					
+					try
+					{
+						diaryLock.lock();
+						diary.addDiaryEntryToDiary(receivedMsg);
+					}
+					finally
+					{
+						diaryLock.unlock();
+					}
+					
+					nodeLog.debug(logHeader + "new publication received " + pub.toString());
 				}
-				finally
-				{
-					diaryLock.unlock();
-				}
-				
-				nodeLog.debug(logHeader + "new publication received " + pub.toString());
 			}
 		}
+		catch(Exception e)
+		{
+			nodeLog.error(logHeader + "FUBAR: ", e);
+		}
 	}
 	
 	@Override
-	protected boolean advertise(String givenAttributes, DiaryEntry resultingEntry)
+	protected void advertise(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{
-		Message result = null;
-		try 
-		{
-			result = actualClient.advertise(givenAttributes, brokersURIs.get(0));
-		}
-		catch(ClientException e)
-		{
-			nodeLog.error(logHeader + "PADRES client couldn't advertise " + givenAttributes + ": ", e);
-			return false;
-		}
-		catch (ParseException e)
-		{
-			nodeLog.error(logHeader + "PADRES couldn't parse " + givenAttributes + " to advertise: ", e);
-			return false;
-		}
-		
-		if(result == null)
-		{
-			nodeLog.error(logHeader + "Couldn't advertise properly!");
-			return false;
-		}
-		else
-		{
-			resultingEntry.addMessageID(result.getMessageID());
-			return true;
-		}
+		Message result = actualClient.advertise(givenAttributes, brokersURIs.get(0));
+		resultingEntry.addMessageID(result.getMessageID());
 	}
 	
 	@Override
-	protected boolean unadvertise(String givenAttributes, DiaryEntry resultingEntry)
+	protected void unadvertise(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{
 		DiaryEntry originalAd = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.A, givenAttributes, nodeLog);
 		if(originalAd == null)
 		{
-			nodeLog.error(logHeader + "Couldn't find original advertisement!");
-			return false;
+			throw new Exception("Couldn't find original advertisement!");
 		}
 		
 		String originalAdID = originalAd.getMessageID();
-		Message result = null;
-		try
-		{
-			result = actualClient.unAdvertise(originalAdID);
-		}
-		catch(ClientException e)
-		{
-			nodeLog.error(logHeader + "PADRES client couldn't unadvertise " + givenAttributes + ": ", e);
-			return false;
-		}
-		
-		if(result == null)
-		{
-			nodeLog.error(logHeader + "Couldn't unadvertise properly!");
-			return false;
-		}
-		else
-		{
-			resultingEntry.addMessageID(result.getMessageID());
-			return true;
-		}
+		Message result = actualClient.unAdvertise(originalAdID);
+		resultingEntry.addMessageID(result.getMessageID());
 	}
 	
 	@Override
-	protected boolean subscribe(String givenAttributes, DiaryEntry resultingEntry)
+	protected void subscribe(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{
-		Message result = null;
-		try 
-		{
-			result = actualClient.subscribe(givenAttributes, brokersURIs.get(0));
-		}
-		catch(ClientException e)
-		{
-			nodeLog.error(logHeader + "PADRES client couldn't subscribe " + givenAttributes + ": ", e);
-			return false;
-		}
-		catch (ParseException e)
-		{
-			nodeLog.error(logHeader + "PADRES couldn't parse " + givenAttributes + " to subscribe: ", e);
-			return false;
-		}
-		
-		if(result == null)
-		{
-			nodeLog.error(logHeader + "Couldn't subscribe properly!");
-			return false;
-		}
-		else
-		{
-			resultingEntry.addMessageID(result.getMessageID());
-			return true;
-		}
+		Message result = actualClient.subscribe(givenAttributes, brokersURIs.get(0));
+		resultingEntry.addMessageID(result.getMessageID());
 	}
 	
 	@Override
-	protected boolean unsubscribe(String givenAttributes, DiaryEntry resultingEntry)
+	protected void unsubscribe(String givenAttributes, DiaryEntry resultingEntry) throws Exception
 	{
 		nodeLog.debug(logHeader + "Attempting to find original subscription...");
 		DiaryEntry originalSub = diary.getDiaryEntryGivenActionTypeNAttributes(PSActionType.S, givenAttributes, nodeLog);
 		if(originalSub == null)
 		{
-			nodeLog.error(logHeader + "Couldn't find original subscription!");
-			return false;
+			throw new Exception("Couldn't find original subscription!");
 		}
 		nodeLog.info(logHeader + "Found original subscription.");
 		
@@ -337,96 +274,47 @@ public class PSClientPADRES extends PSClient
 		String originalSubID = originalSub.getMessageID();
 		if(originalSubID == null)
 		{
-			nodeLog.error(logHeader + "Original sub's message id was never set!");
-			return false;
+			throw new Exception("Original sub's message id was never set!");
 		}
 		nodeLog.info(logHeader + "Original sub id = " + originalSubID + ".");
 		
 		nodeLog.debug(logHeader + "Attempting to actually unsubscribe...");
-		Message result = null;
-		try
-		{
-			result = actualClient.unSubscribe(originalSubID);
-		}
-		catch(Exception e)
-		{
-			nodeLog.error(logHeader + "PADRES client couldn't unsubscribe " + givenAttributes + ": ", e);
-			return false;
-		}
-		if(result == null)
-		{
-			nodeLog.error(logHeader + "Couldn't unsubscribe properly!");
-			return false;
-		}
+		Message result = actualClient.unSubscribe(originalSubID);
 		nodeLog.info(logHeader + "Unsubscribe successful.");
 		
 		nodeLog.debug(logHeader + "Attempting to add unsubscribe ID to diary...");
 		resultingEntry.addMessageID(result.getMessageID());
 		nodeLog.info(logHeader + "Unsub ID added.");
-		return true;
 	}
 	
 	@Override
-	protected boolean publish(String givenAttributes, DiaryEntry resultingEntry, Integer givenPayloadSize)
+	protected void publish(String givenAttributes, DiaryEntry resultingEntry, Integer givenPayloadSize) throws Exception
 	{
 		Message result = null;
 		
 		if(givenPayloadSize < 0)
 		{
-			nodeLog.error(logHeader + "Payload size is less than 0!");
-			return false;
+			throw new Exception("Payload size is less than 0!");
 		}
 		else if(givenPayloadSize == 0)
 		{
-			try 
-			{
-				result = actualClient.publish(givenAttributes, brokersURIs.get(0));
-			} 
-			catch (ClientException e) 
-			{
-				nodeLog.error(logHeader + "PADRES client couldn't publish " + givenAttributes + ": ", e);
-				return false;
-			}
+			result = actualClient.publish(givenAttributes, brokersURIs.get(0));
+			
 		}
 		else
 		{
 			byte[] payload = new byte[givenPayloadSize];
 			Arrays.fill( payload, (byte) 1 );
 			
-			Publication pubI = null;
-			try 
-			{
-				pubI = MessageFactory.createPublicationFromString(givenAttributes);
-			}
-			catch (ParseException e)
-			{
-				nodeLog.error(logHeader + "couldn't convert " + givenAttributes + " into a publication: ", e);
-				return false;
-			}
+			Publication pubI = MessageFactory.createPublicationFromString(givenAttributes);
 			
 			pubI.setPayload(payload);
 			
-			try 
-			{
-				result = actualClient.publish(pubI, brokersURIs.get(0));
-			} 
-			catch (ClientException e) 
-			{
-				nodeLog.error(logHeader + "PADRES client couldn't publish " + givenAttributes + ": ", e);
-				return false;
-			}
+			result = actualClient.publish(pubI, brokersURIs.get(0));
+			
 		}
 		
-		if(result == null)
-		{
-			nodeLog.error(logHeader + "Couldn't publish properly!");
-			return false;
-		}
-		else
-		{
-			resultingEntry.addMessageID(result.getMessageID());
-			return true;
-		}
+		resultingEntry.addMessageID(result.getMessageID());
 	}
 
 	@Override
@@ -450,7 +338,7 @@ public class PSClientPADRES extends PSClient
 			retVal = "[class,eq,\"oneITS\"]";
 		}
 		
-		if(na.equals(NumAttributes.Twelve))
+		if(na.equals(NumAttribute.Twelve))
 		{
 			// Eleven Doubles, One String
 			if(ar.equals(AttributeRatio.String0P))
@@ -559,7 +447,7 @@ public class PSClientPADRES extends PSClient
 				}
 			}
 		}
-		else if(na.equals(NumAttributes.TwentyFour))
+		else if(na.equals(NumAttribute.TwentyFour))
 		{
 			// 23 Doubles, One String
 			if(ar.equals(AttributeRatio.String0P))

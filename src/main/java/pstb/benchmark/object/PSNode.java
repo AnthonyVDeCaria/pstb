@@ -2,11 +2,11 @@ package pstb.benchmark.object;
 
 import org.apache.logging.log4j.Logger;
 
-import pstb.benchmark.throughput.AttributeRatio;
-import pstb.benchmark.throughput.MessageSize;
-import pstb.benchmark.throughput.NumAttributes;
-import pstb.startup.config.BenchmarkMode;
+import pstb.startup.config.AttributeRatio;
+import pstb.startup.config.ExperimentType;
+import pstb.startup.config.MessageSize;
 import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.NumAttribute;
 import pstb.util.PSTBUtil;
 
 /**
@@ -24,11 +24,11 @@ public abstract class PSNode implements java.io.Serializable
 	protected String topologyFileString;
 	protected Boolean distributed;
 	protected NetworkProtocol protocol;
-	protected BenchmarkMode mode;
+	protected ExperimentType mode;
 	protected Long runLength;
 	protected Integer runNumber;
 	protected AttributeRatio ar;
-	protected NumAttributes na;
+	protected NumAttribute na;
 	protected MessageSize ms;
 	protected Long periodLength;
 	protected String nodeName;
@@ -100,7 +100,7 @@ public abstract class PSNode implements java.io.Serializable
 	 * 
 	 * @param givenBM - the BenchmarkMode to set
 	 */
-	public void setMode(BenchmarkMode givenBM)
+	public void setMode(ExperimentType givenBM)
 	{
 		mode = givenBM;
 	}
@@ -130,7 +130,7 @@ public abstract class PSNode implements java.io.Serializable
 		ar = givenAR;
 	}
 	
-	public void setNA(NumAttributes givenNA)
+	public void setNA(NumAttribute givenNA)
 	{
 		na = givenNA;
 	}
@@ -214,7 +214,7 @@ public abstract class PSNode implements java.io.Serializable
 			nodeLog.error("No mode was given!");
 			everythingPresent = false;
 		}
-		else if(mode.equals(BenchmarkMode.Scenario))
+		else if(mode.equals(ExperimentType.Scenario))
 		{
 			if(runLength == null)
 			{
@@ -227,7 +227,7 @@ public abstract class PSNode implements java.io.Serializable
 				everythingPresent = false;
 			}
 		}
-		else if(mode.equals(BenchmarkMode.Throughput))
+		else if(mode.equals(ExperimentType.Throughput))
 		{
 			if(periodLength == null)
 			{

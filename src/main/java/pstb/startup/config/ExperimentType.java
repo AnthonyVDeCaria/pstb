@@ -7,6 +7,6 @@ package pstb.startup.config;
  * @author adecaria
  *
  */
-public enum BenchmarkMode {
+public enum ExperimentType {
 	Throughput, Scenario
 }
