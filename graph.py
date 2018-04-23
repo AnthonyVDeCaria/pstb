@@ -43,11 +43,15 @@ else:
     for yI in givenYs:
         y.append(yI.replace("[","").replace("]",""))
 
+print("Printing '"+titl+"' to file...")
 if aoType == "delayCounter":
     plt.plot(x, y, ".")
 elif aoType == "histogram":
     plt.plot(y, "-o")
     plt.xticks(np.arange(len(x)), x, size='small')
+elif aoType == "throughput":
+    plt.plot(x, y, ".")
+    plt.plot(np.unique(x), np.poly1d(np.polyfit(x, y, 1))(np.unique(x)))
 else:
     sys.exit(11) #Bad_Args
 

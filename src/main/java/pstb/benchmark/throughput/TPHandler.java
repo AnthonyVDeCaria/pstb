@@ -64,7 +64,7 @@ public class TPHandler extends Thread {
 			while ((inputLine = bufferedIn.readLine()) != null)
 			{
 				log.info(logHeader + "Received " + inputLine + ".");
-				masterOfPuppets.addToSubDelays(inputLine);
+				masterOfPuppets.addToSubMessages(inputLine);
 				delayAdded.countDown();
 				
 				try

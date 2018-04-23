@@ -1,0 +1,35 @@
+#BenchmarkStartTime	TopologyFilePath	DistributedFlag	Protocol	RunLength	RunNumber	ClientName	AnalysisType	PSActionType
+
+null	etc/treeTopologyD1F4.txt	null	null	null	0	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	A,V,S,U
+null	etc/treeTopologyD1F4.txt	null	null	null	1	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	A,V,S,U	
+null	etc/treeTopologyD1F4.txt	null	null	null	2	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	A,V,S,U
+null	etc/treeTopologyD1F4.txt	null	null	null	3	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	A,V,S,U
+null	etc/treeTopologyD1F4.txt	null	null	null	4	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	A,V,S,U
+null	etc/treeTopologyD1F4.txt	null	null	null	null	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	A,V,S,U
+
+null	etc/treeTopologyD1F4.txt	null	null	null	0	S0	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	0	S1	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	0	S2	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	0	S3	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	0	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	1	S0	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	1	S1	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	1	S2	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	1	S3	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	1	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	2	S0	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	2	S1	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	2	S2	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	2	S3	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	2	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	3	S0	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	3	S1	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	3	S2	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	3	S3	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	3	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	4	S0	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	4	S1	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	4	S2	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	4	S3	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	4	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R
+null	etc/treeTopologyD1F4.txt	null	null	null	null	null	Histogram,DelayCounter,FrequencyCounter,AverageDelay	R

@@ -19,7 +19,7 @@ public enum DiaryHeader {
 	TimeMessageCreated, TimeMessageReceived, MessageDelay,
 	
 	// Throughput
-	Round, 
-	RoundDelay, MessagesReceievedRound, MessagesReceievedTotal,
-	MessageRate, CurrentThroughput, Secant, AverageThroughput
+	Round, MessageRate, 
+	RoundLatency, MessagesReceievedRound, MessagesReceievedTotal,
+	CurrentThroughput, Secant, AverageThroughput, FinalThroughput
 }

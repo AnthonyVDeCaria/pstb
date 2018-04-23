@@ -1,5 +1,6 @@
 package pstb.analysis;
 
+import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,16 +19,24 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.analysis.AnalysisFileParser.AnalysisFileExtension;
 import pstb.analysis.analysisobjects.PSTBAnalysisObject;
-import pstb.analysis.analysisobjects.PSTBAvgDelay;
-import pstb.analysis.analysisobjects.PSTBDataCounter;
-import pstb.analysis.analysisobjects.PSTBHistogram;
+import pstb.analysis.analysisobjects.scenario.PSTBAvgDelay;
+import pstb.analysis.analysisobjects.scenario.PSTBDataCounter;
+import pstb.analysis.analysisobjects.scenario.PSTBHistogram;
+import pstb.analysis.analysisobjects.scenario.PSTBScenarioAO;
+import pstb.analysis.analysisobjects.throughput.PSTBFinalThroughput;
+import pstb.analysis.analysisobjects.throughput.PSTBThroughputAO;
+import pstb.analysis.analysisobjects.throughput.PSTBTwoPoints;
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
 import pstb.analysis.diary.DiaryHeader;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.object.client.padres.PSClientPADRES;
+import pstb.startup.config.AttributeRatio;
+import pstb.startup.config.MessageSize;
 import pstb.startup.config.NetworkProtocol;
+import pstb.startup.config.NumAttribute;
 import pstb.startup.workload.PSActionType;
 import pstb.util.PSTBError;
 import pstb.util.PSTBUtil;
@@ -46,37 +55,60 @@ public class Analyzer {
 	private final static int LOC_PRNT = 0;
 	private final static int LOC_FILE = 1;
 	
-	// Constants - Diary Names
-	private static final int NUM_STRINGS = 7;
+	// Constants - General Diary Names
 	private static final int LOC_BENCHMARK_START_TIME = 0;
 	private static final int LOC_TOPO_FILE_PATH = 1;
 	private static final int LOC_DISTRIBUTED_FLAG = 2;
 	private static final int LOC_PROTOCOL = 3;
+	
+	// Constants - Scenario Diary Names
+	private static final int NUM_SCENARIO_STRINGS = 7;
 	private static final int LOC_RUN_LENGTH = 4;
 	private static final int LOC_RUN_NUMBER = 5;
 	private static final int LOC_CLIENT_NAME = 6;
 	
+	// Constants - Throughput Diary Names
+	private static final int NUM_THROUGHPUT_STRINGS = 9;
+	private static final int LOC_PERIOD_LENGTH = 4;
+	private static final int LOC_MESSAGE_SIZE = 5;
+	private static final int LOC_NUM_ATTRIBUTE = 6;
+	private static final int LOC_ATTRIBUTE_RATIO = 7;
+	private static final int LOC_NODE_NAME = 8;
+	
 	// Constants - Folder Names
 	private static final String analysisFolderString = System.getProperty("user.dir") + "/analysis/";
 	private static final String diariesStub = "diaries/";
-	private static final String analyzedStub = "analyzed/";
+	private static final String scenarioStub = "scenario/";
 	private static final String delayCounterStub = "delayCounter/";
 	private static final String frequencyCounterStub = "freqCounter/";
 	private static final String avgDelayStub = "avgDelay/";
 	private static final String histogramStub = "histogram/";
+	private static final String throughputStub = "throughput/";
+	private static final String currentThroughputStub = "currentThroughput/";
+	private static final String averageThroughputStub = "averageThroughput/";
+	private static final String secantStub = "secant/";
+	private static final String finalThroughputStub = "finalThroughput/";
+	private static final String roundLatencyStub = "roundLatency/";
 	
 	// Variables - Key Components
 	private static HashMap<String, ClientDiary> bookshelf = new HashMap<String, ClientDiary>();
 	private static ArrayList<PSTBAnalysisObject> analyzedInformation = new ArrayList<PSTBAnalysisObject>();
-	private static ArrayList<AnalysisType> analyzedCheck = new ArrayList<AnalysisType>();
+	private static ArrayList<AnalysisType> analyzedCheckScenario = new ArrayList<AnalysisType>();
+	private static ArrayList<DiaryHeader> analyzedCheckThroughput = new ArrayList<DiaryHeader>();
 	
 	// Variables - Folder Strings
-	private static String analyzedFolderString;
 	private static String diariesFolderString;
+	private static String scenarioFolderString;
 	private static String delayFolderString;
 	private static String frequencyFolderString;
 	private static String avgDelayFolderString;
 	private static String histogramFolderString;
+	private static String throughputFolderString;
+	private static String currentThroughputFolderString;
+	private static String averageThroughputFolderString;
+	private static String secantFolderString;
+	private static String finalThroughputFolderString;
+	private static String roundLatencyFolderString;
 	
 	// Logger
 	private static final Logger logger = LogManager.getRootLogger();
@@ -126,12 +158,20 @@ public class Analyzer {
 		Long currTime = System.currentTimeMillis();
 		String currFolderString = PSTBUtil.DATE_FORMAT.format(currTime) + "/";
 		
-		analyzedFolderString = analysisFolderString + currFolderString + analyzedStub;
 		diariesFolderString = analysisFolderString + currFolderString + diariesStub;
-		delayFolderString = analyzedFolderString + delayCounterStub;
-		frequencyFolderString = analyzedFolderString + frequencyCounterStub;
-		avgDelayFolderString = analyzedFolderString + avgDelayStub;
-		histogramFolderString = analyzedFolderString + histogramStub;
+		
+		scenarioFolderString = analysisFolderString + currFolderString + scenarioStub;
+		delayFolderString = scenarioFolderString + delayCounterStub;
+		frequencyFolderString = scenarioFolderString + frequencyCounterStub;
+		avgDelayFolderString = scenarioFolderString + avgDelayStub;
+		histogramFolderString = scenarioFolderString + histogramStub;
+		
+		throughputFolderString = analysisFolderString + currFolderString + throughputStub;
+		currentThroughputFolderString = throughputFolderString + currentThroughputStub;
+		averageThroughputFolderString = throughputFolderString + averageThroughputStub;
+		secantFolderString = throughputFolderString + secantStub;
+		finalThroughputFolderString = throughputFolderString + finalThroughputStub;
+		roundLatencyFolderString = throughputFolderString + roundLatencyStub;
 		
 		logger.info("Collecting diaries...");
 		boolean collectCheck = collectDiaries();
@@ -157,9 +197,9 @@ public class Analyzer {
 		if(conductAnalysis)
 		{
 			logger.info("Parsing analysis file...");
-			AnalysisFileParser brainReader = new AnalysisFileParser();
-			brainReader.setAnalysisFileString(analysisFileString);
-			boolean analysisParseCheck = brainReader.parse();
+			AnalysisFileParser requestedAnalysis = new AnalysisFileParser();
+			requestedAnalysis.setAnalysisFileString(analysisFileString);
+			boolean analysisParseCheck = requestedAnalysis.parse();
 			if(!analysisParseCheck)
 			{
 				logger.error("Error parsing the analysis file!");
@@ -167,8 +207,16 @@ public class Analyzer {
 			}
 			logger.info("Got requested analysises.");
 			
+			AnalysisFileExtension ext = requestedAnalysis.getExtension();
+			if(ext == null)
+			{
+				logger.error(logHeader + "The Analysis file's extension hasn't been parsed!");
+				System.exit(PSTBError.A_ANALYSIS_FILE_PARSE);
+			}
+			boolean isScenario = ext.equals(AnalysisFileExtension.sin);
+			
 			logger.info("Beginning to execute these analysises...");
-			boolean analysisCheck = executeAnalysis(brainReader.getRequestedAnalysis());
+			boolean analysisCheck = executeAnalysis(requestedAnalysis, isScenario);
 			if(!analysisCheck)
 			{
 				logger.error("Analysis Failed!");
@@ -177,7 +225,15 @@ public class Analyzer {
 			logger.info("Analysis complete.");
 			
 			logger.info("Storing this analysis into a file...");
-			boolean recordAnalysisCheck = recordAllAnalyzedInformation();
+			boolean recordAnalysisCheck = true;
+			if(isScenario)
+			{
+				recordAnalysisCheck = recordScenarioObjects();
+			}
+			else
+			{
+				recordAnalysisCheck = recordThroughputObjects();
+			}
 			if(!recordAnalysisCheck)
 			{
 				logger.error(logHeader + "Couldn't record the analysis to a file!"); 
@@ -185,112 +241,182 @@ public class Analyzer {
 			}
 			logger.info("All analysis in files.");
 			
-			logger.info("Starting graphs...");
-			int numAO = analyzedInformation.size();
-			for(int i = 0; i < numAO ; i++)
+			if(true)
 			{
-				AnalysisType atI = analyzedCheck.get(i);
-				
-				String[] command = new String[11];
-				command[0] = "python";
-				command[1] = "graph.py";
-				
-				if(atI.equals(AnalysisType.DelayCounter))
+				logger.info("Starting graphs...");
+				int numAO = analyzedInformation.size();
+				for(int i = 0; i < numAO ; i++)
 				{
-					PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
-					Map<Long, Integer> t = temp.getFrequency();
-					PSActionType tempsType = temp.getType();
-					
-					if(t.size() > 1)
+					if(isScenario)
 					{
-						ArrayList<Long> x = new ArrayList<Long>();
-						ArrayList<Integer> y = new ArrayList<Integer>();
+						AnalysisType atI = analyzedCheckScenario.get(i);
 						
-						t.forEach((tX, tY)->{
-							x.add(tX);
-							y.add(tY);
-						});
+						String[] command = new String[11];
+						command[0] = "python";
+						command[1] = "graph.py";
 						
-						command[2] = "delayCounter";
-						command[3] = delayFolderString;
-						command[4] = temp.getName();
-						if(tempsType.equals(PSActionType.R))
+						if(atI.equals(AnalysisType.DelayCounter))
 						{
-							command[5] = "Delay (ms)";
-						}
-						else
-						{
-							command[5] = "Delay (ns)";
-						}
-						command[6] = "Frequency";
-						command[7] = Arrays.toString(x.toArray());
-						command[8] = "long";
-						command[9] = Arrays.toString(y.toArray());
-						command[10] = "long";
-						
-						PSTBUtil.createANewProcess(command, logger, false, false,
-								"Couldn't create graph process!", 
-								"Graph complete.", 
-								"Graph process failed!");
-					}
-					
-				}
-				else if(atI.equals(AnalysisType.Histogram))
-				{
-					PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
-					
-					int[] y = temp.getHistogram();
-					PSActionType tempsType = temp.getType();
-					
-					if(y != null)
-					{
-						int yLength = y.length;
-						
-						String[] x = new String[yLength];
-						
-						long floorValue = temp.getFloorValue();
-						Double range = temp.getRange();
-						
-						for(int j = 0 ; j < yLength ; j++)
-						{
-							Double binFloor = floorValue + range*j;
-							Double binCeiling = floorValue + range*(j+1);
+							PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
+							Map<Long, Integer> t = temp.getFrequency();
+							PSActionType tempsType = temp.getType();
 							
-							String convertedFloor = null;
-							String convertedCeiling = null;
-							
-							if(tempsType.equals(PSActionType.R))
+							if(t.size() > 1)
 							{
-								convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Milli, TimeUnit.MILLISECONDS);
-								convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Milli, TimeUnit.MILLISECONDS);
+								ArrayList<Long> x = new ArrayList<Long>();
+								ArrayList<Integer> y = new ArrayList<Integer>();
+								
+								t.forEach((tX, tY)->{
+									x.add(tX);
+									y.add(tY);
+								});
+								
+								command[2] = "delayCounter";
+								command[3] = delayFolderString;
+								command[4] = temp.getName();
+								if(tempsType.equals(PSActionType.R))
+								{
+									command[5] = "Delay (ms)";
+								}
+								else
+								{
+									command[5] = "Delay (ns)";
+								}
+								command[6] = "Frequency";
+								command[7] = Arrays.toString(x.toArray());
+								command[8] = "long";
+								command[9] = Arrays.toString(y.toArray());
+								command[10] = "long";
+								
+								PSTBUtil.createANewProcess(command, logger, false, false,
+										"Couldn't create graph process!", 
+										"Graph complete.", 
+										"Graph process failed!");
+							}
+							
+						}
+						else if(atI.equals(AnalysisType.Histogram))
+						{
+							PSTBHistogram temp = (PSTBHistogram) analyzedInformation.get(i);
+							
+							int[] y = temp.getHistogram();
+							PSActionType tempsType = temp.getType();
+							
+							if(y != null)
+							{
+								int yLength = y.length;
+								
+								String[] x = new String[yLength];
+								
+								long floorValue = temp.getFloorValue();
+								Double range = temp.getRange();
+								
+								for(int j = 0 ; j < yLength ; j++)
+								{
+									Double binFloor = floorValue + range*j;
+									Double binCeiling = floorValue + range*(j+1);
+									
+									String convertedFloor = null;
+									String convertedCeiling = null;
+									
+									if(tempsType.equals(PSActionType.R))
+									{
+										convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Milli, 
+												TimeUnit.MILLISECONDS);
+										convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Milli, 
+												TimeUnit.MILLISECONDS);
+									}
+									else
+									{
+										convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Nano, 
+												TimeUnit.MILLISECONDS);
+										convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Nano, 
+												TimeUnit.MILLISECONDS);
+									}
+									
+									x[j] = convertedFloor + " - " + convertedCeiling;
+								}
+								
+								command[2] = "histogram";
+								command[3] = histogramFolderString;
+								command[4] = temp.getName();
+								command[5] = "";
+								command[6] = "Frequency";
+								command[7] = Arrays.toString(x);
+								command[8] = "string";
+								command[9] = Arrays.toString(y);
+								command[10] = "long";
+								
+								PSTBUtil.createANewProcess(command, logger, true, false,
+										"Couldn't create graph process!", 
+										"Graph complete.", 
+										"Graph process failed!");
+							}
+						}
+					}
+					else
+					{
+						DiaryHeader dhI = analyzedCheckThroughput.get(i);
+						
+						if(!dhI.equals(DiaryHeader.FinalThroughput))
+						{
+							PSTBTwoPoints aoI = (PSTBTwoPoints) analyzedInformation.get(i);
+							
+							ArrayList<Point2D.Double> data = aoI.getDataset();
+							int numPoints = data.size();
+							String[] x = new String[numPoints];
+							String[] y = new String[numPoints];
+							
+							for(int j = 0 ; j < numPoints ; j++)
+							{
+								Point2D.Double coOrdinateJ = data.get(j);
+								Double xJ = coOrdinateJ.getX();
+								Double yJ = coOrdinateJ.getY();
+								
+								x[j] = xJ.toString();
+								y[j] = yJ.toString();
+							}
+							
+							String[] command = new String[11];
+							command[0] = "python";
+							command[1] = "graph.py";
+							command[2] = "throughput";
+							if(dhI.equals(DiaryHeader.CurrentThroughput))
+							{
+								command[3] = currentThroughputFolderString;
+								command[6] = "Current Throughput (messages/sec)";
+							}
+							else if(dhI.equals(DiaryHeader.AverageThroughput))
+							{
+								command[3] = averageThroughputFolderString;
+								command[6] = "Average Throughput (messages/sec)";
+							}
+							else if(dhI.equals(DiaryHeader.Secant))
+							{
+								command[3] = secantFolderString;
+								command[6] = "Secant (unitless)";
 							}
 							else
 							{
-								convertedFloor = PSTBUtil.createTimeString(binFloor.longValue(), TimeType.Nano, TimeUnit.MILLISECONDS);
-								convertedCeiling = PSTBUtil.createTimeString(binCeiling.longValue(), TimeType.Nano, TimeUnit.MILLISECONDS);
+								command[3] = roundLatencyFolderString;
+								command[6] = "Latency (sec)";
 							}
+							command[4] = aoI.getName();
+							command[5] = "Input Rate (messages/sec)";
+							command[7] = Arrays.toString(x);
+							command[8] = "float";
+							command[9] = Arrays.toString(y);
+							command[10] = "float";
 							
-							x[j] = convertedFloor + " - " + convertedCeiling;
+							PSTBUtil.createANewProcess(command, logger, true, false,
+									"Couldn't create graph process!", 
+									"Graph complete.", 
+									"Graph process failed!");
 						}
-						
-						command[2] = "histogram";
-						command[3] = histogramFolderString;
-						command[4] = temp.getName();
-						command[5] = "";
-						command[6] = "Frequency";
-						command[7] = Arrays.toString(x);
-						command[8] = "string";
-						command[9] = Arrays.toString(y);
-						command[10] = "long";
-						
-						PSTBUtil.createANewProcess(command, logger, true, false,
-								"Couldn't create graph process!", 
-								"Graph complete.", 
-								"Graph process failed!");
 					}
 				}
+				logger.info("Graphs complete.");
 			}
-			logger.info("Graphs complete.");
 		}
 	}
 	
@@ -417,102 +543,29 @@ public class Analyzer {
 	 * @param requestedAnalysis - the converted analysis file 
 	 * @return false on an error; true otherwise
 	 */
-	private static boolean executeAnalysis(ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis)
+	private static boolean executeAnalysis(AnalysisFileParser givenParser, boolean isScenario)
 	{
+		ArrayList<HashMap<AnalysisInput, ArrayList<Object>>> requestedAnalysis = givenParser.getRequestedAnalysis();
+		if(requestedAnalysis.isEmpty())
+		{
+			logger.error(logHeader + "The Analysis file hasn't been parsed!");
+			return false;
+		}
+		
 		// Loop through each line of the AnalysisFile
 		for(int i = 0 ; i < requestedAnalysis.size(); i++)
 		{
 			HashMap<AnalysisInput, ArrayList<Object>> analysisI = requestedAnalysis.get(i);
 			
-			ArrayList<Object> requestedATList = analysisI.get(AnalysisInput.AnalysisType);
-			ArrayList<Object> requestedPSATList =  analysisI.get(AnalysisInput.PSActionType);
-			ArrayList<Object> requestedDHList =  analysisI.get(AnalysisInput.DiaryHeader);
-			
-			// There should be only one AnalysisType/PSActionType/DiaryHeader selected for each line of the AnalysisFile
-			if(requestedATList.size() != 1)
-			{
-				logger.error(logHeader + "There are multiple requested AnalysisTypes!"); 
-				return false;
-			}
-			if(requestedPSATList.size() != 1)
-			{
-				logger.error(logHeader + "There are multiple requested PSActionTypes!"); 
-				return false;
-			}
-			if(requestedDHList.size() != 1)
-			{
-				logger.error(logHeader + "There are multiple requested DiaryHeaders!"); 
-				return false;
-			}
-			
-			AnalysisType requestedAT = (AnalysisType) analysisI.get(AnalysisInput.AnalysisType).get(0);
-			PSActionType requestedPSAT = (PSActionType) analysisI.get(AnalysisInput.PSActionType).get(0);
-			DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader).get(0);
-			
-			if(!requestedDH.equals(DiaryHeader.ActionDelay) && !requestedDH.equals(DiaryHeader.MessageDelay))
-			{
-				logger.error(logHeader + "That DiaryHeader is not a delay value.");
-				return false;
-			}
-			
-			if(requestedDH.equals(DiaryHeader.ActionDelay) && requestedPSAT.equals(PSActionType.R))
-			{
-				logger.error(logHeader + "Type mismatch - R's don't have an ActionDelay");
-				return false;
-			}
-			
-			if(requestedDH.equals(DiaryHeader.MessageDelay) && !requestedPSAT.equals(PSActionType.R))
-			{
-				logger.error(logHeader + "Type mismatch - only R has a MessageDelay");
-				return false;
-			}
-			
+			// Prepare general Diary Stuff
 			ArrayList<Object> requestedBST = analysisI.get(AnalysisInput.BenchmarkStartTime);
 			ArrayList<Object> requestedTFS = analysisI.get(AnalysisInput.TopologyFilePath);
 			ArrayList<Object> requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
 			ArrayList<Object> requestedP = analysisI.get(AnalysisInput.Protocol);
-			ArrayList<Object> requestedRL = analysisI.get(AnalysisInput.RunLength);
-			ArrayList<Object> requestedRN = analysisI.get(AnalysisInput.RunNumber);
-			ArrayList<Object> requestedCN = analysisI.get(AnalysisInput.ClientName);
-			
-			// From the given lists of options, get the related diary's names 
-			ArrayList<String> requestedDiaryNames = getAffiliatedDiaryNames(requestedBST, requestedTFS, requestedDFV, requestedP, 
-					requestedRL, requestedRN, requestedCN);
-			
-			// Now that we have all of the names, let's do the actual analysis
-			PSTBAnalysisObject analysisObjectI = null;
-			if(requestedAT.equals(AnalysisType.DelayCounter))
-			{
-				analysisObjectI = new PSTBDataCounter(true);
-			}
-			else if(requestedAT.equals(AnalysisType.FrequencyCounter))
-			{
-				analysisObjectI = new PSTBDataCounter(false);
-			}
-			else if(requestedAT.equals(AnalysisType.AverageDelay))
-			{
-				analysisObjectI = new PSTBAvgDelay();
-			}
-			else if(requestedAT.equals(AnalysisType.Histogram))
-			{
-				analysisObjectI = new PSTBHistogram();
-			}
-			else
-			{
-				logger.error(logHeader + "Invalid AnalysisType requested - execution!");
-				analyzedInformation.clear();
-				return false;
-			}
-			
-			// AO Name
 			String BST = null;
 			String TFS = null;
 			String DFV = null;
 			String P = null;
-			String RL = null;
-			String RN = null;
-			String CN = null;
-			
 			if(requestedBST != null)
 			{
 				BST = Arrays.toString(requestedBST.toArray()).replace("[", "").replace("]", "");
@@ -529,64 +582,291 @@ public class Analyzer {
 			{
 				P = Arrays.toString(requestedP.toArray()).replace("[", "").replace("]", "");
 			}
-			if(requestedRL != null)
+			
+			boolean exCheck = true;
+			// Handle situation dependant diary stuff
+			if(isScenario)
 			{
-				RL = Arrays.toString(requestedRL.toArray()).replace("[", "").replace("]", "");
+				exCheck = executeScenarioAnalysis(analysisI, requestedBST, requestedTFS, requestedDFV, requestedP, BST, TFS, DFV, P);
 			}
-			if(requestedRN != null)
+			else
 			{
-				RN = Arrays.toString(requestedRN.toArray()).replace("[", "").replace("]", "");
-			}
-			if(requestedCN != null)
-			{
-				CN = Arrays.toString(requestedCN.toArray()).replace("[", "").replace("]", "");
+				exCheck = exceuteThroughputAnalysis(analysisI, requestedBST, requestedTFS, requestedDFV, requestedP, BST, TFS, DFV, P);
 			}
 			
-			analysisObjectI.setName(requestedPSAT + "_" + BST + "_" + TFS + "_" + DFV + "_" + P + "_" + RL + "_" + RN + "_" + CN);
-			analysisObjectI.setType(requestedPSAT);
-			
-			for(int j = 0 ; j < requestedDiaryNames.size() ; j++)
+			if(!exCheck)
 			{
-				String diaryNameJ = requestedDiaryNames.get(j);
+				logger.error(logHeader + "Smaller analysis failed!");
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	private static boolean executeScenarioAnalysis(HashMap<AnalysisInput, ArrayList<Object>> analysisI,
+			ArrayList<Object> requestedBST, ArrayList<Object> requestedTFS, 
+			ArrayList<Object> requestedDFV, ArrayList<Object> requestedP,
+			String BST, String TFS, String DFV, String P)
+	{
+		ArrayList<Object> requestedRL = analysisI.get(AnalysisInput.RunLength);
+		ArrayList<Object> requestedRN = analysisI.get(AnalysisInput.RunNumber);
+		ArrayList<Object> requestedCN = analysisI.get(AnalysisInput.ClientName);
+		
+		ArrayList<String> requestedDiaryNames = getAffiliatedScenarioDiaries(requestedBST, requestedTFS, requestedDFV, requestedP, 
+				requestedRL, requestedRN, requestedCN);
+		
+		String RL = null;
+		String RN = null;
+		String CN = null;
+		
+		if(requestedRL != null)
+		{
+			RL = Arrays.toString(requestedRL.toArray()).replace("[", "").replace("]", "");
+		}
+		if(requestedRN != null)
+		{
+			RN = Arrays.toString(requestedRN.toArray()).replace("[", "").replace("]", "");
+		}
+		if(requestedCN != null)
+		{
+			CN = Arrays.toString(requestedCN.toArray()).replace("[", "").replace("]", "");
+		}
+		
+		String analysisObjectName = BST + "_" + TFS + "_" + DFV + "_" + P + "_" + RL + "_" + RN + "_" + CN;
+		
+		ArrayList<Object> requestedATList = analysisI.get(AnalysisInput.AnalysisType);
+		if(requestedATList == null)
+		{
+			requestedATList = new ArrayList<Object>();
+			requestedATList.add(AnalysisType.AverageDelay);
+			requestedATList.add(AnalysisType.DelayCounter);
+			requestedATList.add(AnalysisType.FrequencyCounter);
+			requestedATList.add(AnalysisType.Histogram);
+		}
+		int numATs = requestedATList.size();
+		
+		ArrayList<Object> requestedPSATList = analysisI.get(AnalysisInput.PSActionType);
+		if(requestedPSATList == null)
+		{
+			requestedPSATList = new ArrayList<Object>();
+			requestedPSATList.add(PSActionType.A);
+			requestedPSATList.add(PSActionType.V);
+			requestedPSATList.add(PSActionType.S);
+			requestedPSATList.add(PSActionType.U);
+			requestedPSATList.add(PSActionType.P);
+			requestedPSATList.add(PSActionType.R);
+		}
+		int numPSATs = requestedPSATList.size();
+		
+		PSTBScenarioAO analysisObjectI = null;
+		for(int j = 0 ; j < numATs ; j++)
+		{
+			AnalysisType atJ = (AnalysisType) requestedATList.get(j);
+			if(atJ.equals(AnalysisType.DelayCounter))
+			{
+				analysisObjectI = new PSTBDataCounter(true);
+			}
+			else if(atJ.equals(AnalysisType.FrequencyCounter))
+			{
+				analysisObjectI = new PSTBDataCounter(false);
+			}
+			else if(atJ.equals(AnalysisType.AverageDelay))
+			{
+				analysisObjectI = new PSTBAvgDelay();
+			}
+			else if(atJ.equals(AnalysisType.Histogram))
+			{
+				analysisObjectI = new PSTBHistogram();
+			}
+			else
+			{
+				logger.error(logHeader + "Invalid AnalysisType requested - execution!");
+				analyzedInformation.clear();
+				return false;
+			}
+			
+			for(int k = 0 ; k < numPSATs ; k++)
+			{
+				PSActionType psatK = (PSActionType) requestedPSATList.get(k);
+				analysisObjectI.setName(psatK + "_" + analysisObjectName);
+				analysisObjectI.setType(psatK);
 				
-				if(!bookshelf.containsKey(diaryNameJ))
+				for(int l = 0 ; l < requestedDiaryNames.size() ; l++)
 				{
-					logger.error(logHeader + diaryNameJ + " isn't in the bookshelf!");
+					String diaryNameL = requestedDiaryNames.get(l);
+					if(!bookshelf.containsKey(diaryNameL))
+					{
+						logger.error(logHeader + diaryNameL + " isn't in the bookshelf!");
+						return false;
+					}
+					
+					ClientDiary diaryL = bookshelf.get(diaryNameL);
+					for(int m = 0 ; m < diaryL.size() ; m++)
+					{
+						DiaryEntry pageM = diaryL.getDiaryEntryI(m);
+						PSActionType pageMsActionType = pageM.getPSActionType();
+						
+						if(pageMsActionType == null)
+						{
+							logger.error(logHeader + "Diary Page is missing an associated Action Type!");
+							return false;
+						}
+						else if(pageMsActionType.equals(psatK))
+						{
+							Long associatedDelay = null;
+							if(psatK.equals(PSActionType.R))
+							{
+								associatedDelay = pageM.getMessageDelay();
+							}
+							else
+							{
+								associatedDelay = pageM.getActionDelay();
+							}
+							
+							analysisObjectI.handleDataPoint(associatedDelay);
+						}
+					}
+				}
+				
+				// Let's add this analyzed object to the list, along with recording what analysis we accomplished
+				analyzedInformation.add(analysisObjectI);
+				analyzedCheckScenario.add(atJ);
+			}
+		}
+		
+		return true;
+	}
+	
+	private static boolean exceuteThroughputAnalysis(HashMap<AnalysisInput, ArrayList<Object>> analysisI,
+			ArrayList<Object> requestedBST, ArrayList<Object> requestedTFS, 
+			ArrayList<Object> requestedDFV, ArrayList<Object> requestedP,
+			String BST, String TFS, String DFV, String P)
+	{
+		ArrayList<Object> requestedPL = analysisI.get(AnalysisInput.PeriodLength);
+		ArrayList<Object> requestedMS = analysisI.get(AnalysisInput.MessageSize);
+		ArrayList<Object> requestedNA = analysisI.get(AnalysisInput.NumAttribute);
+		ArrayList<Object> requestedAR = analysisI.get(AnalysisInput.AttributeRatio);
+		
+		ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBST, requestedTFS, requestedDFV, requestedP, 
+				requestedPL, requestedMS, requestedNA, requestedAR);
+		
+		String PL = null;
+		String MS = null;
+		String NA = null;
+		String AR = null;
+		String NN = "TPMaster";
+		
+		if(requestedPL != null)
+		{
+			PL = Arrays.toString(requestedPL.toArray()).replace("[", "").replace("]", "");
+		}
+		if(requestedMS != null)
+		{
+			MS = Arrays.toString(requestedMS.toArray()).replace("[", "").replace("]", "");
+		}
+		if(requestedNA != null)
+		{
+			NA = Arrays.toString(requestedNA.toArray()).replace("[", "").replace("]", "");
+		}
+		if(requestedAR != null)
+		{
+			AR = Arrays.toString(requestedAR.toArray()).replace("[", "").replace("]", "");
+		}
+		
+		String analysisObjectName = BST + "_" + TFS + "_" + DFV + "_" + P + "_" + PL + "_" + MS + "_" + NA + "_" + AR + "_" + NN;
+		
+		ArrayList<Object> requestedDHList = analysisI.get(AnalysisInput.DiaryHeader);
+		if(requestedDHList == null)
+		{
+			requestedDHList = new ArrayList<Object>();
+			requestedDHList.add(DiaryHeader.CurrentThroughput);
+			requestedDHList.add(DiaryHeader.AverageThroughput);
+			requestedDHList.add(DiaryHeader.FinalThroughput);
+			requestedDHList.add(DiaryHeader.Secant);
+			requestedDHList.add(DiaryHeader.RoundLatency);
+		}
+		int numDH = requestedDHList.size();
+		
+		PSTBThroughputAO analysisObjectI = null;
+		for(int j = 0 ; j < numDH ; j++)
+		{
+			DiaryHeader dhJ = (DiaryHeader) requestedDHList.get(j);
+			
+			String name = dhJ + "_" + analysisObjectName;
+			logger.debug(logHeader + "Working on object " + name + "...");
+			
+			for(int k = 0 ; k < requestedDiaryNames.size() ; k++)
+			{
+				String diaryNameK = requestedDiaryNames.get(k);
+				ClientDiary diaryK = bookshelf.get(diaryNameK);
+				if(diaryK == null)
+				{
+					logger.error(logHeader + diaryNameK + " isn't in the bookshelf!");
 					return false;
 				}
 				
-				ClientDiary diaryI = bookshelf.get(diaryNameJ);
-				
-				for(int k = 0 ; k < diaryI.size() ; k++)
+				boolean dhJIsFinal = dhJ.equals(DiaryHeader.FinalThroughput);
+				if(dhJIsFinal)
 				{
-					DiaryEntry pageK = diaryI.getDiaryEntryI(k);
-					PSActionType pageKsActionType = pageK.getPSActionType();
+					analysisObjectI = new PSTBFinalThroughput();
+				}
+				else
+				{
+					analysisObjectI = new PSTBTwoPoints(dhJ);
+				}
+				analysisObjectI.setName(name);
+				
+				for(int l = 0 ; l < diaryK.size() ; l++)
+				{
+					DiaryEntry pageL = diaryK.getDiaryEntryI(l);
 					
-					if(pageKsActionType == null)
+					Double dhMessageRate = pageL.getMessageRate();
+					
+					Double dhValueL = null;
+					if(dhJIsFinal)
 					{
-						logger.error(logHeader + "Diary Page is missing an associated Action Type!");
-						return false;
+						dhValueL = pageL.getFinalThroughput();
+						analysisObjectI.handleDataPoint(dhValueL);
 					}
-					else if(pageKsActionType.equals(requestedPSAT))
+					else
 					{
-						if(pageK.containsKey(requestedDH))
+						if(dhJ.equals(DiaryHeader.CurrentThroughput))
 						{
-							Long associatedDelay = pageK.getDelay(requestedDH);
-							analysisObjectI.handleDataPoint(associatedDelay);
+							dhValueL = pageL.getCurrentThroughput();
 						}
-						else
+						else if(dhJ.equals(DiaryHeader.AverageThroughput))
 						{
-							logger.error(logHeader + "There is a page where there is no " + requestedDH
-									+ " data for Action Type " + requestedPSAT + "!");
-							return false;
+							dhValueL = pageL.getAverageThroughput();
+						}
+						else if(dhJ.equals(DiaryHeader.Secant))
+						{
+							dhValueL = pageL.getSecant();
+						}
+						else if(dhJ.equals(DiaryHeader.FinalThroughput))
+						{
+							dhValueL = pageL.getFinalThroughput();
+						}
+						else if(dhJ.equals(DiaryHeader.RoundLatency))
+						{
+							dhValueL = pageL.getRoundLatency();
+						}
+						
+						if(dhValueL != null)
+						{
+							analysisObjectI.handleDataPoints(dhMessageRate, dhValueL);
 						}
 					}
 				}
 			}
 			
-			// Let's add this analyzed object to the list, along with recording what analysis we accomplished
+			if(analysisObjectI == null)
+			{
+				logger.error(logHeader + "Analysis object is still null!");
+				return false;
+			}
 			analyzedInformation.add(analysisObjectI);
-			analyzedCheck.add(requestedAT);
+			analyzedCheckThroughput.add(dhJ);
 		}
 		
 		return true;
@@ -606,7 +886,7 @@ public class Analyzer {
 	 * @param requestedCN - the ClientName associated with these Diaries
 	 * @return the list of matching diary names
 	 */
-	private static ArrayList<String> getAffiliatedDiaryNames(ArrayList<Object> requestedBST,
+	private static ArrayList<String> getAffiliatedScenarioDiaries(ArrayList<Object> requestedBST,
 			ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
 			ArrayList<Object> requestedP, ArrayList<Object> requestedRL, 
 			ArrayList<Object> requestedRN, ArrayList<Object> requestedCN)
@@ -615,7 +895,7 @@ public class Analyzer {
 		// 		Example - if requestedTPF is null, then we want all to look at all the topology files that these diary files have 
 		
 		ArrayList<String> retVal = new ArrayList<String>();
-		String[] nameTestArray = new String[NUM_STRINGS];
+		String[] nameTestArray = new String[NUM_SCENARIO_STRINGS];
 		
 		// Which lists are null?
 		boolean nullBST = (requestedBST == null);
@@ -766,12 +1046,192 @@ public class Analyzer {
 		return retVal;
 	}
 	
+	private static ArrayList<String> getAffiliatedThroughputDiaries(ArrayList<Object> requestedBST,
+			ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
+			ArrayList<Object> requestedP, ArrayList<Object> requestedPL, 
+			ArrayList<Object> requestedMS, ArrayList<Object> requestedNA, ArrayList<Object> requestedAR)
+	{	
+		// NOTE:	null here means that we want all references to that variable
+		// 		Example - if requestedTPF is null, then we want all to look at all the topology files that these diary files have 
+		
+		ArrayList<String> retVal = new ArrayList<String>();
+		String[] nameTestArray = new String[NUM_THROUGHPUT_STRINGS];
+		
+		// Which lists are null?
+		boolean nullBST = (requestedBST == null);
+		boolean nullTPF = (requestedTPF == null);
+		boolean nullDFV = (requestedDFV == null);
+		boolean nullP = (requestedP == null);
+		boolean nullPL = (requestedPL == null);
+		boolean nullMS = (requestedMS == null);
+		boolean nullNA = (requestedNA == null);
+		boolean nullAR = (requestedAR == null);
+		
+		int numBST = 1;
+		int numTPF = 1;
+		int numDFV = 1;
+		int numP = 1;
+		int numPL = 1;
+		int numMS = 1;
+		int numNA = 1;
+		int numAR = 1;
+		
+		// Set nums
+		if(!nullBST)
+		{
+			numBST = requestedBST.size();
+		}
+		if(!nullTPF)
+		{
+			numTPF = requestedTPF.size();
+		}
+		if(!nullDFV)
+		{
+			numDFV = requestedDFV.size();
+		}
+		if(!nullP)
+		{
+			numP = requestedP.size();
+		}
+		if(!nullPL)
+		{
+			numPL = requestedPL.size();
+		}
+		if(!nullMS)
+		{
+			numMS = requestedMS.size();
+		}
+		if(!nullNA)
+		{
+			numNA = requestedNA.size();
+		}
+		if(!nullAR)
+		{
+			numAR = requestedAR.size();
+		}
+		
+		nameTestArray[LOC_NODE_NAME] = PSTBUtil.MASTER;
+		
+		// Loop through all lists to add its String to the Regex
+		for(int iBST = 0 ; iBST < numBST ; iBST++)
+		{
+			if(nullBST)
+			{
+				nameTestArray[LOC_BENCHMARK_START_TIME] = PSTBUtil.DATE_REGEX;
+			}
+			else
+			{
+				nameTestArray[LOC_BENCHMARK_START_TIME] = (String) requestedBST.get(iBST);
+			}
+			
+			for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
+			{
+				if(nullTPF)
+				{
+					nameTestArray[LOC_TOPO_FILE_PATH] = "\\w+";
+				}
+				else
+				{
+					nameTestArray[LOC_TOPO_FILE_PATH] = (String) requestedTPF.get(iTPF);
+				}
+				
+				for(int iDFV = 0 ; iDFV < numDFV ; iDFV++)
+				{
+					if(nullDFV)
+					{
+						nameTestArray[LOC_DISTRIBUTED_FLAG] = "\\w+";
+					}
+					else
+					{
+						nameTestArray[LOC_DISTRIBUTED_FLAG] = ((DistributedFlagValue) requestedDFV.get(iDFV)).toString();
+					}
+					
+					for(int iP = 0 ; iP < numP ; iP++)
+					{
+						if(nullP)
+						{
+							nameTestArray[LOC_PROTOCOL] = "\\w+";
+						}
+						else
+						{
+							nameTestArray[LOC_PROTOCOL] = ((NetworkProtocol) requestedP.get(iP)).toString();
+						}
+						
+						for(int iPL = 0 ; iPL < numPL ; iPL++)
+						{
+							if(nullPL)
+							{
+								nameTestArray[LOC_PERIOD_LENGTH] = "\\w+";
+							}
+							else
+							{
+								nameTestArray[LOC_PERIOD_LENGTH] = ((Long) requestedPL.get(iPL)).toString();
+							}
+							
+							for(int iMS = 0 ; iMS < numMS ; iMS++)
+							{
+								if(nullMS)
+								{
+									nameTestArray[LOC_MESSAGE_SIZE] = "\\w+";
+								}
+								else
+								{
+									nameTestArray[LOC_MESSAGE_SIZE] = ((MessageSize) requestedMS.get(iMS)).toString();
+								}
+								
+								for(int iNA = 0 ; iNA < numNA ; iNA++)
+								{
+									if(nullNA)
+									{
+										nameTestArray[LOC_NUM_ATTRIBUTE] = "\\w+";
+									}
+									else
+									{
+										nameTestArray[LOC_NUM_ATTRIBUTE] = ((NumAttribute) requestedNA.get(iNA)).toString();
+									}
+									
+									for(int iAR = 0 ; iAR < numAR ; iAR++)
+									{
+										if(nullAR)
+										{
+											nameTestArray[LOC_ATTRIBUTE_RATIO] = "\\w+";
+										}
+										else
+										{
+											nameTestArray[LOC_ATTRIBUTE_RATIO] = ((AttributeRatio) requestedAR.get(iAR)).toString();
+										}
+											
+										String nameTestString = String.join(PSTBUtil.CONTEXT_SEPARATOR, nameTestArray);
+										
+										Pattern nameTest = Pattern.compile(nameTestString);
+										Iterator<String> bookshelfIt = bookshelf.keySet().iterator();
+										
+										for( ; bookshelfIt.hasNext() ; )
+										{
+											String diaryNameI = bookshelfIt.next(); 
+											if(nameTest.matcher(diaryNameI).matches())
+											{
+												retVal.add(diaryNameI);
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		return retVal;
+	}
+	
 	/**
 	 * Prints the information contained within the analyzedInformation object to a file
 	 * 
 	 * @return false on an error; true otherwise
 	 */
-	private static boolean recordAllAnalyzedInformation()
+	private static boolean recordScenarioObjects()
 	{		
 		Path delayFolderPath = Paths.get(delayFolderString);
 		Path frequencyFolderPath = Paths.get(frequencyFolderString);
@@ -810,12 +1270,12 @@ public class Analyzer {
 		// For each analysis we did, call its affiliated "record" function
 		// NOTE:	this function assumes that analyzedCheck[i] is the analysis that resulted in object analyzedInformation[i]
 		// 		i.e. if analyzedCheck[7] is DelayCounter, then analyzedInformation[7] is a PSTBDataCounter Object
-		for(int i = 0 ; i < analyzedCheck.size() ; i++)
+		for(int i = 0 ; i < analyzedCheckScenario.size() ; i++)
 		{
 			PSTBAnalysisObject temp = analyzedInformation.get(i);
 			
 			String objectFileString = null;
-			switch(analyzedCheck.get(i))
+			switch(analyzedCheckScenario.get(i))
 			{
 				case DelayCounter:
 				{
@@ -835,6 +1295,104 @@ public class Analyzer {
 				case Histogram:
 				{
 					objectFileString = histogramFolderString + temp.getName() + ".txt";
+					break;
+				}
+				default:
+				{
+					logger.error(logHeader + "Invalid AnalysisType requested - recording data!");
+					return false;
+				}
+			}
+			
+			Path objectFilePath = Paths.get(objectFileString);
+			boolean check = temp.recordAO(objectFilePath);
+			if(!check)
+			{
+				logger.error(logHeader + "Couldn't print AnalysisObject " + i + "!");
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	private static boolean recordThroughputObjects()
+	{		
+		Path currentThroughputFolderPath = Paths.get(currentThroughputFolderString);
+		Path averageThroughputFolderPath = Paths.get(averageThroughputFolderString);
+		Path roundDelayFolderPath = Paths.get(roundLatencyFolderString);
+		Path finalThroughputFolderPath = Paths.get(finalThroughputFolderString);
+		Path secantFolderPath = Paths.get(secantFolderString);
+		
+		// If the folders don't exist - create them
+		boolean currentThroughputCheck = PSTBUtil.createFolder(currentThroughputFolderPath, logger, logHeader);
+		if(!currentThroughputCheck)
+		{
+			logger.error(logHeader + "Couldn't create current throughput folder!");
+			return false;
+		}
+		
+		boolean averageThroughputCheck = PSTBUtil.createFolder(averageThroughputFolderPath, logger, logHeader);
+		if(!averageThroughputCheck)
+		{
+			logger.error(logHeader + "Couldn't create average throughput folder!");
+			return false;
+		}
+		
+		boolean roundDelayCheck = PSTBUtil.createFolder(roundDelayFolderPath, logger, logHeader);
+		if(!roundDelayCheck)
+		{
+			logger.error(logHeader + "Couldn't create round delay folder!");
+			return false;
+		}
+		
+		boolean finalThroughputCheck = PSTBUtil.createFolder(finalThroughputFolderPath, logger, logHeader);
+		if(!finalThroughputCheck)
+		{
+			logger.error(logHeader + "Couldn't create final throughput folder!");
+			return false;
+		}
+		
+		boolean secantCheck = PSTBUtil.createFolder(secantFolderPath, logger, logHeader);
+		if(!secantCheck)
+		{
+			logger.error(logHeader + "Couldn't create secant folder!");
+			return false;
+		}
+		
+		// For each analysis we did, call its affiliated "record" function
+		// NOTE:	this function assumes that analyzedCheck[i] is the analysis that resulted in object analyzedInformation[i]
+		// 		i.e. if analyzedCheck[7] is DelayCounter, then analyzedInformation[7] is a PSTBDataCounter Object
+		for(int i = 0 ; i < analyzedCheckThroughput.size() ; i++)
+		{
+			PSTBAnalysisObject temp = analyzedInformation.get(i);
+			
+			String objectFileString = null;
+			switch(analyzedCheckThroughput.get(i))
+			{
+				case CurrentThroughput:
+				{
+					objectFileString = currentThroughputFolderString + temp.getName() + ".txt";
+					break;
+				}
+				case AverageThroughput:
+				{	
+					objectFileString = averageThroughputFolderString + temp.getName() + ".txt";
+					break;
+				}
+				case RoundLatency:
+				{
+					objectFileString = roundLatencyFolderString + temp.getName() + ".txt";
+					break;
+				}
+				case FinalThroughput:
+				{
+					objectFileString = finalThroughputFolderString + temp.getName() + ".txt";
+					break;
+				}
+				case Secant:
+				{
+					objectFileString = secantFolderString + temp.getName() + ".txt";
 					break;
 				}
 				default:

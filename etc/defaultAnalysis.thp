@@ -1,0 +1,25 @@
+#BenchmarkStartTime	TopologyFilePath	DistributedFlag	Protocol	PeriodLength	MessageSize	NumAttributes	AttributeRatio	DiaryHeader
+
+null	etc/treeTopologyD1F4.txt	null	null	null	ZeroBytes	One	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	ZeroBytes	Twelve	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	ZeroBytes	Twelve	String50P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	ZeroBytes	Twelve	String100P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	ZeroBytes	TwentyFour	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	ZeroBytes	TwentyFour	String50P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant	
+null	etc/treeTopologyD1F4.txt	null	null	null	ZeroBytes	TwentyFour	String100P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+
+null	etc/treeTopologyD1F4.txt	null	null	null	TenKilobytes	One	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	TenKilobytes	Twelve	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	TenKilobytes	Twelve	String50P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	TenKilobytes	Twelve	String100P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	TenKilobytes	TwentyFour	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	TenKilobytes	TwentyFour	String50P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	TenKilobytes	TwentyFour	String100P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+
+null	etc/treeTopologyD1F4.txt	null	null	null	OneHundredKilobytes	One	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	OneHundredKilobytes	Twelve	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	OneHundredKilobytes	Twelve	String50P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	OneHundredKilobytes	Twelve	String100P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	OneHundredKilobytes	TwentyFour	String0P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	OneHundredKilobytes	TwentyFour	String50P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant
+null	etc/treeTopologyD1F4.txt	null	null	null	OneHundredKilobytes	TwentyFour	String100P	CurrentThroughput,AverageThroughput,RoundDelay,FinalThroughput,Secant

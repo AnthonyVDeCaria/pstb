@@ -6,11 +6,8 @@ import java.nio.file.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.startup.workload.PSActionType;
-
 public abstract class PSTBAnalysisObject {
 	protected String name;
-	protected PSActionType type;
 	
 	// Logger
 	protected String logHeader;
@@ -19,7 +16,6 @@ public abstract class PSTBAnalysisObject {
 	public PSTBAnalysisObject()
 	{
 		name = null;
-		type = null;
 	}
 	
 	/**
@@ -30,16 +26,7 @@ public abstract class PSTBAnalysisObject {
 	public void setName(String givenName) {
 		name = givenName;
 	}
-	
-	/**
-	 * Sets the type
-	 * 
-	 * @param givenType - the new PSActionType
-	 */
-	public void setType(PSActionType givenType) {
-		type = givenType;
-	}
-	
+		
 	/**
 	 * Gets the name
 	 * 
@@ -48,24 +35,9 @@ public abstract class PSTBAnalysisObject {
 	public String getName() {
 		return name;
 	}
-
-	/**
-	 * Gets the type
-	 * 
-	 * @return the type
-	 */
-	public PSActionType getType() {
-		return type;
-	}
 	
 	public boolean recordAO(Path givenFilePath)
 	{
-		if(type == null)
-		{
-			log.error(logHeader + "No PSActionType has been set yet!");
-			return false;
-		}
-		
 		try
 		{
 			Files.deleteIfExists(givenFilePath);
@@ -80,7 +52,7 @@ public abstract class PSTBAnalysisObject {
 		boolean recordCheck = completeRecord(givenFilePath);
 		if(!recordCheck)
 		{
-			log.error(logHeader + "Couldn't complete record!");
+			log.error("Couldn't complete record!");
 			return false;
 		}
 		
@@ -94,7 +66,4 @@ public abstract class PSTBAnalysisObject {
 	 * @return false on failure; true otherwise
 	 */
 	public abstract boolean completeRecord(Path givenFilePath);
-	
-	public abstract void handleDataPoint(Long givenDataPoint);
-
 }

@@ -37,7 +37,7 @@ public class TPMaster extends Thread {
 //	private final int LOC_CLIENT_NAME = 0;
 	private final int LOC_NUMBER_MESSAGES_RECEIEVED = 1;
 	private final int LOC_DELAY = 2;
-	private final int QUEUE_SIZE = 20;
+	private final int QUEUE_SIZE = 10;
 	
 	// Just Master - Database
 	private HashMap<String, PSClientMode> database;
@@ -48,15 +48,16 @@ public class TPMaster extends Thread {
 	// Just Master - Message Rate
 	private Double messageRate;
 	
-	// Just Master - Delay
-	private Double firstDelay;
+	// Just Master - Delays
+	private Double finalThroughput;
 	
 	// Multiple threads touch
-	private ArrayList<String> subDelays;
+	private ArrayList<String> subMessages;
 	private boolean experimentRunning;
 	private Long messageDelay;
 	
 	// Locks for above
+	protected ReentrantLock lockSM = new ReentrantLock();
 	protected ReentrantLock lockSD = new ReentrantLock();
 	protected ReentrantLock lockER = new ReentrantLock();
 	protected ReentrantLock lockMD = new ReentrantLock();
@@ -90,9 +91,9 @@ public class TPMaster extends Thread {
 		messageRate = INIT_MESSAGES_PER_SECOND;
 		updateMessageDelay();
 		
-		firstDelay = null;
+		finalThroughput = Double.NaN;
 		
-		subDelays = new ArrayList<String>();
+		subMessages = new ArrayList<String>();
 		experimentRunning = true;
 		
 		objectConnection = givenSS;
@@ -116,7 +117,7 @@ public class TPMaster extends Thread {
 	
 	private void updateMessageDelay()
 	{
-		Double messagesPerSecondPub = ((double) messageRate) / numPubs;
+		Double messagesPerSecondPub = messageRate / numPubs;
 		Double secondsPubPerMessage = 1 / messagesPerSecondPub;
 		messageDelay = (long) (secondsPubPerMessage * PSTBUtil.SEC_TO_NANOSEC);
 		
@@ -142,27 +143,27 @@ public class TPMaster extends Thread {
 		return temp;
 	}
 	
-	public void addToSubDelays(String newDelay)
+	public void addToSubMessages(String newMPS)
 	{
 		try
 		{
-			lockSD.lock();
-			subDelays.add(newDelay);
+			lockSM.lock();
+			subMessages.add(newMPS);
 		}
 		finally {
-			lockSD.unlock();
+			lockSM.unlock();
 		}
 	}
 	
-	public void resetSubDelays()
+	public void resetSubMessages()
 	{
 		try
 		{
-			lockSD.lock();
-			subDelays.clear();
+			lockSM.lock();
+			subMessages.clear();
 		}
 		finally {
-			lockSD.unlock();
+			lockSM.unlock();
 		}
 	}
 	
@@ -202,15 +203,15 @@ public class TPMaster extends Thread {
 		}
 	}
 	
-	public ArrayList<String> getCurrentSubDelays()
+	public ArrayList<String> getCurrentSubMessages()
 	{
 		try
 		{
-			lockSD.lock();
-			return subDelays;
+			lockSM.lock();
+			return subMessages;
 		}
 		finally {
-			lockSD.unlock();
+			lockSM.unlock();
 		}
 	}
 	
@@ -288,13 +289,14 @@ public class TPMaster extends Thread {
 			{
 				log.debug(logHeader + "Beginning to process delays...");
 				log.debug(logHeader + "rec = " + receivedErrorCounter);
-				ArrayList<String> currentSubDelays = getCurrentSubDelays();
-				double currentDelay = 0;
+				
+				ArrayList<String> currentSubMPS = getCurrentSubMessages();
+				double currentLatency = 0;
 				int currentNMR = 0;
-				int numDelays = currentSubDelays.size();
-				for(int j = 0 ; j < numDelays ; j++)
+				int numMPS = currentSubMPS.size();
+				for(int j = 0 ; j < numMPS ; j++)
 				{
-					String messageJ = currentSubDelays.get(j);
+					String messageJ = currentSubMPS.get(j);
 					String[] brokenMessageJ = messageJ.split("_");
 					Integer messagesReceivedJ = PSTBUtil.checkIfInteger(brokenMessageJ[LOC_NUMBER_MESSAGES_RECEIEVED], false, null);
 					Double delayJ = PSTBUtil.checkIfDouble(brokenMessageJ[LOC_DELAY], false, null);
@@ -305,17 +307,13 @@ public class TPMaster extends Thread {
 					else
 					{
 						currentNMR += messagesReceivedJ;
-						currentDelay += delayJ;
+						currentLatency += delayJ;
 					}
 				}
 				
-				if(firstDelay == null)
-				{
-					currentDelay /= numSubs;
-					log.debug(logHeader + "First delay is " + currentDelay + ".");
-					firstDelay = currentDelay;
-				}
-				
+				Double averageLatency = currentLatency / numSubs;
+				entryI.setRoundLatency(averageLatency);
+								
 				Double denominator = (roundNum * periodLength.doubleValue() / PSTBUtil.SEC_TO_NANOSEC);
 				Double currentThroughput = currentNMR / denominator;
 				log.info(logHeader + "currentThroughput = " + currentThroughput + " | currentNMR = " + currentNMR 
@@ -374,6 +372,7 @@ public class TPMaster extends Thread {
 						else if(secant < TOLERANCE_LIMIT)
 						{
 							stopExperiment();
+							finalThroughput = avg;
 						}
 						else
 						{
@@ -392,7 +391,7 @@ public class TPMaster extends Thread {
 			}
 			
 			log.debug(logHeader + "Calucaltions complete.");
-			resetSubDelays();
+			resetSubMessages();
 			masterComplete.countDown();
 			
 			log.debug(logHeader + "Waiting for handler to finish...");
@@ -410,7 +409,12 @@ public class TPMaster extends Thread {
 			roundNum++;
 		}
 		
+		DiaryEntry finalEntry = new DiaryEntry();
+		finalEntry.setFinalThroughput(finalThroughput);
+		serverDiary.addDiaryEntryToDiary(finalEntry);
+		
 		recordDiary(serverDiary);
+		
 		log.info(logHeader + "Server ending.");
 	}
 	

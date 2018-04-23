@@ -9,7 +9,6 @@ import org.apache.logging.log4j.LogManager;
 
 import pstb.analysis.diary.ClientDiary;
 import pstb.analysis.diary.DiaryEntry;
-import pstb.analysis.diary.DiaryHeader;
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.process.client.PSTBClientProcess;
 import pstb.startup.config.ExperimentType;
@@ -47,9 +46,9 @@ public abstract class PSClient extends PSNode
 	// Varaibles needed to run Throughput experiment
 	private String masterIPAddress;
 	private Integer portNumber;
-	private Long pubDelay;
+	private Long messageDelay;
 	private Integer messagesReceived;
-	private Double currentDelay;
+	private Double roundLatency;
 	
 	// Variables set during experiment
 	protected Boolean currentlyRunning;
@@ -71,9 +70,9 @@ public abstract class PSClient extends PSNode
 		numPubs = null;
 		masterIPAddress = null;
 		portNumber = null;
-		pubDelay = null;
+		messageDelay = null;
 		messagesReceived = new Integer(0);
-		currentDelay = new Double(0.0);
+		roundLatency = new Double(0.0);
 		
 		currentlyRunning = null;
 		
@@ -537,7 +536,7 @@ public abstract class PSClient extends PSNode
 		Boolean stillRunning = true;
 		while(stillRunning)
 		{
-			stillRunning = handleMaster(messagesReceived, currentDelay);
+			stillRunning = handleMaster(messagesReceived, roundLatency);
 			if(stillRunning == null)
 			{
 				nodeLog.error(logHeader + "Couldn't get new pubDelay!");
@@ -637,7 +636,7 @@ public abstract class PSClient extends PSNode
 				payloadSize = 100000;
 			}
 			
-			PSAction pubI = new PSAction(PSActionType.P, pubDelay, pubAttribute, payloadSize, 0L);
+			PSAction pubI = new PSAction(PSActionType.P, messageDelay, pubAttribute, payloadSize, 0L);
 			
 			boolean pubISendCheck = launchAction(PSActionType.P, pubI);
 			if(!pubISendCheck)
@@ -674,7 +673,7 @@ public abstract class PSClient extends PSNode
 				PSActionType pageIsPSAT = pageI.getPSActionType();
 				if(pageIsPSAT != null && pageIsPSAT.equals(PSActionType.R))
 				{
-					Double delayI = pageI.getDelay(DiaryHeader.MessageDelay).doubleValue();
+					Double delayI = pageI.getMessageDelay().doubleValue();
 					nodeLog.debug(logHeader + "delayI = " + delayI + " | counter = " + counter + ".");
 					delay += delayI;
 					counter++;
@@ -687,10 +686,14 @@ public abstract class PSClient extends PSNode
 			}
 			else
 			{
-				currentDelay = delay / counter;
+				roundLatency = delay / counter;
 				messagesReceived += counter;
-				nodeLog.info(logHeader + "CurrentDelay = " + currentDelay + " | MessagesReceived = " + messagesReceived + ".");
+				nodeLog.info(logHeader + "RoundLatency = " + roundLatency + " | MessagesReceived = " + messagesReceived + ".");
 			}
+			
+			Double secondsPubPerMessage = messageDelay.doubleValue() / PSTBUtil.SEC_TO_NANOSEC;
+			Double messagesPerSecondPub = 1 / secondsPubPerMessage;
+			Double messageRate = messagesPerSecondPub * numPubs;
 			
 			try
 			{
@@ -698,7 +701,8 @@ public abstract class PSClient extends PSNode
 				diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.R);
 				DiaryEntry delayEntry = new DiaryEntry();
 				delayEntry.setRound(givenPN);
-				delayEntry.setRoundDelay(currentDelay);
+				delayEntry.setMessageRate(messageRate);
+				delayEntry.setRoundLatency(roundLatency);
 				delayEntry.setMessagesReceievedRound(counter);
 				delayEntry.setMessagesReceievedTotal(messagesReceived);
 				diary.addDiaryEntryToDiary(delayEntry);
@@ -730,7 +734,7 @@ public abstract class PSClient extends PSNode
 		}
 		else
 		{
-			pubDelay = masterValue;
+			messageDelay = masterValue;
 			nodeLog.info(logHeader + "Continuing...");
 			return true;
 		}

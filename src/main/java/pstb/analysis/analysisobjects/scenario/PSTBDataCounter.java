@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.analysis.analysisobjects;
+package pstb.analysis.analysisobjects.scenario;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,7 +23,7 @@ import pstb.util.PSTBUtil.TimeType;
  * as well as identifying units when recording into a file.
  * @see FrequencyCounter
  */
-public class PSTBDataCounter extends PSTBAnalysisObject{
+public class PSTBDataCounter extends PSTBScenarioAO{
 	// Variables
 	private TreeMap<Long, Integer> frequency;
 	private boolean recordByKey;

@@ -15,8 +15,8 @@ public class SupportedEngines {
 		PADRES, SIENA
 	}
 	
-	public static final String WORKLOAD_FILE_TYPE_PADRES = ".pdrs";
-	public static final String WORKLOAD_FILE_TYPE_SIENA = ".cna";
+	public static final String WORKLOAD_FILE_TYPE_PADRES = "pdrs";
+	public static final String WORKLOAD_FILE_TYPE_SIENA = "cna";
 	
 	public static boolean checkProperWorkloadFileEndings(String givenWFS)
 	{

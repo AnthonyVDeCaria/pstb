@@ -138,9 +138,14 @@ public class DiaryEntry  implements java.io.Serializable
 		page.put(DiaryHeader.Round, givenRound);
 	}
 	
-	public void setRoundDelay(Double givenDelay)
+	public void setMessageRate(Double givenMR) 
+	{
+		page.put(DiaryHeader.MessageRate, givenMR);
+	}
+	
+	public void setRoundLatency(Double givenLatency)
 	{	
-		page.put(DiaryHeader.RoundDelay, givenDelay);
+		page.put(DiaryHeader.RoundLatency, givenLatency);
 	}
 	
 	public void setMessagesReceievedRound(Integer givenMRR)
@@ -152,10 +157,6 @@ public class DiaryEntry  implements java.io.Serializable
 	{	
 		page.put(DiaryHeader.MessagesReceievedTotal, givenMRT);
 	}
-	
-	public void setMessageRate(Double givenMR) {
-		page.put(DiaryHeader.MessageRate, givenMR);
-	}
 
 	public void setCurrentThroughput(Double givenCT) {
 		page.put(DiaryHeader.CurrentThroughput, givenCT);
@@ -166,9 +167,14 @@ public class DiaryEntry  implements java.io.Serializable
 		page.put(DiaryHeader.Secant, givenMT);
 	}
 	
-	public void setAverageThroughput(Double givenIT)
+	public void setAverageThroughput(Double givenAT)
 	{
-		page.put(DiaryHeader.AverageThroughput, givenIT);
+		page.put(DiaryHeader.AverageThroughput, givenAT);
+	}
+	
+	public void setFinalThroughput(Double givenFT)
+	{
+		page.put(DiaryHeader.FinalThroughput, givenFT);
 	}
 	
 	public PSActionType getPSActionType()
@@ -231,20 +237,34 @@ public class DiaryEntry  implements java.io.Serializable
 		return (Long) page.get(DiaryHeader.MessageDelay);
 	}
 	
-	public Long getDelay(DiaryHeader delayType) 
+	public Double getMessageRate()
 	{
-		if(delayType == DiaryHeader.ActionDelay)
-		{
-			return getActionDelay();
-		}
-		else if(delayType == DiaryHeader.MessageDelay)
-		{
-			return getMessageDelay();
-		}
-		else
-		{
-			return null;
-		}
+		return (Double) page.get(DiaryHeader.MessageRate);
+	}
+	
+	public Double getRoundLatency()
+	{	
+		return (Double) page.get(DiaryHeader.RoundLatency);
+	}
+	
+	public Double getCurrentThroughput()
+	{
+		return (Double) page.get(DiaryHeader.CurrentThroughput);
+	}
+	
+	public Double getAverageThroughput()
+	{
+		return (Double) page.get(DiaryHeader.AverageThroughput);
+	}
+	
+	public Double getSecant()
+	{
+		return (Double) page.get(DiaryHeader.Secant);
+	}
+	
+	public Double getFinalThroughput()
+	{
+		return (Double) page.get(DiaryHeader.FinalThroughput);
 	}
 	
 	public boolean containsKey(Object value) 
@@ -348,6 +368,29 @@ public class DiaryEntry  implements java.io.Serializable
 						{
 							formatted = PSTBUtil.DATE_FORMAT.format(convertedData);
 						}
+						
+						line = " -> " + formatted;
+						try
+						{
+							Files.write(givenFilePath, line.getBytes(), StandardOpenOption.APPEND);
+						}
+						catch(IOException e)
+						{
+							throw new IllegalArgumentException("IO failed to add time data at line " + line);
+						}
+					}
+					else
+					{
+						throw new IllegalArgumentException("Converted data null at line " + line);
+					}
+				}
+				else if(header.equals(DiaryHeader.RoundLatency))
+				{
+					Double convertedData = (Double) data;
+					if(convertedData != null)
+					{
+						convertedData *= PSTBUtil.MILLISEC_TO_NANOSEC;
+						String formatted = PSTBUtil.createTimeString(convertedData.longValue(), TimeType.Nano, TimeUnit.SECONDS);
 						
 						line = " -> " + formatted;
 						try

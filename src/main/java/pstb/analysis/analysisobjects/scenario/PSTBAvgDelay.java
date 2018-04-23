@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.analysis.analysisobjects;
+package pstb.analysis.analysisobjects.scenario;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,7 +20,7 @@ import pstb.util.PSTBUtil.TimeType;
  * and a name associated with it 
  * @see Analyzer
  */
-public class PSTBAvgDelay extends PSTBAnalysisObject {
+public class PSTBAvgDelay extends PSTBScenarioAO {
 	private Long value;
 	
 	private Long sum;
@@ -98,5 +98,4 @@ public class PSTBAvgDelay extends PSTBAnalysisObject {
 		
 		value = sum / instances;
 	}
-
 }

@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 
 import pstb.analysis.diary.ClientDiary;
+import pstb.analysis.diary.DiaryHeader;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.process.broker.PSTBBrokerProcess;
 import pstb.benchmark.process.client.PSTBClientProcess;
@@ -54,6 +55,7 @@ public class PSTBUtil {
 	public static final String FOLDER_REPLACEMENT = "-";
 	
 	public static final String LOCAL = "localhost";
+	public static final String MASTER = "TPMaster";
 	
 	public static final Integer PORT = 4444;
 	
@@ -63,6 +65,7 @@ public class PSTBUtil {
 	
 	public static final String ERROR = "ERROR!";
 	public static final String STOP = "STOP!";
+	
 	
 	/**
 	 * Sees if a given String is an Integer
@@ -187,7 +190,7 @@ public class PSTBUtil {
 	public static String getFileExtension(String givenFileString)
 	{
 		int dot = givenFileString.lastIndexOf(".");
-	    return givenFileString.substring(dot);
+	    return givenFileString.substring(dot + 1);
 	}
 	
 	/**
@@ -339,23 +342,23 @@ public class PSTBUtil {
 				
 				if(hMinutes.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d h, %02d m", hours, hMinutes);
+					retVal = String.format("%02d h, %02d min", hours, hMinutes);
 				}
 				else if(hSeconds.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d h, %02d s", hours, hSeconds);
+					retVal = String.format("%02d h, %02d sec", hours, hSeconds);
 				}
 				else if(hMillis.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d h, %02d ms", hours, hMillis);
+					retVal = String.format("%02d h, %02d msec", hours, hMillis);
 				}
 				else if(hMicros.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d h, %02d us", hours, hMicros);
+					retVal = String.format("%02d h, %02d usec", hours, hMicros);
 				}
 				else if(hNanos.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d h, %02d ns", hours, hNanos);
+					retVal = String.format("%02d h, %02d nsec", hours, hNanos);
 				}
 				else
 				{
@@ -371,23 +374,23 @@ public class PSTBUtil {
 				
 				if(mSeconds.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d m, %02d s", minutes, mSeconds);
+					retVal = String.format("%02d min, %02d sec", minutes, mSeconds);
 				}
 				else if(mMillis.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d m, %02d ms", minutes, mMillis);
+					retVal = String.format("%02d min, %02d msec", minutes, mMillis);
 				}
 				else if(mMicros.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d m, %02d us", minutes, mMicros);
+					retVal = String.format("%02d min, %02d usec", minutes, mMicros);
 				}
 				else if(mNanos.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d m, %02d ns", minutes, mNanos);
+					retVal = String.format("%02d min, %02d nsec", minutes, mNanos);
 				}
 				else
 				{
-					retVal = String.format("%02d m", minutes);
+					retVal = String.format("%02d min", minutes);
 				}
 			}
 			else if(seconds.compareTo(0L) > 0)
@@ -398,19 +401,19 @@ public class PSTBUtil {
 				
 				if(sMillis.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d s, %02d ms", seconds, sMillis);
+					retVal = String.format("%02d sec, %02d msec", seconds, sMillis);
 				}
 				else if(sMicros.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d s, %02d us", seconds, sMicros);
+					retVal = String.format("%02d sec, %02d usec", seconds, sMicros);
 				}
 				else if(sNanos.compareTo(0L) > 0)
 				{
-					retVal = String.format("%02d s, %02d ns", seconds, sNanos);
+					retVal = String.format("%02d sec, %02d nsec", seconds, sNanos);
 				}
 				else
 				{
-					retVal = String.format("%02d s", seconds);
+					retVal = String.format("%02d sec", seconds);
 				}
 			}
 			else if(milliseconds.compareTo(0L) > 0)
@@ -543,11 +546,11 @@ public class PSTBUtil {
 					
 					if(sMillis.compareTo(0L) > 0)
 					{
-						retVal = String.format("%02d.%02d s", seconds, sMillis);
+						retVal = String.format("%02d.%03d sec", seconds, sMillis);
 					}
 					else
 					{
-						retVal = String.format("%02d s", seconds);
+						retVal = String.format("%02d sec", seconds);
 					}
 				}
 				else if(units.equals(TimeUnit.MILLISECONDS))
@@ -556,11 +559,11 @@ public class PSTBUtil {
 					
 					if(miMicros.compareTo(0L) > 0)
 					{
-						retVal = String.format("%02d.%02d ms", milliseconds, miMicros);
+						retVal = String.format("%02d.%03d msec", milliseconds, miMicros);
 					}
 					else
 					{
-						retVal = String.format("%02d ms", milliseconds);
+						retVal = String.format("%02d msec", milliseconds);
 					}
 				}
 				else if(units.equals(TimeUnit.MICROSECONDS) )
@@ -569,16 +572,16 @@ public class PSTBUtil {
 					
 					if(muNanos.compareTo(0L) > 0)
 					{
-						retVal = String.format("%02d.%02d us", microseconds, muNanos);
+						retVal = String.format("%02d.%03d usec", microseconds, muNanos);
 					}
 					else
 					{
-						retVal = String.format("%02d us", microseconds);
+						retVal = String.format("%02d usec", microseconds);
 					}
 				}
 				else
 				{
-					retVal = String.format("%02d ns", nanoseconds);
+					retVal = String.format("%02d nsec", nanoseconds);
 				}
 			}
 			else if(givenTT.equals(TimeType.Milli))
@@ -592,16 +595,16 @@ public class PSTBUtil {
 					
 					if(sMillis.compareTo(0L) > 0)
 					{
-						retVal = String.format("%02d.%02d s", seconds, sMillis);
+						retVal = String.format("%02d.%03d sec", seconds, sMillis);
 					}
 					else
 					{
-						retVal = String.format("%02d s", seconds);
+						retVal = String.format("%02d sec", seconds);
 					}
 				}
 				else
 				{
-					retVal = String.format("%02d ms", milliseconds);
+					retVal = String.format("%02d msec", milliseconds);
 				}
 			}
 		}
@@ -838,5 +841,13 @@ public class PSTBUtil {
 		
 		String retVal = String.join(PSTBUtil.CONTEXT_SEPARATOR, context);
 		return retVal;
+	}
+
+	public static boolean isDHImproper(DiaryHeader givenDH) {
+		return !givenDH.equals(DiaryHeader.CurrentThroughput) 
+				&& !givenDH.equals(DiaryHeader.AverageThroughput)
+				&& !givenDH.equals(DiaryHeader.RoundLatency)
+				&& !givenDH.equals(DiaryHeader.Secant)
+				&& !givenDH.equals(DiaryHeader.FinalThroughput);
 	}
 }

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package pstb.analysis.analysisobjects;
+package pstb.analysis.analysisobjects.scenario;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,7 +20,7 @@ import pstb.util.PSTBUtil.TimeType;
  * @author padres-dev-4187
  *
  */
-public class PSTBHistogram extends PSTBAnalysisObject {
+public class PSTBHistogram extends PSTBScenarioAO {
 	// Variables
 	private ArrayList<Long> dataset;
 	private int histogram[];
