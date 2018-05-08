@@ -661,7 +661,6 @@ public class PSTB {
 				{
 					AttributeRatio arK = givenAR.get(k);
 					
-					logger.info("Variables are: " + msI + " " + naJ + " " + arK + ".");
 					boolean run = true;
 					if(naJ.equals(NumAttribute.One))
 					{
@@ -684,6 +683,7 @@ public class PSTB {
 							return false;
 						}
 						
+						logger.fatal("Running experiment: " + msI + " " + naJ + " " + arK + ".");
 						boolean runCheck = givenPT.startRun();
 						if(!runCheck)
 						{

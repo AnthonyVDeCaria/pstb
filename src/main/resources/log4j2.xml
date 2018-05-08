@@ -123,20 +123,20 @@
     </Appenders>
     
     <Loggers>
-        <Root level="debug" additivity="false">
+        <Root level="fatal" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Root"/>
         </Root>
-        <Logger name="pstb.creation.server.ObjectServer" level="debug" additivity="false">
+        <Logger name="pstb.creation.server.ObjectServer" level="fatal" additivity="false">
         	<AppenderRef ref="Server"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.PSTBProcess" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.PSTBProcess" level="fatal" additivity="false">
         	<AppenderRef ref="Node"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="fatal" additivity="false">
         	<AppenderRef ref="Broker"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="debug" additivity="false">
+        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="fatal" additivity="false">
         	<AppenderRef ref="Client"/>
         </Logger>
         <Logger name="SystemError" level="fatal" additivity="false">
@@ -190,7 +190,7 @@
         <Logger name="LoopDetection" level="fatal" additivity="false">
         	<AppenderRef ref="LD"/>
         </Logger>
-        <Logger name="ca.utoronto.msrg.padres.client.Client" level="info" additivity="false">
+        <Logger name="ca.utoronto.msrg.padres.client.Client" level="fatal" additivity="false">
         	<AppenderRef ref="PADRES-C"/>
         </Logger>
         

@@ -3,7 +3,7 @@ B1	B	B0
 B2	B	B0
 B3	B	B0
 
-P0	C	B0	src/test/workloads/testpub2.cna
-S0	C	B1	src/test/workloads/testsub.cna
-S1	C	B2	src/test/workloads/testsub.cna
-S2	C	B3	src/test/workloads/testsub.cna
+P0	C	B0	src/test/workload/testpub2.cna
+S0	C	B1	src/test/workload/testsub.cna
+S1	C	B2	src/test/workload/testsub.cna
+S2	C	B3	src/test/workload/testsub.cna

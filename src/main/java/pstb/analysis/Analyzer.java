@@ -751,31 +751,6 @@ public class Analyzer {
 		ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBST, requestedTFS, requestedDFV, requestedP, 
 				requestedPL, requestedMS, requestedNA, requestedAR);
 		
-		String PL = null;
-		String MS = null;
-		String NA = null;
-		String AR = null;
-		String NN = "TPMaster";
-		
-		if(requestedPL != null)
-		{
-			PL = Arrays.toString(requestedPL.toArray()).replace("[", "").replace("]", "");
-		}
-		if(requestedMS != null)
-		{
-			MS = Arrays.toString(requestedMS.toArray()).replace("[", "").replace("]", "");
-		}
-		if(requestedNA != null)
-		{
-			NA = Arrays.toString(requestedNA.toArray()).replace("[", "").replace("]", "");
-		}
-		if(requestedAR != null)
-		{
-			AR = Arrays.toString(requestedAR.toArray()).replace("[", "").replace("]", "");
-		}
-		
-		String analysisObjectName = BST + "_" + TFS + "_" + DFV + "_" + P + "_" + PL + "_" + MS + "_" + NA + "_" + AR + "_" + NN;
-		
 		ArrayList<Object> requestedDHList = analysisI.get(AnalysisInput.DiaryHeader);
 		if(requestedDHList == null)
 		{
@@ -789,37 +764,33 @@ public class Analyzer {
 		int numDH = requestedDHList.size();
 		
 		PSTBThroughputAO analysisObjectI = null;
-		for(int j = 0 ; j < numDH ; j++)
+		int numDiaries = requestedDiaryNames.size();
+		for(int j = 0 ; j < numDiaries ; j++)
 		{
-			DiaryHeader dhJ = (DiaryHeader) requestedDHList.get(j);
+			String diaryNameJ = requestedDiaryNames.get(j);
+			ClientDiary diaryJ = bookshelf.get(diaryNameJ);
 			
-			String name = dhJ + "_" + analysisObjectName;
-			logger.debug(logHeader + "Working on object " + name + "...");
+			logger.debug(logHeader + "Working on object " + diaryNameJ + "...");
 			
-			for(int k = 0 ; k < requestedDiaryNames.size() ; k++)
+			for(int k = 0 ; k < numDH ; k++)
 			{
-				String diaryNameK = requestedDiaryNames.get(k);
-				ClientDiary diaryK = bookshelf.get(diaryNameK);
-				if(diaryK == null)
-				{
-					logger.error(logHeader + diaryNameK + " isn't in the bookshelf!");
-					return false;
-				}
+				DiaryHeader dhK = (DiaryHeader) requestedDHList.get(k);
+				String name = dhK.toString() + "_" + diaryNameJ;
 				
-				boolean dhJIsFinal = dhJ.equals(DiaryHeader.FinalThroughput);
+				boolean dhJIsFinal = dhK.equals(DiaryHeader.FinalThroughput);
 				if(dhJIsFinal)
 				{
 					analysisObjectI = new PSTBFinalThroughput();
 				}
 				else
 				{
-					analysisObjectI = new PSTBTwoPoints(dhJ);
+					analysisObjectI = new PSTBTwoPoints(dhK);
 				}
 				analysisObjectI.setName(name);
 				
-				for(int l = 0 ; l < diaryK.size() ; l++)
+				for(int l = 0 ; l < diaryJ.size() ; l++)
 				{
-					DiaryEntry pageL = diaryK.getDiaryEntryI(l);
+					DiaryEntry pageL = diaryJ.getDiaryEntryI(l);
 					
 					Double dhMessageRate = pageL.getMessageRate();
 					
@@ -831,23 +802,23 @@ public class Analyzer {
 					}
 					else
 					{
-						if(dhJ.equals(DiaryHeader.CurrentThroughput))
+						if(dhK.equals(DiaryHeader.CurrentThroughput))
 						{
 							dhValueL = pageL.getCurrentThroughput();
 						}
-						else if(dhJ.equals(DiaryHeader.AverageThroughput))
+						else if(dhK.equals(DiaryHeader.AverageThroughput))
 						{
 							dhValueL = pageL.getAverageThroughput();
 						}
-						else if(dhJ.equals(DiaryHeader.Secant))
+						else if(dhK.equals(DiaryHeader.Secant))
 						{
 							dhValueL = pageL.getSecant();
 						}
-						else if(dhJ.equals(DiaryHeader.FinalThroughput))
+						else if(dhK.equals(DiaryHeader.FinalThroughput))
 						{
 							dhValueL = pageL.getFinalThroughput();
 						}
-						else if(dhJ.equals(DiaryHeader.RoundLatency))
+						else if(dhK.equals(DiaryHeader.RoundLatency))
 						{
 							dhValueL = pageL.getRoundLatency();
 						}
@@ -858,15 +829,10 @@ public class Analyzer {
 						}
 					}
 				}
+				
+				analyzedInformation.add(analysisObjectI);
+				analyzedCheckThroughput.add(dhK);
 			}
-			
-			if(analysisObjectI == null)
-			{
-				logger.error(logHeader + "Analysis object is still null!");
-				return false;
-			}
-			analyzedInformation.add(analysisObjectI);
-			analyzedCheckThroughput.add(dhJ);
 		}
 		
 		return true;
