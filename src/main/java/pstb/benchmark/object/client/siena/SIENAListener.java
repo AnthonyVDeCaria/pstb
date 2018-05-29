@@ -53,10 +53,10 @@ public class SIENAListener implements Notifiable
 		receivedMsg.setPSActionType(PSActionType.R);
 		receivedMsg.addTimeReceived(currentTime);
 		receivedMsg.addAttributes(attributes);
-		
+
+		diaryLock.lock();
 		try
 		{
-			diaryLock.lock();
 			diary.addDiaryEntryToDiary(receivedMsg);
 		}
 		finally

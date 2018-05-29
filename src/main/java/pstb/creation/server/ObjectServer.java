@@ -86,9 +86,9 @@ public class ObjectServer extends Thread
 	public Integer getAndUpdateNHI()
 	{
 		Integer retVal = null;
+		lockNHI.lock();
 		try
 		{
-			lockNHI.lock();
 			retVal = nhI;
 			nhI++;
 		}

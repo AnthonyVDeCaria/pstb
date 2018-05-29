@@ -56,7 +56,7 @@ public class Analyzer {
 	private final static int LOC_FILE = 1;
 	
 	// Constants - General Diary Names
-	private static final int LOC_BENCHMARK_START_TIME = 0;
+	private static final int LOC_BENCHMARK_NUMBER = 0;
 	private static final int LOC_TOPO_FILE_PATH = 1;
 	private static final int LOC_DISTRIBUTED_FLAG = 2;
 	private static final int LOC_PROTOCOL = 3;
@@ -89,6 +89,7 @@ public class Analyzer {
 	private static final String secantStub = "secant/";
 	private static final String finalThroughputStub = "finalThroughput/";
 	private static final String roundLatencyStub = "roundLatency/";
+	private static final String crStub = "currentRatio/";
 	
 	// Variables - Key Components
 	private static HashMap<String, ClientDiary> bookshelf = new HashMap<String, ClientDiary>();
@@ -109,6 +110,7 @@ public class Analyzer {
 	private static String secantFolderString;
 	private static String finalThroughputFolderString;
 	private static String roundLatencyFolderString;
+	private static String crFolderString;
 	
 	// Logger
 	private static final Logger logger = LogManager.getRootLogger();
@@ -172,6 +174,7 @@ public class Analyzer {
 		secantFolderString = throughputFolderString + secantStub;
 		finalThroughputFolderString = throughputFolderString + finalThroughputStub;
 		roundLatencyFolderString = throughputFolderString + roundLatencyStub;
+		crFolderString = throughputFolderString + crStub;
 		
 		logger.info("Collecting diaries...");
 		boolean collectCheck = collectDiaries();
@@ -247,14 +250,14 @@ public class Analyzer {
 				int numAO = analyzedInformation.size();
 				for(int i = 0; i < numAO ; i++)
 				{
+					String[] command = new String[11];
+					command[0] = "python";
+					command[1] = "graph.py";
+					boolean createGraph = false;
+					
 					if(isScenario)
 					{
 						AnalysisType atI = analyzedCheckScenario.get(i);
-						
-						String[] command = new String[11];
-						command[0] = "python";
-						command[1] = "graph.py";
-						
 						if(atI.equals(AnalysisType.DelayCounter))
 						{
 							PSTBDataCounter temp = (PSTBDataCounter) analyzedInformation.get(i);
@@ -263,6 +266,7 @@ public class Analyzer {
 							
 							if(t.size() > 1)
 							{
+								createGraph = true;
 								ArrayList<Long> x = new ArrayList<Long>();
 								ArrayList<Integer> y = new ArrayList<Integer>();
 								
@@ -284,14 +288,9 @@ public class Analyzer {
 								}
 								command[6] = "Frequency";
 								command[7] = Arrays.toString(x.toArray());
-								command[8] = "long";
+								command[8] = "int";
 								command[9] = Arrays.toString(y.toArray());
-								command[10] = "long";
-								
-								PSTBUtil.createANewProcess(command, logger, false, false,
-										"Couldn't create graph process!", 
-										"Graph complete.", 
-										"Graph process failed!");
+								command[10] = "int";
 							}
 							
 						}
@@ -304,6 +303,7 @@ public class Analyzer {
 							
 							if(y != null)
 							{
+								createGraph = true;
 								int yLength = y.length;
 								
 								String[] x = new String[yLength];
@@ -345,12 +345,7 @@ public class Analyzer {
 								command[7] = Arrays.toString(x);
 								command[8] = "string";
 								command[9] = Arrays.toString(y);
-								command[10] = "long";
-								
-								PSTBUtil.createANewProcess(command, logger, true, false,
-										"Couldn't create graph process!", 
-										"Graph complete.", 
-										"Graph process failed!");
+								command[10] = "int";
 							}
 						}
 					}
@@ -364,54 +359,70 @@ public class Analyzer {
 							
 							ArrayList<Point2D.Double> data = aoI.getDataset();
 							int numPoints = data.size();
-							String[] x = new String[numPoints];
-							String[] y = new String[numPoints];
-							
-							for(int j = 0 ; j < numPoints ; j++)
+							if(numPoints > 1)
 							{
-								Point2D.Double coOrdinateJ = data.get(j);
-								Double xJ = coOrdinateJ.getX();
-								Double yJ = coOrdinateJ.getY();
+								createGraph = true;
 								
-								x[j] = xJ.toString();
-								y[j] = yJ.toString();
+								String[] x = new String[numPoints];
+								String[] y = new String[numPoints];
+								
+								for(int j = 0 ; j < numPoints ; j++)
+								{
+									Point2D.Double coOrdinateJ = data.get(j);
+									Double xJ = coOrdinateJ.getX();
+									Double yJ = coOrdinateJ.getY();
+									
+									x[j] = xJ.toString();
+									y[j] = yJ.toString();
+								}
+								
+								command[2] = "throughput";
+								if(dhI.equals(DiaryHeader.CurrentThroughput))
+								{
+									command[3] = currentThroughputFolderString;
+									command[6] = "Current Throughput (messages/sec)";
+								}
+								else if(dhI.equals(DiaryHeader.AverageThroughput))
+								{
+									command[3] = averageThroughputFolderString;
+									command[6] = "Average Throughput (messages/sec)";
+								}
+								else if(dhI.equals(DiaryHeader.Secant))
+								{
+									command[3] = secantFolderString;
+									command[6] = "Secant (unitless)";
+								}
+								else if(dhI.equals(DiaryHeader.CurrentRatio))
+								{
+									command[3] = crFolderString;
+									command[6] = "Ratio (unitless)";
+								}
+								else
+								{
+									command[3] = roundLatencyFolderString;
+									command[6] = "Latency (sec)";
+								}
+								command[4] = aoI.getName();
+								command[5] = "Input Rate (messages/sec)";
+								command[7] = Arrays.toString(x);
+								command[8] = "float";
+								command[9] = Arrays.toString(y);
+								command[10] = "float";
 							}
 							
-							String[] command = new String[11];
-							command[0] = "python";
-							command[1] = "graph.py";
-							command[2] = "throughput";
-							if(dhI.equals(DiaryHeader.CurrentThroughput))
-							{
-								command[3] = currentThroughputFolderString;
-								command[6] = "Current Throughput (messages/sec)";
-							}
-							else if(dhI.equals(DiaryHeader.AverageThroughput))
-							{
-								command[3] = averageThroughputFolderString;
-								command[6] = "Average Throughput (messages/sec)";
-							}
-							else if(dhI.equals(DiaryHeader.Secant))
-							{
-								command[3] = secantFolderString;
-								command[6] = "Secant (unitless)";
-							}
-							else
-							{
-								command[3] = roundLatencyFolderString;
-								command[6] = "Latency (sec)";
-							}
-							command[4] = aoI.getName();
-							command[5] = "Input Rate (messages/sec)";
-							command[7] = Arrays.toString(x);
-							command[8] = "float";
-							command[9] = Arrays.toString(y);
-							command[10] = "float";
-							
-							PSTBUtil.createANewProcess(command, logger, true, false,
-									"Couldn't create graph process!", 
-									"Graph complete.", 
-									"Graph process failed!");
+						}
+					}
+					
+					if(createGraph)
+					{
+						Boolean graphCheck = PSTBUtil.createANewProcess(command, logger, true, false,
+								"Couldn't create graph process!", 
+								"Graph complete.", 
+								"Graph process failed!");
+						if(graphCheck == null || !graphCheck)
+						{
+							logger.error("Graph failed!");
+							System.exit(PSTBError.A_GRAPH);
 						}
 					}
 				}
@@ -591,7 +602,7 @@ public class Analyzer {
 			}
 			else
 			{
-				exCheck = exceuteThroughputAnalysis(analysisI, requestedBST, requestedTFS, requestedDFV, requestedP, BST, TFS, DFV, P);
+				exCheck = exceuteThroughputAnalysis(analysisI, requestedBST, requestedTFS, requestedDFV, requestedP);
 			}
 			
 			if(!exCheck)
@@ -740,16 +751,15 @@ public class Analyzer {
 	
 	private static boolean exceuteThroughputAnalysis(HashMap<AnalysisInput, ArrayList<Object>> analysisI,
 			ArrayList<Object> requestedBST, ArrayList<Object> requestedTFS, 
-			ArrayList<Object> requestedDFV, ArrayList<Object> requestedP,
-			String BST, String TFS, String DFV, String P)
+			ArrayList<Object> requestedDFV, ArrayList<Object> requestedP)
 	{
 		ArrayList<Object> requestedPL = analysisI.get(AnalysisInput.PeriodLength);
 		ArrayList<Object> requestedMS = analysisI.get(AnalysisInput.MessageSize);
 		ArrayList<Object> requestedNA = analysisI.get(AnalysisInput.NumAttribute);
 		ArrayList<Object> requestedAR = analysisI.get(AnalysisInput.AttributeRatio);
 		
-		ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBST, requestedTFS, requestedDFV, requestedP, 
-				requestedPL, requestedMS, requestedNA, requestedAR);
+		ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBST, requestedTFS, requestedDFV, 
+				requestedP, requestedPL, requestedMS, requestedNA, requestedAR);
 		
 		ArrayList<Object> requestedDHList = analysisI.get(AnalysisInput.DiaryHeader);
 		if(requestedDHList == null)
@@ -760,6 +770,7 @@ public class Analyzer {
 			requestedDHList.add(DiaryHeader.FinalThroughput);
 			requestedDHList.add(DiaryHeader.Secant);
 			requestedDHList.add(DiaryHeader.RoundLatency);
+			requestedDHList.add(DiaryHeader.CurrentRatio);
 		}
 		int numDH = requestedDHList.size();
 		
@@ -822,7 +833,10 @@ public class Analyzer {
 						{
 							dhValueL = pageL.getRoundLatency();
 						}
-						
+						else if(dhK.equals(DiaryHeader.CurrentRatio))
+						{
+							dhValueL = pageL.getCurrentRatio();
+						}
 						if(dhValueL != null)
 						{
 							analysisObjectI.handleDataPoints(dhMessageRate, dhValueL);
@@ -915,11 +929,11 @@ public class Analyzer {
 		{
 			if(nullBST)
 			{
-				nameTestArray[LOC_BENCHMARK_START_TIME] = PSTBUtil.DATE_REGEX;
+				nameTestArray[LOC_BENCHMARK_NUMBER] = PSTBUtil.BENCHMARK_NUMBER_REGEX;
 			}
 			else
 			{
-				nameTestArray[LOC_BENCHMARK_START_TIME] = (String) requestedBST.get(iBST);
+				nameTestArray[LOC_BENCHMARK_NUMBER] = (String) requestedBST.get(iBST);
 			}
 			
 			for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
@@ -1083,11 +1097,11 @@ public class Analyzer {
 		{
 			if(nullBST)
 			{
-				nameTestArray[LOC_BENCHMARK_START_TIME] = PSTBUtil.DATE_REGEX;
+				nameTestArray[LOC_BENCHMARK_NUMBER] = PSTBUtil.BENCHMARK_NUMBER_REGEX;
 			}
 			else
 			{
-				nameTestArray[LOC_BENCHMARK_START_TIME] = (String) requestedBST.get(iBST);
+				nameTestArray[LOC_BENCHMARK_NUMBER] = (String) requestedBST.get(iBST);
 			}
 			
 			for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
@@ -1289,6 +1303,7 @@ public class Analyzer {
 		Path roundDelayFolderPath = Paths.get(roundLatencyFolderString);
 		Path finalThroughputFolderPath = Paths.get(finalThroughputFolderString);
 		Path secantFolderPath = Paths.get(secantFolderString);
+		Path currentRatioPath = Paths.get(crFolderString);
 		
 		// If the folders don't exist - create them
 		boolean currentThroughputCheck = PSTBUtil.createFolder(currentThroughputFolderPath, logger, logHeader);
@@ -1326,6 +1341,12 @@ public class Analyzer {
 			return false;
 		}
 		
+		boolean currentRatioCheck = PSTBUtil.createFolder(currentRatioPath, logger, logHeader);
+		if(!currentRatioCheck)
+		{
+			logger.error(logHeader + "Couldn't cretae current ratio folder!");
+		}
+		
 		// For each analysis we did, call its affiliated "record" function
 		// NOTE:	this function assumes that analyzedCheck[i] is the analysis that resulted in object analyzedInformation[i]
 		// 		i.e. if analyzedCheck[7] is DelayCounter, then analyzedInformation[7] is a PSTBDataCounter Object
@@ -1359,6 +1380,11 @@ public class Analyzer {
 				case Secant:
 				{
 					objectFileString = secantFolderString + temp.getName() + ".txt";
+					break;
+				}
+				case CurrentRatio:
+				{
+					objectFileString = crFolderString + temp.getName() + ".txt";
 					break;
 				}
 				default:

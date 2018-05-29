@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +49,17 @@ public class PSTBUtil {
 	
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd-HH:mm:ss.SSS");
 	public static final String DATE_REGEX = "\\d{4}-\\d{2}-\\d{2}-\\d{2}:\\d{2}:\\d{2}.\\d{3}";
+	public static final String BENCHMARK_NUMBER_REGEX = "[a-zA-Z0-9+-]{5}";
+	
+	private static final char[] ALPHABET = { '0', '1', '2', '3', '4', '5', '6', '7',
+			'8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+			'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+			'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+			'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd',
+			'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+			'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+			'u', 'v', 'w', 'x', 'y', 'z', '+', '-'};
+    private static final int ENCODE_LENGTH = ALPHABET.length;
 	
 	public static final String COLUMN_SEPARATOR = "	";
 	public static final String ITEM_SEPARATOR = ",";
@@ -848,6 +860,25 @@ public class PSTBUtil {
 				&& !givenDH.equals(DiaryHeader.AverageThroughput)
 				&& !givenDH.equals(DiaryHeader.RoundLatency)
 				&& !givenDH.equals(DiaryHeader.Secant)
-				&& !givenDH.equals(DiaryHeader.FinalThroughput);
+				&& !givenDH.equals(DiaryHeader.FinalThroughput)
+				&& !givenDH.equals(DiaryHeader.CurrentRatio);
+	}
+
+	public static String encode(int victim)
+	{
+		final List<Character> list = new ArrayList<>();
+	
+		do 
+		{
+			list.add(ALPHABET[victim % ENCODE_LENGTH]);
+			victim /= ENCODE_LENGTH;
+		}
+		while (victim > 0);
+		
+		Collections.reverse(list);
+		String retVal = list.stream()
+				.map(k -> String.valueOf(k))
+				.collect(Collectors.joining("", "", ""));
+		return retVal;
 	}
 }

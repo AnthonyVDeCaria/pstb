@@ -65,21 +65,20 @@ public class PSClientPADRES extends PSClient
 			return false;
 		}
 		
-		nodeLog.info(logHeader + "Attempting to initialize client " + nodeName);
-		
+		nodeLog.debug(logHeader + "Attempting to create a new ClientConfig" + nodeName + "...");
 		// Attempt to create a new config file
 		try 
 		{
-			this.cConfig = new ClientConfig();
+			cConfig = new ClientConfig();
 		} 
 		catch (ClientException e) 
 		{
 			nodeLog.error(logHeader + "Error creating new Config for Client " + nodeName, e);
 			return false;
 		}
-		// New Config file created
+		nodeLog.debug(logHeader + "New ClientConfig created.");
 		
-		this.cConfig.clientID = nodeName;
+		cConfig.clientID = nodeName;
 		
 		if(connectAsWell)
 		{
@@ -91,20 +90,20 @@ public class PSClientPADRES extends PSClient
 			}
 			// There are
 			
-			this.cConfig.connectBrokerList = (String[]) brokersURIs.toArray(new String[brokersURIs.size()]);
+			nodeLog.debug(logHeader + "Adding brokerlist to ClientConfig...");
+			cConfig.connectBrokerList = (String[]) brokersURIs.toArray(new String[brokersURIs.size()]);
 		}
 		
-		// Attempt to create the PADRES Client object
+		nodeLog.debug(logHeader + "Creating PADRES client object...");
 		try 
 		{
 			actualClient = new PADRESClientExtension(cConfig, this);
 		}
-		catch (ClientException e)
+		catch (Exception e)
 		{
 			nodeLog.error(logHeader + "Cannot initialize new client " + nodeName, e);
 			return false;
 		}
-		// Successful
 		// If connecting was requested, that set would have also connected the client
 		
 		nodeLog.debug(logHeader + "Initialized client " + nodeName);
@@ -210,10 +209,10 @@ public class PSClientPADRES extends PSClient
 					receivedMsg.addTimeReceived(currentTime);
 					receivedMsg.addTimeDifference(currentTime - timePubCreated);
 					receivedMsg.addAttributes(pub.toString());
-					
+
+					diaryLock.lock();
 					try
 					{
-						diaryLock.lock();
 						diary.addDiaryEntryToDiary(receivedMsg);
 					}
 					finally

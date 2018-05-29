@@ -131,9 +131,9 @@ public class TPMaster extends Thread {
 	public Long getMessageDelay()
 	{
 		Long temp;
+		lockMD.lock();
 		try
 		{
-			lockMD.lock();
 			temp = messageDelay;
 		}
 		finally {
@@ -145,9 +145,9 @@ public class TPMaster extends Thread {
 	
 	public void addToSubMessages(String newMPS)
 	{
+		lockSM.lock();
 		try
 		{
-			lockSM.lock();
 			subMessages.add(newMPS);
 		}
 		finally {
@@ -157,9 +157,9 @@ public class TPMaster extends Thread {
 	
 	public void resetSubMessages()
 	{
+		lockSM.lock();
 		try
 		{
-			lockSM.lock();
 			subMessages.clear();
 		}
 		finally {
@@ -169,9 +169,9 @@ public class TPMaster extends Thread {
 	
 	public boolean isExperimentRunning()
 	{
+		lockER.lock();
 		try
 		{
-			lockER.lock();
 			return experimentRunning;
 		}
 		finally {
@@ -181,9 +181,9 @@ public class TPMaster extends Thread {
 	
 	public void stopExperiment()
 	{
+		lockER.lock();
 		try
 		{
-			lockER.lock();
 			experimentRunning = false;
 		}
 		finally {
@@ -193,9 +193,9 @@ public class TPMaster extends Thread {
 	
 	public void startExperiment()
 	{
+		lockER.lock();
 		try
 		{
-			lockER.lock();
 			experimentRunning = true;
 		}
 		finally {
@@ -205,9 +205,9 @@ public class TPMaster extends Thread {
 	
 	public ArrayList<String> getCurrentSubMessages()
 	{
+		lockSM.lock();
 		try
 		{
-			lockSM.lock();
 			return subMessages;
 		}
 		finally {
@@ -347,8 +347,19 @@ public class TPMaster extends Thread {
 					}
 					else
 					{
-						Double sNumerator = currentThroughput - startingPoint.getY();
-						Double sDenominator = messageRate - startingPoint.getX();
+						entryI.setY1(currentThroughput);
+						entryI.setX1(messageRate);
+						
+						Double currentRatio = currentThroughput / messageRate;
+						entryI.setCurrentRatio(currentRatio);
+						
+						Double y0 = startingPoint.getY();
+						Double x0 = startingPoint.getX();
+						entryI.setY0(y0);
+						entryI.setX0(x0);
+						
+						Double sNumerator = currentThroughput - y0;
+						Double sDenominator = messageRate - x0;
 						Double secant = sNumerator / sDenominator;
 						log.info(logHeader + "secant = " + secant + " | num = " + sNumerator + " | dem = " + sDenominator 
 								+ " | startY = " + startingPoint.getY() + " | startX = " + startingPoint.getX());

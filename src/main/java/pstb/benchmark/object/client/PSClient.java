@@ -124,9 +124,9 @@ public abstract class PSClient extends PSNode
 	
 	public void startCR()
 	{
+		runningLock.lock();
 		try
 		{
-			runningLock.lock();
 			currentlyRunning = new Boolean(true);
 		}
 		finally
@@ -137,9 +137,9 @@ public abstract class PSClient extends PSNode
 	
 	public void stopCR()
 	{
+		runningLock.lock();
 		try
 		{
-			runningLock.lock();
 			currentlyRunning = new Boolean(false);
 		}
 		finally
@@ -151,9 +151,9 @@ public abstract class PSClient extends PSNode
 	public Boolean getCurrentlyRunning()
 	{
 		Boolean retVal = null;
+		runningLock.lock();
 		try
 		{
-			runningLock.lock();
 			retVal = currentlyRunning;
 		}
 		finally
@@ -183,9 +183,9 @@ public abstract class PSClient extends PSNode
 	public ClientDiary getDiary()
 	{
 		ClientDiary retVal = null;
+		diaryLock.lock();
 		try
 		{
-			diaryLock.lock();
 			retVal = diary;
 		}
 		finally
@@ -596,11 +596,10 @@ public abstract class PSClient extends PSNode
 //				{
 //					nodeLog.info(logHeader + "Undo complete.");
 //				}
-				
+
+				diaryLock.lock();
 				try
 				{
-					diaryLock.lock();
-					
 					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.A);
 					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.V);
 					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.S);
@@ -657,9 +656,9 @@ public abstract class PSClient extends PSNode
 			double delay = 0.0;
 			
 			ClientDiary currentDiary = null;
+			diaryLock.lock();
 			try
 			{
-				diaryLock.lock();
 				currentDiary = diary;
 			}
 			finally
@@ -694,10 +693,10 @@ public abstract class PSClient extends PSNode
 			Double secondsPubPerMessage = messageDelay.doubleValue() / PSTBUtil.SEC_TO_NANOSEC;
 			Double messagesPerSecondPub = 1 / secondsPubPerMessage;
 			Double messageRate = messagesPerSecondPub * numPubs;
-			
+
+			diaryLock.lock();
 			try
 			{
-				diaryLock.lock();
 				diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.R);
 				DiaryEntry delayEntry = new DiaryEntry();
 				delayEntry.setRound(givenPN);
@@ -920,9 +919,9 @@ public abstract class PSClient extends PSNode
 			
 			// Add the entry to the diary
 			// However, since the diary is being used by both the sending thread and the listening thread, we need a lock
+			diaryLock.lock();
 			try
 			{
-				diaryLock.lock();
 				diary.addDiaryEntryToDiary(thisEntry);
 			}
 			finally

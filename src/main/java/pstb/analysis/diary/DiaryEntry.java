@@ -177,6 +177,31 @@ public class DiaryEntry  implements java.io.Serializable
 		page.put(DiaryHeader.FinalThroughput, givenFT);
 	}
 	
+	public void setY0(Double y0)
+	{
+		page.put(DiaryHeader.Y0, y0);
+	}
+	
+	public void setY1(Double y1)
+	{
+		page.put(DiaryHeader.Y1, y1);
+	}
+	
+	public void setX0(Double x0)
+	{
+		page.put(DiaryHeader.X0, x0);
+	}
+	
+	public void setX1(Double x1)
+	{
+		page.put(DiaryHeader.X1, x1);
+	}
+	
+	public void setCurrentRatio(Double givenCR)
+	{
+		page.put(DiaryHeader.CurrentRatio, givenCR);
+	}
+	
 	public PSActionType getPSActionType()
 	{
 		return (PSActionType) page.get(DiaryHeader.PSActionType);
@@ -265,6 +290,31 @@ public class DiaryEntry  implements java.io.Serializable
 	public Double getFinalThroughput()
 	{
 		return (Double) page.get(DiaryHeader.FinalThroughput);
+	}
+	
+	public Double getY0()
+	{
+		return (Double) page.get(DiaryHeader.Y0);
+	}
+	
+	public Double getY1()
+	{
+		return (Double) page.get(DiaryHeader.Y1);
+	}
+	
+	public Double getX0()
+	{
+		return (Double) page.get(DiaryHeader.X0);
+	}
+	
+	public Double getX1()
+	{
+		return (Double) page.get(DiaryHeader.X1);
+	}
+	
+	public Double getCurrentRatio()
+	{
+		return (Double) page.get(DiaryHeader.CurrentRatio);
 	}
 	
 	public boolean containsKey(Object value) 

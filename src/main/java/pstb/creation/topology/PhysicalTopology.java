@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.analysis.diary.DistributedFlagValue;
 import pstb.benchmark.object.PSNode;
 import pstb.benchmark.object.broker.PSBroker;
 import pstb.benchmark.object.client.PSClient;
@@ -68,7 +69,7 @@ public abstract class PhysicalTopology {
 	protected String CLIENT_PROCESS_CLASS_NAME;
 	
 	// Variables set on initial start up
-	protected Boolean distributed;
+	protected boolean distributed;
 	
 	// Variables set during Object creation
 	private HashMap<String, String> nodeMachine;
@@ -135,7 +136,7 @@ public abstract class PhysicalTopology {
 		InetAddress masterAddress = InetAddress.getLocalHost();
 		ipAddress = masterAddress.getHostAddress();
 		
-		distributed = null;
+		distributed = false;
 		
 		nodeMachine = new HashMap<String, String>();
 		numNodesMachine = new HashMap<String, HashMap<NodeRole, Integer>>();
@@ -195,9 +196,21 @@ public abstract class PhysicalTopology {
 	 * 
 	 * @return the Distributed Boolean
 	 */
-	public Boolean getDistributed()
+	public boolean getDistributed()
 	{
 		return distributed;
+	}
+	
+	public String getName()
+	{
+		DistributedFlagValue temp = DistributedFlagValue.L;
+		
+		if(distributed)
+		{
+			temp = DistributedFlagValue.D;
+		}
+		
+		return topologyFileString + PSTBUtil.CONTEXT_SEPARATOR + temp + PSTBUtil.CONTEXT_SEPARATOR + protocol;
 	}
 	
 	/**
@@ -832,11 +845,6 @@ public abstract class PhysicalTopology {
 		if(brokerServer == null)
 		{
 			logger.error(logHeader + "No server exists!");
-			return null;
-		}
-		if(distributed == null)
-		{
-			logger.error(logHeader + "No distributed data given!");
 			return null;
 		}
 		if(nodeMachine.isEmpty())

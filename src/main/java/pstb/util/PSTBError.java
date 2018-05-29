@@ -35,4 +35,5 @@ public class PSTBError {
 	public static final int A_ANALYSIS_FILE_PARSE = 44;
 	public static final int A_ANALYSIS = 45;
 	public static final int A_RECORD_ANALYSIS = 46;
+	public static final int A_GRAPH = 47;
 }

@@ -734,21 +734,22 @@ public class AnalysisFileParser {
 			{
 				for(int i = 0 ; i < numDHs ; i++)
 				{
+					String dhI = splitDHs[i];
 					DiaryHeader temp = null;
 					try
 					{
-						temp = DiaryHeader.valueOf(splitDHs[i]);
+						temp = DiaryHeader.valueOf(dhI);
 					}
 					catch(Exception e)
 					{
-						log.error(logHeader + "Given string " + i + " isn't a DiaryHeader, or is null with other DiaryHeaders!");
+						log.error(logHeader + "Given string " + dhI + " isn't a DiaryHeader, or is null with other DiaryHeaders!");
 						listDiaryHeader.clear();
 						error = true;
 					}
 					
 					if(PSTBUtil.isDHImproper(temp))
 					{
-						log.error(logHeader + "Given string " + i + " is an illegal DiaryHeader!");
+						log.error(logHeader + "Given string " + dhI + " is an illegal DiaryHeader!");
 						listDiaryHeader.clear();
 						error = true;
 					}

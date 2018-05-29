@@ -123,20 +123,20 @@
     </Appenders>
     
     <Loggers>
-        <Root level="fatal" additivity="false">
+        <Root level="debug" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Root"/>
         </Root>
-        <Logger name="pstb.creation.server.ObjectServer" level="fatal" additivity="false">
+        <Logger name="pstb.creation.server.ObjectServer" level="debug" additivity="false">
         	<AppenderRef ref="Server"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.PSTBProcess" level="fatal" additivity="false">
+        <Logger name="pstb.benchmark.process.PSTBProcess" level="debug" additivity="false">
         	<AppenderRef ref="Node"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="fatal" additivity="false">
+        <Logger name="pstb.benchmark.process.broker.PSTBBrokerProcess" level="debug" additivity="false">
         	<AppenderRef ref="Broker"/>
         </Logger>
-        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="fatal" additivity="false">
+        <Logger name="pstb.benchmark.process.client.PSTBClientProcess" level="debug" additivity="false">
         	<AppenderRef ref="Client"/>
         </Logger>
         <Logger name="SystemError" level="fatal" additivity="false">

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -42,10 +43,12 @@ import pstb.util.UI;
  */
 public class PSTB {
 	// Constants
-	private static final String DEFAULT_ANALYSIS_FILE_STRING = "etc/defaultAnalysis.txt";
+	private static final String DEFAULT_ANALYSIS_FILE_STRING = "etc/defaultAnalysis.sin";
 	private static final String DEFAULT_BENCHMARK_PROPERTIES_FILE_STRING = "etc/defaultBenchmark.properties";
 	private static final int EXCEUTED_PROPERLY_VALUE = 0;
 	private static final int TOO_FEW_ANALYSIS_ARGS = 2;
+	private static final Double MAX_BENCH_NUM_DOUBLE = Math.pow(64,5);
+	private static final int MAX_BENCH_NUM_INT = MAX_BENCH_NUM_DOUBLE.intValue();
 	
 	// Working Boolean
 	protected static Boolean experimentRunning;
@@ -298,8 +301,7 @@ public class PSTB {
 		}
 		
 		// Benchmark
-		Long currTime = System.currentTimeMillis();
-		String currTimeString = PSTBUtil.DATE_FORMAT.format(currTime);
+		String benchmarkNum = createBenchmarkNumber();
 		HashMap<String, DistributedState> askedDistributed = benchmarkRules.getDistributed();
 		ArrayList<ExperimentType> askedModes = benchmarkRules.getModes();
 		Iterator<String> iteratorLT = allLTs.keySet().iterator();
@@ -347,9 +349,9 @@ public class PSTB {
 						try
 						{
 							local = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, null, localMachines, PADRESWorkload, 
-									currTimeString, topologyI, masterSocket);
+									benchmarkNum, topologyI, masterSocket);
 							dis = new PADRESTopology(modeI, actualTopologyI, givenProtocolJ, disUsername, disMachines, 
-									PADRESWorkload, currTimeString, topologyI, masterSocket);
+									PADRESWorkload, benchmarkNum, topologyI, masterSocket);
 						}
 						catch (Exception e)
 						{
@@ -362,9 +364,9 @@ public class PSTB {
 						try
 						{
 							local = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, null, localMachines, SIENAWorkload, 
-									currTimeString, topologyI, masterSocket);
+									benchmarkNum, topologyI, masterSocket);
 							dis = new SIENATopology(modeI, actualTopologyI,  givenProtocolJ, disUsername, disMachines, SIENAWorkload, 
-									currTimeString, topologyI, masterSocket);
+									benchmarkNum, topologyI, masterSocket);
 						}
 						catch (Exception e)
 						{
@@ -539,6 +541,8 @@ public class PSTB {
 	 */
 	private static boolean conductScenarioExperiment(PhysicalTopology givenPT, ArrayList<Long> givenRLs, Integer givenNumberOfRunsPerExperiment)
 	{
+		String givenPTName = givenPT.getName();
+		
 		// Loop through the Run Lengths
 		for(int runLengthI = 0 ; runLengthI < givenRLs.size(); runLengthI++)
 		{
@@ -550,6 +554,8 @@ public class PSTB {
 			// Loop through the runs
 			for(int runI = 0 ; runI < givenNumberOfRunsPerExperiment ; runI++)
 			{
+				logger.fatal("Starting run " + runI + " for topology " + givenPTName + "...");
+				
 				boolean prepCheck = givenPT.prepareScenarioExperiment(iTHRunLengthNano, runI);
 				if(!prepCheck)
 				{
@@ -564,10 +570,8 @@ public class PSTB {
 					return false;
 				}
 				
-				logger.debug("Run starting...");
-				
 				PSTBUtil.synchronizeRun();
-				logger.info("Synchronization complete.");
+				logger.fatal("Synchronization complete.");
 				
 				PhysicalTopology.ActiveProcessRetVal valueCAP = givenPT.checkActiveProcesses();
 				Long startTime = System.nanoTime();
@@ -639,15 +643,7 @@ public class PSTB {
 	 */
 	private static boolean conductThroughputExperiment(PhysicalTopology givenPT, Long givenPL, 
 			ArrayList<MessageSize> givenMS, ArrayList<NumAttribute> givenNA, ArrayList<AttributeRatio> givenAR)
-	{
-		// We'll need this in case there is an error, so...
-		Boolean givenPTDis = givenPT.getDistributed();
-		if(givenPTDis == null)
-		{
-			logger.error("Error with givenPT - distributed value not set properly!");
-			return false;
-		}
-		
+	{	
 		for(int i = 0 ; i < givenMS.size() ; i++)
 		{
 			MessageSize msI = givenMS.get(i);
@@ -729,6 +725,17 @@ public class PSTB {
 
 		logger.info("Experiment successful.");
 		return true;
+	}
+	
+	private static String createBenchmarkNumber()
+	{
+		Long currTime = System.currentTimeMillis();
+		Random rng = new Random(currTime);
+		Integer value = rng.nextInt(MAX_BENCH_NUM_INT);
+    	System.out.println(value);
+    	String retVal = PSTBUtil.encode(value);
+		
+		return retVal;
 	}
 }
 
