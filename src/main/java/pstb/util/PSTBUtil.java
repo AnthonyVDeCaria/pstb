@@ -51,7 +51,7 @@ public class PSTBUtil {
 	public static final String DATE_REGEX = "\\d{4}-\\d{2}-\\d{2}-\\d{2}:\\d{2}:\\d{2}.\\d{3}";
 	public static final String BENCHMARK_NUMBER_REGEX = "[a-zA-Z0-9+-]{5}";
 	
-	private static final char[] ALPHABET = { '0', '1', '2', '3', '4', '5', '6', '7',
+	public static final char[] ALPHABET = { '0', '1', '2', '3', '4', '5', '6', '7',
 			'8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
 			'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
 			'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
@@ -59,7 +59,7 @@ public class PSTBUtil {
 			'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
 			'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
 			'u', 'v', 'w', 'x', 'y', 'z', '+', '-'};
-    private static final int ENCODE_LENGTH = ALPHABET.length;
+    public static final int ALPHABET_LEN = ALPHABET.length;
 	
 	public static final String COLUMN_SEPARATOR = "	";
 	public static final String ITEM_SEPARATOR = ",";
@@ -870,8 +870,8 @@ public class PSTBUtil {
 	
 		do 
 		{
-			list.add(ALPHABET[victim % ENCODE_LENGTH]);
-			victim /= ENCODE_LENGTH;
+			list.add(ALPHABET[victim % ALPHABET_LEN]);
+			victim /= ALPHABET_LEN;
 		}
 		while (victim > 0);
 		

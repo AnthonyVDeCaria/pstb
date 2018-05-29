@@ -47,7 +47,8 @@ public class PSTB {
 	private static final String DEFAULT_BENCHMARK_PROPERTIES_FILE_STRING = "etc/defaultBenchmark.properties";
 	private static final int EXCEUTED_PROPERLY_VALUE = 0;
 	private static final int TOO_FEW_ANALYSIS_ARGS = 2;
-	private static final Double MAX_BENCH_NUM_DOUBLE = Math.pow(64,5);
+	private static final int NUMBER_BENCH_NUM_SPOTS = 5;
+	private static final Double MAX_BENCH_NUM_DOUBLE = Math.pow(PSTBUtil.ALPHABET_LEN, NUMBER_BENCH_NUM_SPOTS);
 	private static final int MAX_BENCH_NUM_INT = MAX_BENCH_NUM_DOUBLE.intValue();
 	
 	// Working Boolean

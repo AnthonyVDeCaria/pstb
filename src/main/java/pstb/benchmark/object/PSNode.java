@@ -20,7 +20,7 @@ public abstract class PSNode implements java.io.Serializable
 	protected static final long serialVersionUID = 1L;
 	
 	// Variables needed by user to produce output
-	protected String benchmarkStartTime;
+	protected String benchmarkNumber;
 	protected String topologyFileString;
 	protected Boolean distributed;
 	protected NetworkProtocol protocol;
@@ -39,7 +39,7 @@ public abstract class PSNode implements java.io.Serializable
 	
 	public PSNode()
 	{
-		benchmarkStartTime = null;
+		benchmarkNumber = null;
 		topologyFileString = null;
 		distributed = null;
 		protocol = null;
@@ -58,11 +58,11 @@ public abstract class PSNode implements java.io.Serializable
 	/**
 	 * Sets the time the benchmark started (that the diary will need)
 	 * 
-	 * @param givenBST - a String version of the time the Benchmark started
+	 * @param givenBN - a String version of the time the Benchmark started
 	 */
-	public void setBenchmarkStartTime(String givenBST)
+	public void setBenchmarkNumber(String givenBN)
 	{
-		benchmarkStartTime = givenBST;
+		benchmarkNumber = givenBN;
 	}
 	
 	/**
@@ -189,7 +189,7 @@ public abstract class PSNode implements java.io.Serializable
 	{
 		boolean everythingPresent = true;
 		
-		if(benchmarkStartTime == null)
+		if(benchmarkNumber == null)
 		{
 			nodeLog.error("No benchmark start time was given!");
 			everythingPresent = false;
@@ -275,7 +275,7 @@ public abstract class PSNode implements java.io.Serializable
 		}
 		// We do
 		
-		String retVal = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, runLength, 
+		String retVal = PSTBUtil.generateContext(distributed, benchmarkNumber, topologyFileString, protocol, mode, runLength, 
 				runNumber, periodLength, ar, na, ms, nodeName, nodeLog, logHeader);
 		
 		return retVal;

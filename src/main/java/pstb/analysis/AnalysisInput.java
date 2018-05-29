@@ -11,7 +11,7 @@ package pstb.analysis;
  */
 public enum AnalysisInput {
 	// Always
-	BenchmarkStartTime, TopologyFilePath, DistributedFlag, Protocol,
+	BenchmarkNumber, TopologyFilePath, DistributedFlag, Protocol,
 	// Scenario
 	RunLength, RunNumber, ClientName, AnalysisType, PSActionType,
 	// Throughput

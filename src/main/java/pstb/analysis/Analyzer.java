@@ -569,17 +569,17 @@ public class Analyzer {
 			HashMap<AnalysisInput, ArrayList<Object>> analysisI = requestedAnalysis.get(i);
 			
 			// Prepare general Diary Stuff
-			ArrayList<Object> requestedBST = analysisI.get(AnalysisInput.BenchmarkStartTime);
+			ArrayList<Object> requestedBN = analysisI.get(AnalysisInput.BenchmarkNumber);
 			ArrayList<Object> requestedTFS = analysisI.get(AnalysisInput.TopologyFilePath);
 			ArrayList<Object> requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
 			ArrayList<Object> requestedP = analysisI.get(AnalysisInput.Protocol);
-			String BST = null;
+			String BN = null;
 			String TFS = null;
 			String DFV = null;
 			String P = null;
-			if(requestedBST != null)
+			if(requestedBN != null)
 			{
-				BST = Arrays.toString(requestedBST.toArray()).replace("[", "").replace("]", "");
+				BN = Arrays.toString(requestedBN.toArray()).replace("[", "").replace("]", "");
 			}
 			if(requestedTFS != null)
 			{
@@ -598,11 +598,11 @@ public class Analyzer {
 			// Handle situation dependant diary stuff
 			if(isScenario)
 			{
-				exCheck = executeScenarioAnalysis(analysisI, requestedBST, requestedTFS, requestedDFV, requestedP, BST, TFS, DFV, P);
+				exCheck = executeScenarioAnalysis(analysisI, requestedBN, requestedTFS, requestedDFV, requestedP, BN, TFS, DFV, P);
 			}
 			else
 			{
-				exCheck = exceuteThroughputAnalysis(analysisI, requestedBST, requestedTFS, requestedDFV, requestedP);
+				exCheck = exceuteThroughputAnalysis(analysisI, requestedBN, requestedTFS, requestedDFV, requestedP);
 			}
 			
 			if(!exCheck)
@@ -616,15 +616,15 @@ public class Analyzer {
 	}
 	
 	private static boolean executeScenarioAnalysis(HashMap<AnalysisInput, ArrayList<Object>> analysisI,
-			ArrayList<Object> requestedBST, ArrayList<Object> requestedTFS, 
+			ArrayList<Object> requestedBN, ArrayList<Object> requestedTFS, 
 			ArrayList<Object> requestedDFV, ArrayList<Object> requestedP,
-			String BST, String TFS, String DFV, String P)
+			String BN, String TFS, String DFV, String P)
 	{
 		ArrayList<Object> requestedRL = analysisI.get(AnalysisInput.RunLength);
 		ArrayList<Object> requestedRN = analysisI.get(AnalysisInput.RunNumber);
 		ArrayList<Object> requestedCN = analysisI.get(AnalysisInput.ClientName);
 		
-		ArrayList<String> requestedDiaryNames = getAffiliatedScenarioDiaries(requestedBST, requestedTFS, requestedDFV, requestedP, 
+		ArrayList<String> requestedDiaryNames = getAffiliatedScenarioDiaries(requestedBN, requestedTFS, requestedDFV, requestedP, 
 				requestedRL, requestedRN, requestedCN);
 		
 		String RL = null;
@@ -644,7 +644,7 @@ public class Analyzer {
 			CN = Arrays.toString(requestedCN.toArray()).replace("[", "").replace("]", "");
 		}
 		
-		String analysisObjectName = BST + "_" + TFS + "_" + DFV + "_" + P + "_" + RL + "_" + RN + "_" + CN;
+		String analysisObjectName = BN + "_" + TFS + "_" + DFV + "_" + P + "_" + RL + "_" + RN + "_" + CN;
 		
 		ArrayList<Object> requestedATList = analysisI.get(AnalysisInput.AnalysisType);
 		if(requestedATList == null)
@@ -750,7 +750,7 @@ public class Analyzer {
 	}
 	
 	private static boolean exceuteThroughputAnalysis(HashMap<AnalysisInput, ArrayList<Object>> analysisI,
-			ArrayList<Object> requestedBST, ArrayList<Object> requestedTFS, 
+			ArrayList<Object> requestedBN, ArrayList<Object> requestedTFS, 
 			ArrayList<Object> requestedDFV, ArrayList<Object> requestedP)
 	{
 		ArrayList<Object> requestedPL = analysisI.get(AnalysisInput.PeriodLength);
@@ -758,7 +758,7 @@ public class Analyzer {
 		ArrayList<Object> requestedNA = analysisI.get(AnalysisInput.NumAttribute);
 		ArrayList<Object> requestedAR = analysisI.get(AnalysisInput.AttributeRatio);
 		
-		ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBST, requestedTFS, requestedDFV, 
+		ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBN, requestedTFS, requestedDFV, 
 				requestedP, requestedPL, requestedMS, requestedNA, requestedAR);
 		
 		ArrayList<Object> requestedDHList = analysisI.get(AnalysisInput.DiaryHeader);
@@ -866,7 +866,7 @@ public class Analyzer {
 	 * @param requestedCN - the ClientName associated with these Diaries
 	 * @return the list of matching diary names
 	 */
-	private static ArrayList<String> getAffiliatedScenarioDiaries(ArrayList<Object> requestedBST,
+	private static ArrayList<String> getAffiliatedScenarioDiaries(ArrayList<Object> requestedBN,
 			ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
 			ArrayList<Object> requestedP, ArrayList<Object> requestedRL, 
 			ArrayList<Object> requestedRN, ArrayList<Object> requestedCN)
@@ -878,7 +878,7 @@ public class Analyzer {
 		String[] nameTestArray = new String[NUM_SCENARIO_STRINGS];
 		
 		// Which lists are null?
-		boolean nullBST = (requestedBST == null);
+		boolean nullBN = (requestedBN == null);
 		boolean nullTPF = (requestedTPF == null);
 		boolean nullDFV = (requestedDFV == null);
 		boolean nullP = (requestedP == null);
@@ -886,7 +886,7 @@ public class Analyzer {
 		boolean nullRN = (requestedRN == null);
 		boolean nullCN = (requestedCN == null);
 		
-		int numBST = 1;
+		int numBN = 1;
 		int numTPF = 1;
 		int numDFV = 1;
 		int numP = 1;
@@ -895,9 +895,9 @@ public class Analyzer {
 		int numCN = 1;
 		
 		// Set nums
-		if(!nullBST)
+		if(!nullBN)
 		{
-			numBST = requestedBST.size();
+			numBN = requestedBN.size();
 		}
 		if(!nullTPF)
 		{
@@ -925,15 +925,15 @@ public class Analyzer {
 		}
 		
 		// Loop through "all lists" to add its String to the Regex
-		for(int iBST = 0 ; iBST < numBST ; iBST++)
+		for(int iBN = 0 ; iBN < numBN ; iBN++)
 		{
-			if(nullBST)
+			if(nullBN)
 			{
 				nameTestArray[LOC_BENCHMARK_NUMBER] = PSTBUtil.BENCHMARK_NUMBER_REGEX;
 			}
 			else
 			{
-				nameTestArray[LOC_BENCHMARK_NUMBER] = (String) requestedBST.get(iBST);
+				nameTestArray[LOC_BENCHMARK_NUMBER] = (String) requestedBN.get(iBN);
 			}
 			
 			for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)
@@ -1026,7 +1026,7 @@ public class Analyzer {
 		return retVal;
 	}
 	
-	private static ArrayList<String> getAffiliatedThroughputDiaries(ArrayList<Object> requestedBST,
+	private static ArrayList<String> getAffiliatedThroughputDiaries(ArrayList<Object> requestedBN,
 			ArrayList<Object> requestedTPF, ArrayList<Object> requestedDFV,
 			ArrayList<Object> requestedP, ArrayList<Object> requestedPL, 
 			ArrayList<Object> requestedMS, ArrayList<Object> requestedNA, ArrayList<Object> requestedAR)
@@ -1038,7 +1038,7 @@ public class Analyzer {
 		String[] nameTestArray = new String[NUM_THROUGHPUT_STRINGS];
 		
 		// Which lists are null?
-		boolean nullBST = (requestedBST == null);
+		boolean nullBN = (requestedBN == null);
 		boolean nullTPF = (requestedTPF == null);
 		boolean nullDFV = (requestedDFV == null);
 		boolean nullP = (requestedP == null);
@@ -1047,7 +1047,7 @@ public class Analyzer {
 		boolean nullNA = (requestedNA == null);
 		boolean nullAR = (requestedAR == null);
 		
-		int numBST = 1;
+		int numBN = 1;
 		int numTPF = 1;
 		int numDFV = 1;
 		int numP = 1;
@@ -1057,9 +1057,9 @@ public class Analyzer {
 		int numAR = 1;
 		
 		// Set nums
-		if(!nullBST)
+		if(!nullBN)
 		{
-			numBST = requestedBST.size();
+			numBN = requestedBN.size();
 		}
 		if(!nullTPF)
 		{
@@ -1093,15 +1093,15 @@ public class Analyzer {
 		nameTestArray[LOC_NODE_NAME] = PSTBUtil.MASTER;
 		
 		// Loop through all lists to add its String to the Regex
-		for(int iBST = 0 ; iBST < numBST ; iBST++)
+		for(int iBN = 0 ; iBN < numBN ; iBN++)
 		{
-			if(nullBST)
+			if(nullBN)
 			{
 				nameTestArray[LOC_BENCHMARK_NUMBER] = PSTBUtil.BENCHMARK_NUMBER_REGEX;
 			}
 			else
 			{
-				nameTestArray[LOC_BENCHMARK_NUMBER] = (String) requestedBST.get(iBST);
+				nameTestArray[LOC_BENCHMARK_NUMBER] = (String) requestedBN.get(iBN);
 			}
 			
 			for(int iTPF = 0 ; iTPF < numTPF ; iTPF++)

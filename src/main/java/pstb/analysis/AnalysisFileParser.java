@@ -31,7 +31,7 @@ import pstb.util.PSTBUtil;
  */
 public class AnalysisFileParser {
 	// Constants - General 
-	private final int LOC_BENCHMARK_START_TIME = 0;
+	private final int LOC_BENCHMARK_NUMBER = 0;
 	private final int LOC_TOPO_FILE_PATH = 1;
 	private final int LOC_DISTRIBUTED_FLAG = 2;
 	private final int LOC_PROTOCOL = 3;
@@ -206,12 +206,12 @@ public class AnalysisFileParser {
 		ArrayList<Object> listDistributed = new ArrayList<Object>();
 		ArrayList<Object> listProtocol = new ArrayList<Object>();
 		
-		String benchmarkSTs = splitLine[LOC_BENCHMARK_START_TIME];
+		String benchmarkNums = splitLine[LOC_BENCHMARK_NUMBER];
 		String topologies = splitLine[LOC_TOPO_FILE_PATH];
 		String distributedFlags = splitLine[LOC_DISTRIBUTED_FLAG];
 		String protocols = splitLine[LOC_PROTOCOL];
 		
-		String[] splitBSTs = benchmarkSTs.split(",");
+		String[] splitBNs = benchmarkNums.split(",");
 		String[] splitTopologies = topologies.split(",");
 		String[] splitDistributedFlags = distributedFlags.split(",");
 		String[] splitProtocols = protocols.split(",");
@@ -219,31 +219,31 @@ public class AnalysisFileParser {
 		boolean error = false;
 		
 		// Benchmark Start Times
-		int numBSTs = splitBSTs.length;
-		if(numBSTs == 1 && splitBSTs[0].equals("null"))
+		int numBNs = splitBNs.length;
+		if(numBNs == 1 && splitBNs[0].equals("null"))
 		{
-			retVal.put(AnalysisInput.BenchmarkStartTime, null);
+			retVal.put(AnalysisInput.BenchmarkNumber, null);
 		}
 		else
 		{
-			Pattern bstTest = Pattern.compile(PSTBUtil.DATE_REGEX);
+			Pattern bstTest = Pattern.compile(PSTBUtil.BENCHMARK_NUMBER_REGEX);
 			
-			for(int i = 0 ; i < numBSTs ; i++)
+			for(int i = 0 ; i < numBNs ; i++)
 			{
-				String bstI = splitBSTs[i];
-				if(bstTest.matcher(bstI).matches())
+				String bnI = splitBNs[i];
+				if(bstTest.matcher(bnI).matches())
 				{
-					listBenchmark.add(bstI);
+					listBenchmark.add(bnI);
 				}
 				else
 				{
-					log.error(logHeader + "Given BenchmarkStartTime " + bstI + " is not a valid timestamp!");
+					log.error(logHeader + "Given BenchmarkNumber " + bnI + " is not valid!");
 					listBenchmark.clear();
 					error = true;
 				}
 			}
 			
-			retVal.put(AnalysisInput.BenchmarkStartTime, listBenchmark);
+			retVal.put(AnalysisInput.BenchmarkNumber, listBenchmark);
 		}
 		
 		// Topologies
@@ -300,7 +300,7 @@ public class AnalysisFileParser {
 				}
 				catch(Exception e)
 				{
-					log.error(logHeader + "Given string " + i + " isn't a DistributedFlagValue,"
+					log.error(logHeader + "Given string " + distributedFlagI + " isn't a DistributedFlagValue,"
 									+ " or is null with other FlagValues!");
 					listDistributed.clear();
 					error = true;

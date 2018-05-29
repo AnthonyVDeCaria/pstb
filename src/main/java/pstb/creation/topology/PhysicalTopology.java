@@ -60,7 +60,7 @@ public abstract class PhysicalTopology {
 	protected String user;
 	protected ArrayList<Machine> givenMachines;
 	protected HashMap<String, ArrayList<PSAction>> masterWorkload;
-	protected String benchmarkStartTime;
+	protected String benchmarkNumber;
 	protected String topologyFileString;
 	
 	// Variables set on creation
@@ -130,7 +130,7 @@ public abstract class PhysicalTopology {
 		
 		masterWorkload = givenWorkload;
 		
-		benchmarkStartTime = givenBST;
+		benchmarkNumber = givenBST;
 		topologyFileString = PSTBUtil.cleanTFS(givenTFS);
 		
 		InetAddress masterAddress = InetAddress.getLocalHost();
@@ -428,7 +428,7 @@ public abstract class PhysicalTopology {
 				handleAdjacentBrokers(brokerI, bIConnectedNodes, nURIs);
 			}
 			
-			brokerI.setBenchmarkStartTime(benchmarkStartTime);
+			brokerI.setBenchmarkNumber(benchmarkNumber);
 			brokerI.setTopologyFileString(topologyFileString);
 			brokerI.setDistributed(distributed);
 			brokerI.setMode(mode);
@@ -592,7 +592,7 @@ public abstract class PhysicalTopology {
 			clientI.setDistributed(distributed);
 			clientI.setNetworkProtocol(protocol);
 			clientI.setTopologyFileString(topologyFileString);
-			clientI.setBenchmarkStartTime(benchmarkStartTime);
+			clientI.setBenchmarkNumber(benchmarkNumber);
 			clientI.setWorkload(clientIWorkload);
 			clientI.setMode(mode);
 										
@@ -678,10 +678,10 @@ public abstract class PhysicalTopology {
 			actualBroker.setRunNumber(givenRunNumber);
 		});
 		
-		String contextB = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, givenRunLength, 
+		String contextB = PSTBUtil.generateContext(distributed, benchmarkNumber, topologyFileString, protocol, mode, givenRunLength, 
 				givenRunNumber, null, null, null, null, "BrokerServer", logger, logHeader);
 		
-		String contextC = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, givenRunLength, 
+		String contextC = PSTBUtil.generateContext(distributed, benchmarkNumber, topologyFileString, protocol, mode, givenRunLength, 
 				givenRunNumber, null, null, null, null, "ClientServer", logger, logHeader);
 		
 		setupServers(contextB, contextC);
@@ -727,13 +727,13 @@ public abstract class PhysicalTopology {
 			actualBroker.setMS(msI);
 		});
 		
-		String contextB = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, null, 
+		String contextB = PSTBUtil.generateContext(distributed, benchmarkNumber, topologyFileString, protocol, mode, null, 
 				null, plI, arI, naI, msI, "BrokerServer", logger, logHeader);
 		
-		String contextC = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, null, 
+		String contextC = PSTBUtil.generateContext(distributed, benchmarkNumber, topologyFileString, protocol, mode, null, 
 				null, plI, arI, naI, msI, "ClientServer", logger, logHeader);
 		
-		String mContext = PSTBUtil.generateContext(distributed, benchmarkStartTime, topologyFileString, protocol, mode, null, 
+		String mContext = PSTBUtil.generateContext(distributed, benchmarkNumber, topologyFileString, protocol, mode, null, 
 				null, plI, arI, naI, msI, "TPMaster", logger, logHeader);
 		
 		setupServers(contextB, contextC);
