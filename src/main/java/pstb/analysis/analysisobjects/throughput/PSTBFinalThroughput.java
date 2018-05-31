@@ -9,6 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 
+import pstb.analysis.diary.DiaryHeader;
+
 /**
  * @author padres-dev-4187
  *
@@ -19,7 +21,7 @@ public class PSTBFinalThroughput extends PSTBThroughputAO {
 	
 	public PSTBFinalThroughput()
 	{
-		super();
+		super(DiaryHeader.FinalThroughput);
 		value = null;
 	}
 	

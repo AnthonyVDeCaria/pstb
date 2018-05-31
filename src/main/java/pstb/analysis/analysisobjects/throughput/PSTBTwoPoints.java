@@ -23,13 +23,11 @@ import pstb.util.PSTBUtil.TimeType;
 public class PSTBTwoPoints extends PSTBThroughputAO {
 	// Variables
 	private ArrayList<Point2D.Double> dataset;
-	private DiaryHeader associated;
 	
 	public PSTBTwoPoints(DiaryHeader givenHeader)
 	{
-		super();
+		super(givenHeader);
 		dataset = new ArrayList<Point2D.Double>();
-		associated = givenHeader;
 	}
 	
 	public ArrayList<Point2D.Double> getDataset()
@@ -52,7 +50,7 @@ public class PSTBTwoPoints extends PSTBThroughputAO {
 		}
 		else if(PSTBUtil.isDHImproper(associated))
 		{
-			log.error("Given DiaryHeader is an illegal!");
+			log.error("Given DiaryHeader is illegal!");
 			return false;
 		}
 		

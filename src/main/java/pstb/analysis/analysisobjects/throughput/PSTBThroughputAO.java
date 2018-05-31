@@ -3,12 +3,15 @@ package pstb.analysis.analysisobjects.throughput;
 import java.nio.file.Path;
 
 import pstb.analysis.analysisobjects.PSTBAnalysisObject;
+import pstb.analysis.diary.DiaryHeader;
 
 public abstract class PSTBThroughputAO extends PSTBAnalysisObject {
+	protected DiaryHeader associated;
 	
-	public PSTBThroughputAO()
+	public PSTBThroughputAO(DiaryHeader givenDH)
 	{
 		super();
+		associated = givenDH;
 	}
 		
 	/**
@@ -22,4 +25,9 @@ public abstract class PSTBThroughputAO extends PSTBAnalysisObject {
 	public abstract void handleDataPoint(Double givenDataPoint);
 	
 	public abstract void handleDataPoints(Double x, Double y);
+	
+	public DiaryHeader getAssociatedDH()
+	{
+		return associated;
+	}
 }
