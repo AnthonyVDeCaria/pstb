@@ -593,7 +593,7 @@ public class ThroughputAnalyzer {
 		
 		boolean createGraph = false;
 		
-		DiaryHeader f = givenAO.getAssociatedDH();
+		DiaryHeader givenAODH = givenAO.getAssociatedDH();
 		
 		String[] command = new String[11];
 		command[0] = "python";
@@ -608,33 +608,33 @@ public class ThroughputAnalyzer {
 			String[] x = new String[numPoints];
 			String[] y = new String[numPoints];
 			
-			for(int k = 0 ; k < numPoints ; k++)
+			for(int i = 0 ; i < numPoints ; i++)
 			{
-				Point2D.Double coOrdinateJ = data.get(k);
-				Double xK = coOrdinateJ.getX();
-				Double yK = coOrdinateJ.getY();
+				Point2D.Double coOrdinateJ = data.get(i);
+				Double xI = coOrdinateJ.getX();
+				Double yI = coOrdinateJ.getY();
 				
-				x[k] = xK.toString();
-				y[k] = yK.toString();
+				x[i] = xI.toString();
+				y[i] = yI.toString();
 			}
 			
 			command[2] = "throughput";
 			command[3] = folderString;
 			command[4] = titleName;
 			command[5] = "Input Rate (messages/sec)";
-			if(f.equals(DiaryHeader.CurrentThroughput))
+			if(givenAODH.equals(DiaryHeader.CurrentThroughput))
 			{
 				command[6] = "Current Throughput (messages/sec)";
 			}
-			else if(f.equals(DiaryHeader.AverageThroughput))
+			else if(givenAODH.equals(DiaryHeader.AverageThroughput))
 			{
 				command[6] = "Average Throughput (messages/sec)";
 			}
-			else if(f.equals(DiaryHeader.Secant))
+			else if(givenAODH.equals(DiaryHeader.Secant))
 			{
 				command[6] = "Secant (unitless)";
 			}
-			else if(f.equals(DiaryHeader.CurrentRatio))
+			else if(givenAODH.equals(DiaryHeader.CurrentRatio))
 			{
 				command[6] = "Ratio (unitless)";
 			}
@@ -674,7 +674,7 @@ public class ThroughputAnalyzer {
 		ArrayList<HashMap<AnalysisInput, String>> requestedDiaries = givenParser.getRequestedComponents();
 		if(requestedDiaries.isEmpty())
 		{
-			logger.error(logHeader + "The Analysis file hasn't been parsed!");
+			logger.fatal(logHeader + "The Analysis file hasn't been parsed!");
 			return false;
 		}
 		
