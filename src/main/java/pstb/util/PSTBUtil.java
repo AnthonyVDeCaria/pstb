@@ -855,13 +855,21 @@ public class PSTBUtil {
 		return retVal;
 	}
 
-	public static boolean isDHImproper(DiaryHeader givenDH) {
-		return !givenDH.equals(DiaryHeader.CurrentThroughput) 
-				&& !givenDH.equals(DiaryHeader.AverageThroughput)
-				&& !givenDH.equals(DiaryHeader.RoundLatency)
-				&& !givenDH.equals(DiaryHeader.Secant)
-				&& !givenDH.equals(DiaryHeader.FinalThroughput)
-				&& !givenDH.equals(DiaryHeader.CurrentRatio);
+	public static boolean isDHThroughput(DiaryHeader givenDH) {
+		return givenDH.equals(DiaryHeader.CurrentThroughput) 
+				|| givenDH.equals(DiaryHeader.AverageThroughput)
+				|| givenDH.equals(DiaryHeader.RoundLatency)
+				|| givenDH.equals(DiaryHeader.Secant)
+				|| givenDH.equals(DiaryHeader.CurrentRatio)
+				|| givenDH.equals(DiaryHeader.FinalThroughput);
+	}
+	
+	public static boolean isDHThroughputGraphable(DiaryHeader givenDH) {
+		return givenDH.equals(DiaryHeader.CurrentThroughput) 
+				|| givenDH.equals(DiaryHeader.AverageThroughput)
+				|| givenDH.equals(DiaryHeader.RoundLatency)
+				|| givenDH.equals(DiaryHeader.Secant)
+				|| givenDH.equals(DiaryHeader.CurrentRatio);
 	}
 
 	public static String encode(int victim)

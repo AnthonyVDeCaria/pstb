@@ -29,7 +29,7 @@ public class PSTBFinalThroughput extends PSTBThroughputAO {
 	public boolean completeRecord(Path givenFilePath) {
 		if(value == null)
 		{
-			log.error("No data exists!");
+			log.error("No data exists for " + name + "!");
 			return true;
 		}
 		

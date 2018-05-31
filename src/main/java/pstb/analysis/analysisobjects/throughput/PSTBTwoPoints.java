@@ -39,7 +39,7 @@ public class PSTBTwoPoints extends PSTBThroughputAO {
 	public boolean completeRecord(Path givenFilePath) {
 		if(dataset.isEmpty())
 		{
-			log.error("No data exists to record!");
+			log.error("No data exists in " + name + " to record!");
 			return true;
 		}
 		
@@ -48,7 +48,7 @@ public class PSTBTwoPoints extends PSTBThroughputAO {
 			log.error("Don't know what data is contained!");
 			return false;
 		}
-		else if(PSTBUtil.isDHImproper(associated))
+		else if(!PSTBUtil.isDHThroughputGraphable(associated))
 		{
 			log.error("Given DiaryHeader is illegal!");
 			return false;

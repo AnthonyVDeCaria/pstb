@@ -52,7 +52,6 @@ else:
         
 yLen = len(y)
 
-print("Printing '"+titl+"' to file...")
 if aoType == "delayCounter":
     plt.plot(x, y, ".")
 elif aoType == "histogram":

@@ -192,7 +192,7 @@ public class Analyzer {
 			if(!recordDiaryCheck)
 			{
 				logger.error(logHeader + "Couldn't record the diary files!"); 
-				System.exit(PSTBError.A_RECORD_DIARY);
+				System.exit(PSTBError.A_DIARY);
 			}
 			logger.info("All diaries now in files!");
 		}
@@ -422,7 +422,7 @@ public class Analyzer {
 						if(graphCheck == null || !graphCheck)
 						{
 							logger.error("Graph failed!");
-							System.exit(PSTBError.A_GRAPH);
+							System.exit(PSTBError.A_REPORT);
 						}
 					}
 				}

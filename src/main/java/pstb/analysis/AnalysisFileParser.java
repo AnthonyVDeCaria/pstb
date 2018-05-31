@@ -747,7 +747,7 @@ public class AnalysisFileParser {
 						error = true;
 					}
 					
-					if(PSTBUtil.isDHImproper(temp))
+					if(!PSTBUtil.isDHThroughput(temp))
 					{
 						log.error(logHeader + "Given string " + dhI + " is an illegal DiaryHeader!");
 						listDiaryHeader.clear();

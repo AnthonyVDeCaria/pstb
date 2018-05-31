@@ -31,9 +31,9 @@ public class PSTBError {
 	
 	public static final int A_ARGS = 41;
 	public static final int A_COLLECT = 42;
-	public static final int A_RECORD_DIARY = 43;
+	public static final int A_DIARY = 43;
 	public static final int A_ANALYSIS_FILE_PARSE = 44;
 	public static final int A_ANALYSIS = 45;
 	public static final int A_RECORD_ANALYSIS = 46;
-	public static final int A_GRAPH = 47;
+	public static final int A_REPORT = 47;
 }

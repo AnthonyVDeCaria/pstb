@@ -5,25 +5,25 @@ error()
 { 
 	echo "ERROR:	Improper arguments provided! "
 	echo "<memory>"
-	echo "(OPTIONAL) -d (diary diaries to a analysis)"
-	echo "(OPTIONAL) -r <DiaryHeader(s)> (a comma-separated list of DiaryHeaders you wish to report)"
-	echo "(OPTIONAL) -a <analysisPath> (analyze the data using this Analysisanalysis)"
+	echo "(OPTIONAL) -d (record diaries to a file)"
+	echo "(OPTIONAL) -r (create a report on the data for each experiment)"
+	echo "(OPTIONAL) -a <analysisPath> (analyze the data using this AnalysisFile)"
 	echo "At least ONE of these flags must be set!"
 	exit 10 #N_ARGS 
 }
 
 initDiary="false"
-initReport="null"
+initReport="false"
 initAnalysis="null"
 
 minArgs=2
-maxArgs=6
+maxArgs=5
 justDiaryArgs=2
-justReporArgs=3
+justReporArgs=2
 justAnalyArgs=3
-diaryReporArgs=4
+diaryReporArgs=3
 diaryAnalyArgs=4
-reporAnalyArgs=5
+reporAnalyArgs=4
 
 numArgs=$#
 if [ $numArgs -lt $minArgs ] || [ $numArgs -gt $maxArgs ] ; 
@@ -38,13 +38,13 @@ diary=$initDiary
 report=$initReport
 analysis=$initAnalysis
 
-while getopts "dr:a:" opt; do
+while getopts "dra:" opt; do
     case "${opt}" in
         d)
         	diary="true"
         	;;
         r)
-        	report=${OPTARG}
+        	report="true"
         	;;
         a)
         	analysis=${OPTARG}
