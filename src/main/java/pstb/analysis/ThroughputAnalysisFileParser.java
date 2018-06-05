@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pstb.analysis.diary.DiaryHeader;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.startup.config.AttributeRatio;
 import pstb.startup.config.MessageSize;
@@ -28,6 +29,7 @@ import pstb.util.PSTBUtil;
  * @see etc/defaultAnalysis.txt
  */
 public class ThroughputAnalysisFileParser {
+	
 	// Constants - General 
 	private final int LOC_BENCHMARK_NUMBER = 0;
 	private final int LOC_TOPO_FILE_PATH = 1;
@@ -35,17 +37,18 @@ public class ThroughputAnalysisFileParser {
 	private final int LOC_PROTOCOL = 3;
 	
 	// Constants - Throughput
-	private final int NUM_SEGMENTS_THROUGHPUT = 8;
+	private final int NUM_SEGMENTS_THROUGHPUT = 9;
 	private final int LOC_PERIOD_LENGTH = 4;
 	private final int LOC_MESSAGE_SIZE = 5;
 	private final int LOC_NUM_ATTRIBUTES = 6;
 	private final int LOC_ATTRIBUTE_RATIO = 7;
+	private final int LOC_DIARY_HEADER = 8;
 	
 	// Input
 	private String analysisFileString;
 	
 	// Output
-	private ArrayList<HashMap<AnalysisInput, String>> requestedAnalysis;
+	private ArrayList<HashMap<AnalysisInput, Object>> requestedAnalysis;
 	
 	String logHeader = "Analysis Parser: ";
 	Logger log = LogManager.getRootLogger();
@@ -55,7 +58,7 @@ public class ThroughputAnalysisFileParser {
 	 */
 	public ThroughputAnalysisFileParser()
 	{
-		requestedAnalysis = new ArrayList<HashMap<AnalysisInput, String>>();
+		requestedAnalysis = new ArrayList<HashMap<AnalysisInput, Object>>();
 		analysisFileString = new String();
 	}
 	
@@ -74,7 +77,7 @@ public class ThroughputAnalysisFileParser {
 	 * 
 	 * @return the requestedAnalysis
 	 */
-	public ArrayList<HashMap<AnalysisInput, String>> getRequestedComponents()
+	public ArrayList<HashMap<AnalysisInput, Object>> getRequestedComponents()
 	{
 		return requestedAnalysis;
 	}
@@ -109,8 +112,8 @@ public class ThroughputAnalysisFileParser {
 					
 					if(checkLineLength(splitLine.length))
 					{
-						HashMap<AnalysisInput, String> requested = developRequestMatrix(splitLine);
-						if(requested != null)
+						HashMap<AnalysisInput, Object> requested = developRequestMatrix(splitLine);
+						if(!requested.isEmpty())
 						{
 							log.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
 							requestedAnalysis.add(requested);
@@ -118,13 +121,13 @@ public class ThroughputAnalysisFileParser {
 						else
 						{
 							isParseSuccessful = false;
-							log.error(logHeader + "Error in Line " + linesRead + " - Error with Types!");
+							log.error(logHeader + "Line " + linesRead + " - Request isn't correct!");
 						}
 					}
 					else
 					{
 						isParseSuccessful = false;
-						log.error(logHeader + "Error in Line " + linesRead + " - Length isn't correct!");
+						log.error(logHeader + "Line " + linesRead + " - Length isn't correct!");
 					}
 				}
 			}
@@ -145,9 +148,9 @@ public class ThroughputAnalysisFileParser {
 	 * @param splitLine - the line from the analysis file broken apart 
 	 * @return null on error; a HashMap of the different requests otherwise
 	 */
-	private HashMap<AnalysisInput, String> developRequestMatrix(String[] splitLine)
+	private HashMap<AnalysisInput, Object> developRequestMatrix(String[] splitLine)
 	{
-		HashMap<AnalysisInput, String> retVal = new HashMap<AnalysisInput, String>();
+		HashMap<AnalysisInput, Object> retVal = new HashMap<AnalysisInput, Object>();
 				
 		String givenBN = splitLine[LOC_BENCHMARK_NUMBER];
 		String givenT = splitLine[LOC_TOPO_FILE_PATH];
@@ -157,15 +160,12 @@ public class ThroughputAnalysisFileParser {
 		String givenMS = splitLine[LOC_MESSAGE_SIZE];
 		String givenNA = splitLine[LOC_NUM_ATTRIBUTES];
 		String givenAR = splitLine[LOC_ATTRIBUTE_RATIO];
+		String givenDH = splitLine[LOC_DIARY_HEADER];
 		
 		boolean error = false;
 		
 		// Benchmark Start Times
-		if(givenBN.equals("null"))
-		{
-			retVal.put(AnalysisInput.BenchmarkNumber, null);
-		}
-		else
+		if(!givenBN.equals("null"))
 		{
 			Pattern bstTest = Pattern.compile(PSTBUtil.BENCHMARK_NUMBER_REGEX);
 			if(!bstTest.matcher(givenBN).matches())
@@ -176,88 +176,123 @@ public class ThroughputAnalysisFileParser {
 		}
 		
 		// Topologies
-		if(givenT.equals("null"))
-		{
-			log.error(logHeader + "Given TopologyFile " + givenBN + " is not valid!");
-			error = true;
-		}
+		// Currently not applicable
 		
 		// Distributed
-		try
+		if(!givenDF.equals("null"))
 		{
-			DistributedFlagValue.valueOf(givenDF);
-		}
-		catch(Exception e)
-		{
-			log.error(logHeader + "Given string " + givenDF + " isn't a DistributedFlagValue!");
-			error = true;
+			try
+			{
+				DistributedFlagValue.valueOf(givenDF);
+			}
+			catch(Exception e)
+			{
+				log.error(logHeader + "Given string " + givenDF + " isn't a DistributedFlagValue!");
+				error = true;
+			}
 		}
 		
 		// Protocols
-		try
+		if(!givenP.equals("null"))
 		{
-			NetworkProtocol.valueOf(givenP);
-		}
-		catch(Exception e)
-		{
-			log.error(logHeader + "Given string " + givenP + " isn't a valid NetworkProtocol!");
-			error = true;
+			try
+			{
+				NetworkProtocol.valueOf(givenP);
+			}
+			catch(Exception e)
+			{
+				log.error(logHeader + "Given string " + givenP + " isn't a NetworkProtocol!");
+				error = true;
+			}
 		}
 		
 		// PeriodLengths
-		Long temp = PSTBUtil.checkIfLong(givenPL, true, log);
-		if(temp == null)
+		if(!givenPL.equals("null"))
 		{
-			log.error(logHeader + "Given string " + givenPL + " isn't a Long!");
-			error = true;
-			
-			// Should also be compared to BenchmarkConfig
-		}
-		else if(temp.compareTo(0L) <= 0)
-		{
-			log.error(logHeader + "Given string " + givenPL + " is a Long less than 1!");
-			error = true;
+			Long temp = PSTBUtil.checkIfLong(givenPL, false, null);
+			if(temp == null)
+			{
+				log.error(logHeader + "Given string " + givenPL + " isn't a Long!");
+				error = true;
+				
+				// Should also be compared to BenchmarkConfig
+			}
+			else if(temp.compareTo(0L) <= 0)
+			{
+				log.error(logHeader + "Given string " + givenPL + " is a Long less than 1!");
+				error = true;
+			}
 		}
 		
 		// MessageSize
-		try
+		if(!givenMS.equals("null"))
 		{
-			MessageSize.valueOf(givenMS);
-		}
-		catch(Exception e)
-		{
-			log.error(logHeader + "Given string " + givenMS + " isn't a valid MessageSize!");
-			error = true;
+			try
+			{
+				MessageSize.valueOf(givenMS);
+			}
+			catch(Exception e)
+			{
+				log.error(logHeader + "Given string " + givenMS + " isn't a MessageSize!");
+				error = true;
+			}
 		}
 		
 		// NumAttribute
-		try
+		if(!givenNA.equals("null"))
 		{
-			NumAttribute.valueOf(givenNA);
-		}
-		catch(Exception e)
-		{
-			log.error(logHeader + "Given string " + givenNA + " isn't a valid NumAttribute!");
-			error = true;
+			try
+			{
+				NumAttribute.valueOf(givenNA);
+			}
+			catch(Exception e)
+			{
+				log.error(logHeader + "Given string " + givenNA + " isn't a NumAttribute!");
+				error = true;
+			}
 		}
 		
 		// AttributesRatio
-		try
+		if(!givenAR.equals("null"))
 		{
-			AttributeRatio.valueOf(givenAR);
+			try
+			{
+				AttributeRatio.valueOf(givenAR);
+			}
+			catch(Exception e)
+			{
+				log.error(logHeader + "Given string " + givenAR + " isn't an AttributeRatio!");
+				error = true;
+			}
 		}
-		catch(Exception e)
+		
+		// DiaryHeader
+		DiaryHeader temp = null;
+		if(!givenDH.equals("null"))
 		{
-			log.error(logHeader + "Given string " + givenAR + " isn't a valid AttributeRatio!");
+			try
+			{
+				temp = DiaryHeader.valueOf(givenDH);
+			}
+			catch(Exception e)
+			{
+				log.error(logHeader + "Given string " + givenDH + " isn't a DiaryHeader!");
+				error = true;
+			}
+			
+			if(temp != null && !PSTBUtil.isDHThroughputGraphable(temp))
+			{
+				log.error(logHeader + "Given string " + givenDH + " isn't a throughput DiaryHeader!");
+				error = true;
+			}
+		}
+		else
+		{
+			log.error(logHeader + "No DiaryHeader was given!");
 			error = true;
 		}
 		
-		if(error)
-		{
-			retVal.clear();
-			retVal = null;
-		}
-		else
+		if(!error)
 		{
 			retVal.put(AnalysisInput.BenchmarkNumber, givenBN);
 			String cleanT = PSTBUtil.cleanTFS(givenT);
@@ -268,6 +303,7 @@ public class ThroughputAnalysisFileParser {
 			retVal.put(AnalysisInput.MessageSize, givenMS);
 			retVal.put(AnalysisInput.NumAttribute, givenNA);
 			retVal.put(AnalysisInput.AttributeRatio, givenAR);
+			retVal.put(AnalysisInput.DiaryHeader, temp);
 		}
 		
 		return retVal;
@@ -277,40 +313,4 @@ public class ThroughputAnalysisFileParser {
 	{
 		return lineLength == NUM_SEGMENTS_THROUGHPUT;
 	}
-	
-//	private ArrayList<Object> fuck(String[] dick, Enum givenEnum)
-//	{
-//		ArrayList<Object> retVal = new ArrayList<Object>();
-//		
-//		int numPSATs = dick.length;
-//		if(numPSATs == givenEnum.values().length)
-//		{
-//			log.warn(logHeader + "This was not necessary - typing null would have sufficed.");
-//			return null;
-//		}
-//		else if(numPSATs == 1 && dick[0].equals("null"))
-//		{
-//			return null;
-//		}
-//		else
-//		{
-//			for(int i = 0 ; i < numPSATs ; i++)
-//			{
-//				PSActionType temp = null;
-//				try
-//				{
-//					temp = PSActionType.valueOf(dick[i]);
-//					retVal.add(temp);
-//				}
-//				catch(Exception e)
-//				{
-//					log.error(logHeader + "Given string " + i + " isn't a PSActionType, "
-//									+ "or is null with other PSActionTypes!");
-//					retVal.clear();
-//				}
-//			}
-//			
-//			return retVal;
-//		}
-//	}
 }

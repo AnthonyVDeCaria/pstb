@@ -7,62 +7,49 @@ def fit_func(x, a, b, c):
      y = a * np.exp(-b * x) + c
      return y
 
-# 0->pythonFile 1->AOType 2->folderPath 3->title 4->xLabel 5->yLabel 6->xData 7->xType 8->yData 9->yType
+# 0->pythonFile 1->folderPath 2->title 3->xLabel 4->yLabel 5->xData 6->yData 7->graphLabels
 
 numArgs = len(sys.argv)
-if numArgs != 10:
+if numArgs != 8:
+    print("numArgs Error!")
     sys.exit(10) # numArgs
 
-aoType = sys.argv[1]
-folderPath = sys.argv[2]
-titl = sys.argv[3]
-xLab = sys.argv[4]
-yLab = sys.argv[5]
-givenXs = sys.argv[6].split(",")
-xType = sys.argv[7]
-givenYs = sys.argv[8].split(",")
-yType = sys.argv[9]
+folderPath = sys.argv[1]
+titl = sys.argv[2]
+xLab = sys.argv[3]
+yLab = sys.argv[4]
+givenXs = sys.argv[5].split("|")
+givenYs = sys.argv[6].split("|")
+graphLabels = sys.argv[7].split("|")
 
-x = []
-y = []
+xs = []
+ys = []
+ls = []
 
-plt.figure(figsize=(16, 9), dpi=90)
+plt.figure(figsize=(16, 9), dpi=120)
 
-if xType == "int":
-    for xI in givenXs:
-        x.append(int(xI.replace("[","").replace("]","")))
-elif xType == "float":
-    for xI in givenXs:
-        x.append(float(xI.replace("[","").replace("]","")))
-else:
-    for xI in givenXs:
-        x.append(xI.replace("[","").replace("]",""))
-        
-xLen = len(x)
-        
-if yType == "int":
-    for yI in givenYs:
-        y.append(int(yI.replace("[","").replace("]","")))
-elif yType == "float":
-    for yI in givenYs:
-        y.append(float(yI.replace("[","").replace("]","")))
-else:
-    for yI in givenYs:
-        y.append(yI.replace("[","").replace("]",""))
-        
-yLen = len(y)
+for graphXI in givenXs:
+    brokenGraphXI = graphXI.split("-")
+    xI = []
+    for valueXJ in brokenGraphXI:
+        temp = valueXJ.replace("[","").replace("]","")
+        xI.append(float(temp))
+    xs.append(xI)
 
-if aoType == "delayCounter":
-    plt.plot(x, y, ".")
-elif aoType == "histogram":
-    plt.plot(y, "-o")
-    plt.xticks(np.arange(xLen), x, size='small')
-elif aoType == "throughput":
-    plt.plot(x, y, ".")
-    plt.plot(np.unique(x), np.poly1d(np.polyfit(x, y, 3))(np.unique(x))) 
-else:
-    sys.exit(11) #Bad_Args
-    
+for graphYI in givenYs:
+    brokenGraphYI = graphYI.split("-")
+    yI = []
+    for valueYJ in brokenGraphYI:
+        temp = valueYJ.replace("[","").replace("]","")
+        yI.append(float(temp))
+    ys.append(yI)
+
+colours = plt.cm.jet(np.linspace(0, 1, len(xs)))
+for xI, yI, labelI, colourI in zip(xs, ys, graphLabels, colours):
+    plt.plot(xI, yI, ".", label=labelI, color=colourI)
+    plt.plot(np.unique(xI), np.poly1d(np.polyfit(xI, yI, 3))(np.unique(xI)), color=colourI) 
+
+   
 '''
     x1 = x[1]
     xMid = x[int(xLen/2)]
@@ -120,4 +107,6 @@ else:
 plt.title(titl)
 plt.xlabel(xLab)
 plt.ylabel(yLab)
+plt.legend()
 plt.savefig(folderPath+titl+'.png', bbox_inches='tight')
+

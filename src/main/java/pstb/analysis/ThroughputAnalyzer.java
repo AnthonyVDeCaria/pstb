@@ -3,7 +3,6 @@ package pstb.analysis;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -64,6 +64,9 @@ public class ThroughputAnalyzer {
 	private static final String reportStub = "reports/";
 	private static final String analysisStub = "analysis/";
 	
+	// Constants - Analysis
+	private static final CharSequence PROBLEMATIC_DIARY_COMPONENT = "_ONE_String0P_";
+	
 	// Variables - Key Components
 	private static HashMap<String, ClientDiary> bookshelf = new HashMap<String, ClientDiary>();
 	
@@ -75,6 +78,7 @@ public class ThroughputAnalyzer {
 	// Logger
 	private static final Logger logger = LogManager.getRootLogger();
 	private static final String logHeader = "Analysis: ";
+	
 	
 	public static void main(String[] args)
 	{
@@ -148,12 +152,12 @@ public class ThroughputAnalyzer {
 		boolean collectCheck = collectDiaries();
 		if(!collectCheck)
 		{
-			logger.error(logHeader + "Couldn't collect all the diary files!"); 
+			logger.fatal(logHeader + "Couldn't collect all the diary files!"); 
 			System.exit(PSTBError.A_COLLECT);
 		}
 		if(bookshelf.isEmpty())
 		{
-			logger.error(logHeader + "No diary files exist!"); 
+			logger.fatal(logHeader + "No diary files exist!"); 
 			System.exit(PSTBError.A_COLLECT);
 		}
 		logger.debug("All diaries collected.");
@@ -161,76 +165,112 @@ public class ThroughputAnalyzer {
 		if(printDiaries.booleanValue())
 		{
 			logger.debug("Printing all diaries to file...");
-			boolean recordDiaryCheck = recordAllDiaries();
-			if(!recordDiaryCheck)
+			// Try to create a diaries folder
+			Path diaryFolderPath = Paths.get(diariesFolderString);
+			if(Files.notExists(diaryFolderPath))
 			{
-				logger.error(logHeader + "Couldn't record the diary files!"); 
+				try 
+				{
+					Files.createDirectories(diaryFolderPath);
+				} 
+				catch (IOException e) 
+				{
+					logger.fatal(logHeader + "Couldn't create a diaries folder: ", e);
+					System.exit(PSTBError.A_DIARY);
+				}
+			}
+			
+			// Try to record diaries to this file
+			try
+			{
+				bookshelf.forEach((diaryName, diary)->{
+					String diaryFileString = diariesFolderString + diaryName + ".txt";
+					Path diaryFilePath = Paths.get(diaryFileString);
+					
+					// If any old diaries exist here - delete them
+					try 
+					{
+						Files.deleteIfExists(diaryFilePath);
+					} 
+					catch (IOException e)
+					{
+						throw new IllegalArgumentException("IO couldn't delete file " + diaryFileString + "!");
+					}
+					
+					boolean check = diary.recordDiary(diaryFilePath, logger);
+					if(!check)
+					{
+						throw new IllegalArgumentException();
+					}
+				});
+			}
+			catch(IllegalArgumentException e)
+			{
+				logger.fatal(logHeader + "Couldn't records all of the diaries to a file: ", e);
 				System.exit(PSTBError.A_DIARY);
 			}
+			
 			logger.debug("All diaries now in files!");
 		}
 		
 		if(createReport)
 		{
-			ArrayList<String> masterDiaries = getAffiliatedThroughputDiaries(null, null, null, null, null, null, null, null, 
-					PSTBUtil.MASTER);
+			ArrayList<String> masterDiaries = getAffiliatedThroughputDiaries("null", "null", "null", "null", "null", 
+					"null", "null", "null", PSTBUtil.MASTER);
+			ArrayList<DiaryHeader> reportableDHs = getProperDHs();
 			
 			int numMasterDiaries = masterDiaries.size();
 			for(int i = 0 ; i < numMasterDiaries ; i++)
 			{
 				String diaryI = masterDiaries.get(i);
-				for(DiaryHeader dhJ : DiaryHeader.values())
-				{
-					if(PSTBUtil.isDHThroughput(dhJ))
+				reportableDHs.forEach((dhJ)->{
+					PSTBThroughputAO tpoIJ = extractThroughputObject(diaryI, dhJ);
+					if(tpoIJ == null)
 					{
-						PSTBThroughputAO tpoIJ = extractThroughputObject(diaryI, dhJ);
-						if(tpoIJ == null)
+						System.exit(PSTBError.A_REPORT);
+					}
+					
+					String[] brokenDiary = diaryI.split(PSTBUtil.CONTEXT_SEPARATOR);
+					String folderString = reportFolderString
+							+ brokenDiary[LOC_TOPO_FILE_PATH] + "/"
+							+ brokenDiary[LOC_DISTRIBUTED_FLAG] + "/"
+							+ brokenDiary[LOC_PROTOCOL] + "/"
+							+ brokenDiary[LOC_PERIOD_LENGTH] + "/"
+							+ brokenDiary[LOC_MESSAGE_SIZE] + "/"
+							+ brokenDiary[LOC_NUM_ATTRIBUTE] + "/"
+							+ brokenDiary[LOC_ATTRIBUTE_RATIO] + "/";
+					String title = brokenDiary[LOC_BENCHMARK_NUMBER] + PSTBUtil.CONTEXT_SEPARATOR + tpoIJ.getAssociatedDH();
+					
+					Path folderPath = Paths.get(folderString);
+					if(!Files.exists(folderPath))
+					{
+						try 
 						{
+							Files.createDirectories(folderPath);
+						} 
+						catch (Exception e) 
+						{
+							logger.fatal(logHeader + "Couldn't create directories: ", e);
 							System.exit(PSTBError.A_REPORT);
-						}
-						
-						String[] brokenDiary = diaryI.split(PSTBUtil.CONTEXT_SEPARATOR);
-						String folderString = reportFolderString
-								+ brokenDiary[LOC_TOPO_FILE_PATH] + "/"
-								+ brokenDiary[LOC_DISTRIBUTED_FLAG] + "/"
-								+ brokenDiary[LOC_PROTOCOL] + "/"
-								+ brokenDiary[LOC_PERIOD_LENGTH] + "/"
-								+ brokenDiary[LOC_MESSAGE_SIZE] + "/"
-								+ brokenDiary[LOC_NUM_ATTRIBUTE] + "/"
-								+ brokenDiary[LOC_ATTRIBUTE_RATIO] + "/";
-						String title = brokenDiary[LOC_BENCHMARK_NUMBER] + PSTBUtil.CONTEXT_SEPARATOR + tpoIJ.getAssociatedDH();
-						
-						Path folderPath = Paths.get(folderString);
-						if(!Files.exists(folderPath))
-						{
-							try 
-							{
-								Files.createDirectories(folderPath);
-							} 
-							catch (Exception e) 
-							{
-								logger.fatal(logHeader + "Couldn't create directories: ", e);
-								System.exit(PSTBError.A_REPORT);
-							}
-						}
-						
-						boolean recordCheck = recordThroughputObject(folderString, title, tpoIJ);
-						if(!recordCheck)
-						{
-							System.exit(PSTBError.A_REPORT);
-						}
-						
-						if(PSTBUtil.isDHThroughputGraphable(dhJ))
-						{
-							PSTBTwoPoints temp = (PSTBTwoPoints) tpoIJ;
-							boolean graphCheck = simpleGraph(folderString, title, temp);
-							if(!graphCheck)
-							{
-								System.exit(PSTBError.A_REPORT);
-							}
 						}
 					}
-				}
+					
+					boolean recordCheck = recordThroughputObject(folderString, title, tpoIJ);
+					if(!recordCheck)
+					{
+						System.exit(PSTBError.A_REPORT);
+					}
+					
+					if(PSTBUtil.isDHThroughputGraphable(dhJ))
+					{
+						PSTBTwoPoints temp = (PSTBTwoPoints) tpoIJ;
+						boolean graphCheck = simpleGraph(folderString, title, temp);
+						if(!graphCheck)
+						{
+							System.exit(PSTBError.A_REPORT);
+						}
+					}
+				});
 			}
 		}
 		
@@ -243,16 +283,208 @@ public class ThroughputAnalyzer {
 			if(!analysisParseCheck)
 			{
 				logger.error("Error parsing the analysis file!");
-				System.exit(PSTBError.A_ANALYSIS_FILE_PARSE);
+				System.exit(PSTBError.A_ANALYSIS);
 			}
 			logger.debug("Got requested analysises.");
 			
 			logger.debug("Beginning to execute analysis...");
-			boolean analysisCheck = executeAnalysis(requestedAnalysis);
-			if(!analysisCheck)
+			ArrayList<HashMap<AnalysisInput, Object>> requestedDiaries = requestedAnalysis.getRequestedComponents();
+			if(requestedDiaries.isEmpty())
 			{
-				logger.error("Analysis Failed!");
+				logger.fatal(logHeader + "The Analysis file is both parsed and not parsed!");
 				System.exit(PSTBError.A_ANALYSIS);
+			}
+			
+			// Loop through each line of the AnalysisFile
+			for(int i = 0 ; i < requestedDiaries.size(); i++)
+			{
+				HashMap<AnalysisInput, Object> analysisI = requestedDiaries.get(i);
+				
+				// Prepare general Diary Stuff
+				String requestedBN = (String) analysisI.get(AnalysisInput.BenchmarkNumber);
+				String requestedTFS = (String) analysisI.get(AnalysisInput.TopologyFilePath);
+				String requestedDFV = (String) analysisI.get(AnalysisInput.DistributedFlag);
+				String requestedP = (String) analysisI.get(AnalysisInput.Protocol);
+				String requestedPL = (String) analysisI.get(AnalysisInput.PeriodLength);
+				String requestedMS = (String) analysisI.get(AnalysisInput.MessageSize);
+				String requestedNA = (String) analysisI.get(AnalysisInput.NumAttribute);
+				String requestedAR = (String) analysisI.get(AnalysisInput.AttributeRatio);
+				
+				ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBN, requestedTFS, requestedDFV, 
+						requestedP, requestedPL, requestedMS, requestedNA, requestedAR, PSTBUtil.MASTER);
+				int numDiaries = requestedDiaryNames.size();
+				
+				if(numDiaries <= 0)
+				{
+					logger.fatal(logHeader + "No diaries exist for this analysis!"); 
+					System.exit(PSTBError.A_ANALYSIS);
+				}
+				
+				// Determine how many constants we have
+				String firstDiaryName = requestedDiaryNames.remove(0);
+				while(firstDiaryName.contains(PROBLEMATIC_DIARY_COMPONENT))
+				{
+					requestedDiaryNames.add(firstDiaryName);
+					firstDiaryName = requestedDiaryNames.get(0);
+				}
+				int numProperParts = NUM_THROUGHPUT_STRINGS - 1; // Ignore the NODE_NAME
+				int numDiariesLessOne = numDiaries - 1;
+				String[] brokenFDN = firstDiaryName.split("_");
+				ArrayList<String> constants = new ArrayList<String>(Arrays.asList(brokenFDN));
+				constants.remove(LOC_NODE_NAME);
+				for(int j = 0 ; j < numProperParts ; j++)
+				{
+					String subStringJ = brokenFDN[j];
+
+					for(int k = 0 ; k < numDiariesLessOne ; k++)
+					{
+						String diaryNameK = requestedDiaryNames.get(k);
+						if(!diaryNameK.contains(subStringJ))
+						{
+							// If we're looking at the Attribute Ratio and dNJ's Number of Attributes is One -> do nothing
+							// As One_String0P == One_String50P == One_String100P
+							if(!((j == LOC_ATTRIBUTE_RATIO) && (diaryNameK.contains("_One_"))))
+							{
+								constants.remove(subStringJ);
+								break;
+							}
+						}
+					}
+				}
+				requestedDiaryNames.add(firstDiaryName);
+				String constant = String.join(",", constants);
+				// Constants identified
+				
+				// Get data
+				DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader);
+				TreeMap<String, ArrayList<Point2D.Double>> data = new TreeMap<String, ArrayList<Point2D.Double>>(); 
+				for(int j = 0 ; j < numDiaries ; j++)
+				{
+					String diaryNameJ = requestedDiaryNames.get(j);
+					
+					String[] brokenDNJ = diaryNameJ.split("_");
+					ArrayList<String> temp = new ArrayList<String>(Arrays.asList(brokenDNJ));
+					ArrayList<String> variables = new ArrayList<String>(Arrays.asList(brokenDNJ));
+					temp.remove(LOC_NODE_NAME);
+					variables.remove(LOC_NODE_NAME);
+					temp.forEach((var)->{
+						if(constants.contains(var))
+						{
+							variables.remove(var);
+						}
+					});
+					String variable = String.join(",", variables);
+					
+					PSTBThroughputAO aoJ = extractThroughputObject(diaryNameJ, requestedDH);
+					PSTBTwoPoints tpoJ = (PSTBTwoPoints) aoJ;
+					ArrayList<Point2D.Double> dataJ = tpoJ.getDataset();
+					
+					data.put(variable, dataJ);
+				}
+				// Data received
+				
+				// Send data to python
+				Path folderPath = Paths.get(tpAnalysisFolderString);
+				if(!Files.exists(folderPath))
+				{
+					try 
+					{
+						Files.createDirectories(folderPath);
+					} 
+					catch (Exception e) 
+					{
+						logger.fatal(logHeader + "Couldn't create directory: ", e);
+						System.exit(PSTBError.A_ANALYSIS);
+					}
+				}
+				
+				String[] command = new String[9];
+				command[0] = "python";
+				command[1] = "graph2.py";
+				command[2] = tpAnalysisFolderString;
+				command[3] = requestedDH.toString() + " given " + constant;
+				command[4] = "Input Rate (messages/sec)";
+				if(requestedDH.equals(DiaryHeader.CurrentThroughput))
+				{
+					command[5] = "Current Throughput (messages/sec)";
+				}
+				else if(requestedDH.equals(DiaryHeader.AverageThroughput))
+				{
+					command[5] = "Average Throughput (messages/sec)";
+				}
+				else if(requestedDH.equals(DiaryHeader.Secant))
+				{
+					command[5] = "Secant (unitless)";
+				}
+				else if(requestedDH.equals(DiaryHeader.CurrentRatio))
+				{
+					command[5] = "Ratio (unitless)";
+				}
+				else
+				{
+					command[5] = "Latency (sec)";
+				}
+				
+				ArrayList<ArrayList<String>> allXs = new ArrayList<ArrayList<String>>();
+				ArrayList<ArrayList<String>> allYs = new ArrayList<ArrayList<String>>();
+				ArrayList<String> allLabels = new ArrayList<String>();
+				data.forEach((graph, graphData)->{
+					int numPoints = graphData.size();
+					ArrayList<String> xI = new ArrayList<String>();
+					ArrayList<String> yI = new ArrayList<String>();
+					
+					for(int a = 0 ; a < numPoints ; a++)
+					{
+						Point2D.Double coOrdinateA = graphData.get(a);
+						Double xA = coOrdinateA.getX();
+						Double yA = coOrdinateA.getY();
+						
+						xI.add(xA.toString());
+						yI.add(yA.toString());
+					}
+					
+					allXs.add(xI);
+					allYs.add(yI);
+					allLabels.add(graph);
+				});
+				
+				ArrayList<String> allXsTemp = new ArrayList<String>();
+				allXs.forEach((t)->{
+					String e = t.stream()
+							.map(k -> String.valueOf(k))
+							.collect(Collectors.joining("-"));
+					allXsTemp.add(e);
+				});
+				command[6] = allXsTemp.stream()
+						.map(k -> String.valueOf(k))
+						.collect(Collectors.joining("|"));
+				
+				ArrayList<String> allYsTemp = new ArrayList<String>();
+				allYs.forEach((t)->{
+					String e = t.stream()
+							.map(k -> String.valueOf(k))
+							.collect(Collectors.joining("-"));
+					allYsTemp.add(e);
+				});
+				command[7] = allYsTemp.stream()
+						.map(k -> String.valueOf(k))
+						.collect(Collectors.joining("|"));
+				
+				command[8] = data.keySet().stream()
+						.map(k -> String.valueOf(k))
+						.collect(Collectors.joining("|"));
+				
+				Boolean graphCheck = PSTBUtil.createANewProcess(command, logger, true, true,
+						"Couldn't create graph process!", 
+						"Graph complete.", 
+						"Graph process failed!");
+				if(graphCheck == null || !graphCheck)
+				{
+					logger.fatal(logHeader + "Couldn't print graphs!");
+					System.exit(PSTBError.A_ANALYSIS);
+				}
+				
+				System.out.println("");
 			}
 			logger.debug("Analysis complete.");
 		}
@@ -260,7 +492,10 @@ public class ThroughputAnalyzer {
 	
 	/**
 	 * Gets a certain serialized diary object 
-	 * and adds it to the "bookshelf" 
+	 * a
+	 * 
+	 * 
+	 * nd adds it to the "bookshelf" 
 	 * - a collection of ClientDiaries
 	 * 
 	 * @param diaryName - the name associated the diary object
@@ -286,7 +521,7 @@ public class ThroughputAnalyzer {
 			{
 				in = new FileInputStream(diaryI);
 			} 
-			catch (FileNotFoundException e) 
+			catch (Exception e) 
 			{
 				logger.error(logHeader + "Error creating new file input stream to read diary: ", e);
 				return false;
@@ -307,67 +542,12 @@ public class ThroughputAnalyzer {
 			{
 				in.close();
 			} 
-			catch (IOException e) 
+			catch (Exception e) 
 			{
 				logger.error(logHeader + "Error closing FileInputStream: ", e);
 				return false;
 			}
 			
-		}
-		
-		return true;
-	}
-	
-	/**
-	 * Prints all the diaries on the bookshelf into files
-	 * 
-	 * @return false on an error; true otherwise
-	 */
-	private static boolean recordAllDiaries()
-	{	
-		// Try to create a diaries folder
-		Path diaryFolderPath = Paths.get(diariesFolderString);
-		if(Files.notExists(diaryFolderPath))
-		{
-			try 
-			{
-				Files.createDirectories(diaryFolderPath);
-			} 
-			catch (IOException e) 
-			{
-				logger.error(logHeader + "Couldn't create a diaries folder: ", e);
-				return false;
-			}
-		}
-		
-		// Try to record diaries to this file
-		try
-		{
-			bookshelf.forEach((diaryName, diary)->{
-				String diaryFileString = diariesFolderString + diaryName + ".txt";
-				Path diaryFilePath = Paths.get(diaryFileString);
-				
-				// If any old diaries exist here - delete them
-				try 
-				{
-					Files.deleteIfExists(diaryFilePath);
-				} 
-				catch (IOException e)
-				{
-					throw new IllegalArgumentException("IO couldn't delete file " + diaryFileString + "!");
-				}
-				
-				boolean check = diary.recordDiary(diaryFilePath, logger);
-				if(!check)
-				{
-					throw new IllegalArgumentException();
-				}
-			});
-		}
-		catch(IllegalArgumentException e)
-		{
-			logger.error(logHeader + "Couldn't records all of the diaries to a file: ", e);
-			return false;
 		}
 		
 		return true;
@@ -383,15 +563,15 @@ public class ThroughputAnalyzer {
 		String[] nameTestArray = new String[NUM_THROUGHPUT_STRINGS];
 		
 		// Which lists are null?
-		boolean nullBN = (requestedBN == null);
-		boolean nullTPF = (requestedTPF == null);
-		boolean nullDFV = (requestedDFV == null);
-		boolean nullP = (requestedP == null);
-		boolean nullPL = (requestedPL == null);
-		boolean nullMS = (requestedMS == null);
-		boolean nullNA = (requestedNA == null);
-		boolean nullAR = (requestedAR == null);
-		boolean nullNN = (requestedNN == null);
+		boolean nullBN = requestedBN.equals("null");
+		boolean nullTPF = requestedTPF.equals("null");
+		boolean nullDFV = requestedDFV.equals("null");
+		boolean nullP = requestedP.equals("null");
+		boolean nullPL = requestedPL.equals("null");
+		boolean nullMS = requestedMS.equals("null");
+		boolean nullNA = requestedNA.equals("null");
+		boolean nullAR = requestedAR.equals("null");
+		boolean nullNN = requestedNN.equals("null");
 		
 		// Loop through all lists to add its String to the Regex
 		if(nullBN)
@@ -435,7 +615,7 @@ public class ThroughputAnalyzer {
 		
 		if(nullPL)
 		{
-			nameTestArray[LOC_PERIOD_LENGTH] = "\\w+";
+			nameTestArray[LOC_PERIOD_LENGTH] = "\\d+";
 		}
 		else
 		{
@@ -500,7 +680,7 @@ public class ThroughputAnalyzer {
 		logger.debug(logHeader + "Working on object " + givenDiaryName + "...");
 
 		ClientDiary diary = bookshelf.get(givenDiaryName);
-		String name = requestedAnalysis.toString() + "_" + givenDiaryName;
+		String name = requestedAnalysis.toString() + PSTBUtil.CONTEXT_SEPARATOR + givenDiaryName;
 		
 		boolean checkRA = PSTBUtil.isDHThroughput(requestedAnalysis);
 		if(!checkRA)
@@ -662,53 +842,16 @@ public class ThroughputAnalyzer {
 		return true;
 	}
 	
-	/**
-	 * Executes the analysis requested by the user
-	 * @see AnalysisFileParser
-	 * 
-	 * @param requestedAnalysis - the converted analysis file 
-	 * @return false on an error; true otherwise
-	 */
-	private static boolean executeAnalysis(ThroughputAnalysisFileParser givenParser)
+	private static ArrayList<DiaryHeader> getProperDHs()
 	{
-		ArrayList<HashMap<AnalysisInput, String>> requestedDiaries = givenParser.getRequestedComponents();
-		if(requestedDiaries.isEmpty())
-		{
-			logger.fatal(logHeader + "The Analysis file hasn't been parsed!");
-			return false;
-		}
+		ArrayList<DiaryHeader> retVal = new ArrayList<DiaryHeader>();
+		retVal.add(DiaryHeader.CurrentThroughput);
+		retVal.add(DiaryHeader.AverageThroughput);
+		retVal.add(DiaryHeader.RoundLatency);
+		retVal.add(DiaryHeader.Secant);
+		retVal.add(DiaryHeader.CurrentRatio);
+		retVal.add(DiaryHeader.FinalThroughput);
 		
-		// Loop through each line of the AnalysisFile
-		for(int i = 0 ; i < requestedDiaries.size(); i++)
-		{
-			HashMap<AnalysisInput, String> analysisI = requestedDiaries.get(i);
-			
-			// Prepare general Diary Stuff
-			String requestedBN = analysisI.get(AnalysisInput.BenchmarkNumber);
-			String requestedTFS = analysisI.get(AnalysisInput.TopologyFilePath);
-			String requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
-			String requestedP = analysisI.get(AnalysisInput.Protocol);
-			String requestedPL = analysisI.get(AnalysisInput.PeriodLength);
-			String requestedMS = analysisI.get(AnalysisInput.MessageSize);
-			String requestedNA = analysisI.get(AnalysisInput.NumAttribute);
-			String requestedAR = analysisI.get(AnalysisInput.AttributeRatio);
-			
-			ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBN, requestedTFS, requestedDFV, 
-					requestedP, requestedPL, requestedMS, requestedNA, requestedAR, PSTBUtil.MASTER);
-			int numDiaryies = requestedDiaryNames.size();
-			for(int j = 0 ; j < numDiaryies ; j++)
-			{
-				String nameJ = requestedDiaryNames.get(j);
-				PSTBThroughputAO completedAnalysis = extractThroughputObject(nameJ, DiaryHeader.FinalThroughput);
-				if(completedAnalysis == null)
-				{
-					logger.error(logHeader + "Smaller analysis failed!");
-					return false;
-				}
-			}
-			
-		}
-		
-		return true;
+		return retVal;
 	}
 }

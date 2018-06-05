@@ -1,45 +1,7 @@
-#BenchmarkNumber	TopologyFilePath	DistributedFlag	Protocol	PeriodLength	MessageSize	NumAttributes	AttributeRatio
+#BenchmarkNumber	TopologyFilePath	DistributedFlag	Protocol	PeriodLength	MessageSize	NumAttributes	AttributeRatio	DiaryHeader
 
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	One	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	Twelve	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	Twelve	String50P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	Twelve	String100P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	TwentyFour	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	TwentyFour	String50P	
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	TwentyFour	String100P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	One	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	Twelve	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	Twelve	String50P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	Twelve	String100P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	TwentyFour	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	TwentyFour	String50P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	TwentyFour	String100P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	One	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	Twelve	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	Twelve	String50P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	Twelve	String100P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	TwentyFour	String0P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	TwentyFour	String50P
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	TwentyFour	String100P
+null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	null	String0P	CurrentThroughput
+null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	null	null	CurrentThroughput
+null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	null	null	CurrentThroughput
 
-null	etc/treeTopologyD1F4.txt	D	socket	2000	ZeroBytes	One	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	ZeroBytes	Twelve	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	ZeroBytes	Twelve	String50P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	ZeroBytes	Twelve	String100P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	ZeroBytes	TwentyFour	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	ZeroBytes	TwentyFour	String50P	
-null	etc/treeTopologyD1F4.txt	D	socket	2000	ZeroBytes	TwentyFour	String100P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	TenKilobytes	One	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	TenKilobytes	Twelve	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	TenKilobytes	Twelve	String50P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	TenKilobytes	Twelve	String100P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	TenKilobytes	TwentyFour	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	TenKilobytes	TwentyFour	String50P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	TenKilobytes	TwentyFour	String100P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	OneHundredKilobytes	One	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	OneHundredKilobytes	Twelve	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	OneHundredKilobytes	Twelve	String50P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	OneHundredKilobytes	Twelve	String100P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	OneHundredKilobytes	TwentyFour	String0P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	OneHundredKilobytes	TwentyFour	String50P
-null	etc/treeTopologyD1F4.txt	D	socket	2000	OneHundredKilobytes	TwentyFour	String100P
+null	null	null	null	null	null	null	null	CurrentThroughput
