@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import pstb.analysis.diary.DiaryHeader;
 import pstb.analysis.diary.DistributedFlagValue;
 import pstb.startup.config.AttributeRatio;
 import pstb.startup.config.MessageSize;
@@ -37,18 +36,17 @@ public class ThroughputAnalysisFileParser {
 	private final int LOC_PROTOCOL = 3;
 	
 	// Constants - Throughput
-	private final int NUM_SEGMENTS_THROUGHPUT = 9;
+	private final int NUM_SEGMENTS_THROUGHPUT = 8;
 	private final int LOC_PERIOD_LENGTH = 4;
 	private final int LOC_MESSAGE_SIZE = 5;
 	private final int LOC_NUM_ATTRIBUTES = 6;
 	private final int LOC_ATTRIBUTE_RATIO = 7;
-	private final int LOC_DIARY_HEADER = 8;
 	
 	// Input
 	private String analysisFileString;
 	
 	// Output
-	private ArrayList<HashMap<AnalysisInput, Object>> requestedAnalysis;
+	private ArrayList<HashMap<AnalysisInput, String>> requestedAnalysis;
 	
 	String logHeader = "Analysis Parser: ";
 	Logger log = LogManager.getRootLogger();
@@ -58,7 +56,7 @@ public class ThroughputAnalysisFileParser {
 	 */
 	public ThroughputAnalysisFileParser()
 	{
-		requestedAnalysis = new ArrayList<HashMap<AnalysisInput, Object>>();
+		requestedAnalysis = new ArrayList<HashMap<AnalysisInput, String>>();
 		analysisFileString = new String();
 	}
 	
@@ -77,7 +75,7 @@ public class ThroughputAnalysisFileParser {
 	 * 
 	 * @return the requestedAnalysis
 	 */
-	public ArrayList<HashMap<AnalysisInput, Object>> getRequestedComponents()
+	public ArrayList<HashMap<AnalysisInput, String>> getRequestedComponents()
 	{
 		return requestedAnalysis;
 	}
@@ -112,7 +110,7 @@ public class ThroughputAnalysisFileParser {
 					
 					if(checkLineLength(splitLine.length))
 					{
-						HashMap<AnalysisInput, Object> requested = developRequestMatrix(splitLine);
+						HashMap<AnalysisInput, String> requested = developRequestMatrix(splitLine);
 						if(!requested.isEmpty())
 						{
 							log.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
@@ -148,9 +146,9 @@ public class ThroughputAnalysisFileParser {
 	 * @param splitLine - the line from the analysis file broken apart 
 	 * @return null on error; a HashMap of the different requests otherwise
 	 */
-	private HashMap<AnalysisInput, Object> developRequestMatrix(String[] splitLine)
+	private HashMap<AnalysisInput, String> developRequestMatrix(String[] splitLine)
 	{
-		HashMap<AnalysisInput, Object> retVal = new HashMap<AnalysisInput, Object>();
+		HashMap<AnalysisInput, String> retVal = new HashMap<AnalysisInput, String>();
 				
 		String givenBN = splitLine[LOC_BENCHMARK_NUMBER];
 		String givenT = splitLine[LOC_TOPO_FILE_PATH];
@@ -160,7 +158,6 @@ public class ThroughputAnalysisFileParser {
 		String givenMS = splitLine[LOC_MESSAGE_SIZE];
 		String givenNA = splitLine[LOC_NUM_ATTRIBUTES];
 		String givenAR = splitLine[LOC_ATTRIBUTE_RATIO];
-		String givenDH = splitLine[LOC_DIARY_HEADER];
 		
 		boolean error = false;
 		
@@ -266,32 +263,6 @@ public class ThroughputAnalysisFileParser {
 			}
 		}
 		
-		// DiaryHeader
-		DiaryHeader temp = null;
-		if(!givenDH.equals("null"))
-		{
-			try
-			{
-				temp = DiaryHeader.valueOf(givenDH);
-			}
-			catch(Exception e)
-			{
-				log.error(logHeader + "Given string " + givenDH + " isn't a DiaryHeader!");
-				error = true;
-			}
-			
-			if(temp != null && !PSTBUtil.isDHThroughputGraphable(temp))
-			{
-				log.error(logHeader + "Given string " + givenDH + " isn't a throughput DiaryHeader!");
-				error = true;
-			}
-		}
-		else
-		{
-			log.error(logHeader + "No DiaryHeader was given!");
-			error = true;
-		}
-		
 		if(!error)
 		{
 			retVal.put(AnalysisInput.BenchmarkNumber, givenBN);
@@ -303,7 +274,6 @@ public class ThroughputAnalysisFileParser {
 			retVal.put(AnalysisInput.MessageSize, givenMS);
 			retVal.put(AnalysisInput.NumAttribute, givenNA);
 			retVal.put(AnalysisInput.AttributeRatio, givenAR);
-			retVal.put(AnalysisInput.DiaryHeader, temp);
 		}
 		
 		return retVal;

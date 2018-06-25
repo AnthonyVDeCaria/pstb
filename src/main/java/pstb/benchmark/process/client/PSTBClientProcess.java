@@ -47,12 +47,16 @@ import pstb.util.PSTBUtil;
  * 			Exit with success
  */
 public abstract class PSTBClientProcess extends PSTBProcess {
-	public PSTBClientProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, PSEngine givenEngine, 
-			NodeRole givenRole, boolean areWeDistributed, String givenUsername, Socket givenConnection, OutputStream givenOut, 
-			Logger givenLog, String givenLogHeader, String givenThreadContextString) 
+	public PSTBClientProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, 
+			PSEngine givenEngine, NodeRole givenRole, Boolean shouldWeSendDiary,
+			boolean areWeDistributed, String givenUsername,
+			Socket givenConnection, OutputStream givenOut,
+			Logger givenLog, String givenLogHeader, String givenTCS) 
 	{
-		super(givenName, givenContext, givenIPAddress, givenPort,givenEngine, givenRole, areWeDistributed, givenUsername, 
-				givenConnection, givenOut, givenLog, givenLogHeader, givenThreadContextString);
+		super(givenName, givenContext, givenIPAddress, givenPort, 
+				givenEngine, givenRole, shouldWeSendDiary,
+				areWeDistributed, givenUsername, 
+				givenConnection, givenOut, givenLog, givenLogHeader, givenTCS);
 	}
 	
 	@Override
@@ -61,10 +65,14 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 		PSClient givenClient = (PSClient) givenNode;
 		
 		PSClientMode givenMode = givenClient.getClientMode();
-		if((givenMode.equals(PSClientMode.TPPub)) || (givenMode.equals(PSClientMode.TPSub)))
+		if(givenMode.equals(PSClientMode.TPPub) || givenMode.equals(PSClientMode.TPSub))
 		{
 			givenClient.setMIP(masterIPAddress);
 			givenClient.setMasterPort(portNumber);
+		}
+		else if(givenMode.equals(PSClientMode.Scenario) && !sendDiary)
+		{
+			error();
 		}
 		
 		log.debug(logHeader + "The requested brokers are:");
@@ -112,11 +120,7 @@ public abstract class PSTBClientProcess extends PSTBProcess {
 //		}
 //		log.info(logHeader + "Clean up complete.");
 		
-		if(givenMode.equals(PSClientMode.TPPub))
-		{
-			log.info(logHeader + "No diary record needed.");
-		}
-		else
+		if(sendDiary)
 		{
 			log.debug(logHeader + "recording a diary object with name " + context);
 			String diaryFileString = context + ".dia";

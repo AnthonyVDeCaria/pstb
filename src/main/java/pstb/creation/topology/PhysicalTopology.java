@@ -686,7 +686,7 @@ public abstract class PhysicalTopology {
 		
 		setupServers(contextB, contextC);
 		
-		boolean retVal = generateBrokerAndClientProcesses();
+		boolean retVal = generateBrokerAndClientProcesses(true);
 		return retVal;
 	}
 	
@@ -699,7 +699,7 @@ public abstract class PhysicalTopology {
 	 * @param arI 
 	 * @return false if there is an issue; true otherwise
 	 */
-	public boolean prepareThroughputRun(Long plI, MessageSize msI, NumAttribute naI, AttributeRatio arI)
+	public boolean prepareThroughputRun(Long plI, MessageSize msI, NumAttribute naI, AttributeRatio arI, boolean sendDiaries)
 	{
 		if(brokerObjects.isEmpty())
 		{
@@ -739,7 +739,7 @@ public abstract class PhysicalTopology {
 		setupServers(contextB, contextC);
 		setUpTPMaster(plI, mContext);
 		
-		boolean retVal = generateBrokerAndClientProcesses();
+		boolean retVal = generateBrokerAndClientProcesses(sendDiaries);
 		return retVal;
 	}
 	
@@ -780,16 +780,16 @@ public abstract class PhysicalTopology {
 	 * 
 	 * @return false on error; true otherwise
 	 */
-	private boolean generateBrokerAndClientProcesses()
+	private boolean generateBrokerAndClientProcesses(boolean sendDiaries)
 	{
-		boolean brokerCheck = generateMultipleNodeProcesses(brokerObjects, brokerProcesses, true);
+		boolean brokerCheck = generateMultipleNodeProcesses(brokerObjects, brokerProcesses, true, false);
 		if(!brokerCheck)
 		{
 			logger.error(logHeader + "Issue generating broker processes!");
 			return false;
 		}
 		
-		boolean clientCheck = generateMultipleNodeProcesses(clientObjects, clientProcesses, false);
+		boolean clientCheck = generateMultipleNodeProcesses(clientObjects, clientProcesses, false, sendDiaries);
 		if(!clientCheck)
 		{
 			logger.error(logHeader + "Issue generating client processes!");
@@ -810,7 +810,7 @@ public abstract class PhysicalTopology {
 	 */
 	private boolean generateMultipleNodeProcesses(HashMap<String, PSNode> givenNodeObjects, 
 			HashMap<String, ProcessBuilder> processShelf,
-			boolean isBroker)
+			boolean isBroker, boolean sendDiaries)
 	{
 		Iterator<String> iteratorNO = givenNodeObjects.keySet().iterator();
 		for( ; iteratorNO.hasNext() ; )
@@ -818,7 +818,7 @@ public abstract class PhysicalTopology {
 			String nodeIName = iteratorNO.next();
 			String nodeIContext = givenNodeObjects.get(nodeIName).generateNodeContext();
 			
-			ProcessBuilder brokerIProcess = generateNodeProcess(nodeIName, nodeIContext, isBroker);
+			ProcessBuilder brokerIProcess = generateNodeProcess(nodeIName, nodeIContext, isBroker, sendDiaries);
 			if(brokerIProcess == null)
 			{
 				logger.error(logHeader + "Couldn't create node process for " + nodeIName + "!");
@@ -840,7 +840,7 @@ public abstract class PhysicalTopology {
 	 * @param isBroker - is this node a Broker?
 	 * @return null on error; the requesting ProcessBuilder otherwise
 	 */
-	private ProcessBuilder generateNodeProcess(String nodeName, String nodeContext, boolean isBroker)
+	private ProcessBuilder generateNodeProcess(String nodeName, String nodeContext, boolean isBroker, boolean sendDiaries)
 	{
 		if(brokerServer == null)
 		{
@@ -857,15 +857,18 @@ public abstract class PhysicalTopology {
 		
 		String memory = null;
 		String nodetype = null;
+		String sendDiary = null;
 		if(isBroker)
 		{
 			memory = calculateMemoryForNode(nodeName, NodeRole.B).toString();
 			nodetype = NodeRole.B.toString();
+			sendDiary = "false";
 		}
 		else
 		{
 			memory = calculateMemoryForNode(nodeName, NodeRole.C).toString();
 			nodetype = NodeRole.C.toString();
+			sendDiary = String.valueOf(sendDiaries);
 		}
 		PSEngine engine = getEngine();
 		
@@ -897,6 +900,7 @@ public abstract class PhysicalTopology {
 		command.add(port.toString());
 		command.add(engine.toString());
 		command.add(nodetype);
+		command.add(sendDiary);
 		
 		logger.info(nodeName + "'s memory is " + memory + " on machine " + machine + ".");
 		
@@ -1173,6 +1177,10 @@ public abstract class PhysicalTopology {
 		}
 		else
 		{
+			activeClients.forEach((clientName, clientProcess)->{
+				logger.debug(logHeader + "Waiting on client " + clientName);
+			});
+			
 			return ActiveProcessRetVal.StillRunning;
 		}
 	}

@@ -1,2 +1,6 @@
 /target/
 /bin/
+
+/analysis/
+/logs/
+*.dia

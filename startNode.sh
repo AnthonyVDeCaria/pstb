@@ -4,12 +4,12 @@
 error() 
 { 
 	echo "ERROR:	Not enough arguments provided! "
-	echo "<memory> <name> <context> <ipAddress> <objectPort> <engine> <nodetype>"
+	echo "<memory> <name> <context> <ipAddress> <objectPort> <engine> <nodetype> <sendDiary>"
 	echo "(OPTIONAL) -d <username> (this is distributed)"
 	exit 10 #N_ARGS 
 }
 
-if [ $# -lt 7 ]; 
+if [ $# -lt 8 ]; 
 then
     error
 fi
@@ -33,6 +33,9 @@ engine=$1
 shift
 
 nodetype=$1
+shift
+
+sendDiary=$1
 shift
 
 while getopts "d:" opt; do
@@ -69,7 +72,7 @@ java -Xmx"$memory"M \
 			-Djava.security.policy=etc/java.policy \
 			-Djava.awt.headless=true \
 			pstb.benchmark.process.PSTBProcess \
-			$name $context $ipAddress $objectPort $engine $nodetype $username
+			$name $context $ipAddress $objectPort $engine $nodetype $sendDiary $username
 	
 exitVal=$?
 echo "$exitVal"

@@ -30,15 +30,16 @@ import pstb.util.PSTBUtil;
  */
 public abstract class PSTBProcess {
 	// Constants
-	private static final int MIN_ARGS = 6;
-	private static final int MAX_ARGS = 7;
+	private static final int MIN_ARGS = 7;
+	private static final int MAX_ARGS = 8;
 	private static final int LOC_NAME = 0;
 	private static final int LOC_CNXT = 1;
 	private static final int LOC_IPAD = 2;
 	private static final int LOC_PORT = 3;
 	private static final int LOC_ENGN = 4;
 	private static final int LOC_ROLE = 5;
-	private static final int LOC_USER = 6;
+	private static final int LOC_SEND = 6;
+	private static final int LOC_USER = 7;
 	
 	// Standard Variables
 	protected static String nodeName;
@@ -47,6 +48,7 @@ public abstract class PSTBProcess {
 	protected static Integer portNumber;
 	protected static PSEngine engine;
 	protected static NodeRole role;
+	protected static Boolean sendDiary;
 	
 	// Occasional Variables
 	protected static boolean distributed;
@@ -61,9 +63,11 @@ public abstract class PSTBProcess {
 	protected static String logHeader = "PhyNode: ";
 	protected static String threadContextString = "node";
 	
-	public PSTBProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, PSEngine givenEngine, 
-			NodeRole givenRole, boolean areWeDistributed, String givenUsername, Socket givenConnection, OutputStream givenOut, 
-			Logger givenLog, String givenLogHeader, String givenThreadContextString)
+	public PSTBProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, 
+			PSEngine givenEngine, NodeRole givenRole, Boolean shouldWeSendDiary,
+			boolean areWeDistributed, String givenUsername,
+			Socket givenConnection, OutputStream givenOut,
+			Logger givenLog, String givenLogHeader, String givenTCS)
 	{
 		nodeName = givenName;
 		context = givenContext;
@@ -71,6 +75,7 @@ public abstract class PSTBProcess {
 		portNumber = givenPort;
 		engine = givenEngine;
 		role = givenRole;
+		sendDiary = shouldWeSendDiary;
 		
 		distributed = areWeDistributed;
 		username = givenUsername;
@@ -80,6 +85,7 @@ public abstract class PSTBProcess {
 		
 		log = givenLog;
 		logHeader = givenLogHeader;
+		threadContextString = givenTCS;
 	}
 	
 	public static void main(String[] args)
@@ -121,6 +127,7 @@ public abstract class PSTBProcess {
 		String portNumString = null;
 		String engineString = null;
 		String nodeRoleString = null;
+		String sendDiaryString = null;
 		
 		int numArgs = args.length;
 		if(numArgs < MIN_ARGS || numArgs > MAX_ARGS)
@@ -144,11 +151,22 @@ public abstract class PSTBProcess {
 		portNumString = args[LOC_PORT];
 		engineString = args[LOC_ENGN];
 		nodeRoleString = args[LOC_ROLE];
+		sendDiaryString = args[LOC_SEND];
 		
 		portNumber = PSTBUtil.checkIfInteger(portNumString, false, null);
 		if(portNumber == null)
 		{
 			log.error(logHeader + "The given port " + portNumString + " isn't an Integer!");
+			return null;
+		}
+		
+		try
+		{
+			engine = PSEngine.valueOf(engineString);
+		}
+		catch(Exception e)
+		{
+			log.error(logHeader + "The given engine " + engineString + " isn't a PSEngine!");
 			return null;
 		}
 		
@@ -162,15 +180,7 @@ public abstract class PSTBProcess {
 			return null;
 		}
 		
-		try
-		{
-			engine = PSEngine.valueOf(engineString);
-		}
-		catch(Exception e)
-		{
-			log.error(logHeader + "The given engine " + engineString + " isn't a PSEngine!");
-			return null;
-		}
+		sendDiary = Boolean.valueOf(sendDiaryString);
 		
 		try
 		{
@@ -200,14 +210,20 @@ public abstract class PSTBProcess {
 			if (engine.equals(PSEngine.PADRES))
 			{
 				logHeader = "PBP: ";
-				retVal = new PADRESBrokerProcess(nodeName, context, masterIPAddress, portNumber, engine, role, distributed, username,
-						connection, connOut, log, logHeader, threadContextString);
+				retVal = new PADRESBrokerProcess(nodeName, context, masterIPAddress, portNumber, 
+						engine, role, sendDiary,
+						distributed, username,
+						connection, connOut, 
+						log,logHeader, threadContextString);
 			} 
 			else if (engine.equals(PSEngine.SIENA))
 			{
 				logHeader = "SBP: ";
-				retVal = new SIENABrokerProcess(nodeName, context, masterIPAddress, portNumber, engine, role, distributed, username,
-						connection, connOut, log, logHeader, threadContextString);
+				retVal = new SIENABrokerProcess(nodeName, context, masterIPAddress, portNumber, 
+						engine, role, sendDiary,
+						distributed, username,
+						connection, connOut, 
+						log,logHeader, threadContextString);
 			}
 		}
 		else
@@ -218,14 +234,20 @@ public abstract class PSTBProcess {
 			if (engine.equals(PSEngine.PADRES))
 			{
 				logHeader = "PCP: ";
-				retVal = new PADRESClientProcess(nodeName, context, masterIPAddress, portNumber, engine, role, distributed, username,
-						connection, connOut, log, logHeader, threadContextString);
+				retVal = new PADRESClientProcess(nodeName, context, masterIPAddress, portNumber, 
+						engine, role, sendDiary,
+						distributed, username,
+						connection, connOut, 
+						log,logHeader, threadContextString);
 			} 
 			else if (engine.equals(PSEngine.SIENA))
 			{
 				logHeader = "SCP: ";
-				retVal = new SIENAClientProcess(nodeName, context, masterIPAddress, portNumber, engine, role, distributed, username,
-						connection, connOut, log, logHeader, threadContextString);
+				retVal = new SIENAClientProcess(nodeName, context, masterIPAddress, portNumber, 
+						engine, role, sendDiary,
+						distributed, username,
+						connection, connOut, 
+						log,logHeader, threadContextString);
 			}
 		}
 		

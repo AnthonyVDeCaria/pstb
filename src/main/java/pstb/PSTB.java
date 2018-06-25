@@ -51,6 +51,8 @@ public class PSTB {
 	private static final Double MAX_BENCH_NUM_DOUBLE = Math.pow(PSTBUtil.ALPHABET_LEN, NUMBER_BENCH_NUM_SPOTS);
 	private static final int MAX_BENCH_NUM_INT = MAX_BENCH_NUM_DOUBLE.intValue();
 	
+	private static final Scanner userInput = new Scanner(System.in);
+	
 	// Working Boolean
 	protected static Boolean experimentRunning;
 	
@@ -67,7 +69,6 @@ public class PSTB {
 	{
 		// Startup
 		logger.info("Starting program.");
-		Scanner userInput = new Scanner(System.in);
 		Properties defaultProp = null;
 		
 		logger.debug("Starting Properties Parsing...");
@@ -645,6 +646,9 @@ public class PSTB {
 	private static boolean conductThroughputExperiment(PhysicalTopology givenPT, Long givenPL, 
 			ArrayList<MessageSize> givenMS, ArrayList<NumAttribute> givenNA, ArrayList<AttributeRatio> givenAR)
 	{	
+		String sendDiariesPrompt = "Would you like to collect the client's diary files? y/n";
+		boolean sendDiaryAnswer = UI.getYNAnswerFromUser(sendDiariesPrompt, userInput);
+		
 		for(int i = 0 ; i < givenMS.size() ; i++)
 		{
 			MessageSize msI = givenMS.get(i);
@@ -673,7 +677,7 @@ public class PSTB {
 					
 					if(run)
 					{
-						boolean prepCheck = givenPT.prepareThroughputRun(givenPL, msI, naJ, arK);
+						boolean prepCheck = givenPT.prepareThroughputRun(givenPL, msI, naJ, arK, sendDiaryAnswer);
 						if(!prepCheck)
 						{
 							logger.error("Couldn't prepare experiment!");
@@ -733,7 +737,6 @@ public class PSTB {
 		Long currTime = System.currentTimeMillis();
 		Random rng = new Random(currTime);
 		Integer value = rng.nextInt(MAX_BENCH_NUM_INT);
-    	System.out.println(value);
     	String retVal = PSTBUtil.encode(value);
 		
 		return retVal;

@@ -25,6 +25,11 @@ public class PSTBFinalThroughput extends PSTBThroughputAO {
 		value = null;
 	}
 	
+	public Double getValue()
+	{
+		return value;
+	}
+	
 	@Override
 	public boolean completeRecord(Path givenFilePath) {
 		if(value == null)

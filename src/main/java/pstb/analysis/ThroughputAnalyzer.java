@@ -288,27 +288,28 @@ public class ThroughputAnalyzer {
 			logger.debug("Got requested analysises.");
 			
 			logger.debug("Beginning to execute analysis...");
-			ArrayList<HashMap<AnalysisInput, Object>> requestedDiaries = requestedAnalysis.getRequestedComponents();
+			ArrayList<HashMap<AnalysisInput, String>> requestedDiaries = requestedAnalysis.getRequestedComponents();
 			if(requestedDiaries.isEmpty())
 			{
 				logger.fatal(logHeader + "The Analysis file is both parsed and not parsed!");
 				System.exit(PSTBError.A_ANALYSIS);
 			}
+			int numRequestedDairies = requestedDiaries.size();
 			
 			// Loop through each line of the AnalysisFile
-			for(int i = 0 ; i < requestedDiaries.size(); i++)
+			for(int i = 0 ; i < numRequestedDairies ; i++)
 			{
-				HashMap<AnalysisInput, Object> analysisI = requestedDiaries.get(i);
+				HashMap<AnalysisInput, String> analysisI = requestedDiaries.get(i);
 				
 				// Prepare general Diary Stuff
-				String requestedBN = (String) analysisI.get(AnalysisInput.BenchmarkNumber);
-				String requestedTFS = (String) analysisI.get(AnalysisInput.TopologyFilePath);
-				String requestedDFV = (String) analysisI.get(AnalysisInput.DistributedFlag);
-				String requestedP = (String) analysisI.get(AnalysisInput.Protocol);
-				String requestedPL = (String) analysisI.get(AnalysisInput.PeriodLength);
-				String requestedMS = (String) analysisI.get(AnalysisInput.MessageSize);
-				String requestedNA = (String) analysisI.get(AnalysisInput.NumAttribute);
-				String requestedAR = (String) analysisI.get(AnalysisInput.AttributeRatio);
+				String requestedBN = analysisI.get(AnalysisInput.BenchmarkNumber);
+				String requestedTFS = analysisI.get(AnalysisInput.TopologyFilePath);
+				String requestedDFV = analysisI.get(AnalysisInput.DistributedFlag);
+				String requestedP = analysisI.get(AnalysisInput.Protocol);
+				String requestedPL = analysisI.get(AnalysisInput.PeriodLength);
+				String requestedMS = analysisI.get(AnalysisInput.MessageSize);
+				String requestedNA = analysisI.get(AnalysisInput.NumAttribute);
+				String requestedAR = analysisI.get(AnalysisInput.AttributeRatio);
 				
 				ArrayList<String> requestedDiaryNames = getAffiliatedThroughputDiaries(requestedBN, requestedTFS, requestedDFV, 
 						requestedP, requestedPL, requestedMS, requestedNA, requestedAR, PSTBUtil.MASTER);
@@ -329,21 +330,22 @@ public class ThroughputAnalyzer {
 				}
 				int numProperParts = NUM_THROUGHPUT_STRINGS - 1; // Ignore the NODE_NAME
 				int numDiariesLessOne = numDiaries - 1;
-				String[] brokenFDN = firstDiaryName.split("_");
+				String[] brokenFDN = firstDiaryName.split(PSTBUtil.CONTEXT_SEPARATOR);
 				ArrayList<String> constants = new ArrayList<String>(Arrays.asList(brokenFDN));
 				constants.remove(LOC_NODE_NAME);
 				for(int j = 0 ; j < numProperParts ; j++)
 				{
 					String subStringJ = brokenFDN[j];
-
+					String testStringJ = subStringJ + PSTBUtil.CONTEXT_SEPARATOR;
+					
 					for(int k = 0 ; k < numDiariesLessOne ; k++)
 					{
 						String diaryNameK = requestedDiaryNames.get(k);
-						if(!diaryNameK.contains(subStringJ))
+						if(!diaryNameK.contains(testStringJ))
 						{
 							// If we're looking at the Attribute Ratio and dNJ's Number of Attributes is One -> do nothing
 							// As One_String0P == One_String50P == One_String100P
-							if(!((j == LOC_ATTRIBUTE_RATIO) && (diaryNameK.contains("_One_"))))
+							if(j != LOC_ATTRIBUTE_RATIO || !diaryNameK.contains("_One_"))
 							{
 								constants.remove(subStringJ);
 								break;
@@ -356,136 +358,164 @@ public class ThroughputAnalyzer {
 				// Constants identified
 				
 				// Get data
-				DiaryHeader requestedDH = (DiaryHeader) analysisI.get(AnalysisInput.DiaryHeader);
-				TreeMap<String, ArrayList<Point2D.Double>> data = new TreeMap<String, ArrayList<Point2D.Double>>(); 
-				for(int j = 0 ; j < numDiaries ; j++)
+				ArrayList<DiaryHeader> keyDHS = getProperDHs();
+				int numKeyDHS = keyDHS.size();
+				for(int j = 0 ; j < numKeyDHS ; j++)
 				{
-					String diaryNameJ = requestedDiaryNames.get(j);
+					DiaryHeader dhJ = keyDHS.get(j);
+					boolean isFinalThroughput = dhJ.equals(DiaryHeader.FinalThroughput);
 					
-					String[] brokenDNJ = diaryNameJ.split("_");
-					ArrayList<String> temp = new ArrayList<String>(Arrays.asList(brokenDNJ));
-					ArrayList<String> variables = new ArrayList<String>(Arrays.asList(brokenDNJ));
-					temp.remove(LOC_NODE_NAME);
-					variables.remove(LOC_NODE_NAME);
-					temp.forEach((var)->{
-						if(constants.contains(var))
+					TreeMap<String, ArrayList<Point2D.Double>> graphData = new TreeMap<String, ArrayList<Point2D.Double>>();
+					TreeMap<String, Double> finalTPData = new TreeMap<String, Double>();
+					for(int k = 0 ; k < numDiaries ; k++)
+					{
+						String diaryNameK = requestedDiaryNames.get(k);
+						
+						String[] brokenDNJ = diaryNameK.split("_");
+						ArrayList<String> temp = new ArrayList<String>(Arrays.asList(brokenDNJ));
+						ArrayList<String> variables = new ArrayList<String>(Arrays.asList(brokenDNJ));
+						temp.remove(LOC_NODE_NAME);
+						variables.remove(LOC_NODE_NAME);
+						temp.forEach((var)->{
+							if(constants.contains(var))
+							{
+								variables.remove(var);
+							}
+						});
+						String variable = String.join(",", variables);
+						
+						PSTBThroughputAO aoK = extractThroughputObject(diaryNameK, dhJ);
+						if(isFinalThroughput)
 						{
-							variables.remove(var);
+							PSTBFinalThroughput ftoK = (PSTBFinalThroughput) aoK;
+							Double dataK = ftoK.getValue();
+							finalTPData.put(variable, dataK);
 						}
-					});
-					String variable = String.join(",", variables);
+						else
+						{
+							PSTBTwoPoints tpoK = (PSTBTwoPoints) aoK;
+							ArrayList<Point2D.Double> dataK = tpoK.getDataset();
+							graphData.put(variable, dataK);
+						}
+					}
+					// Data received
 					
-					PSTBThroughputAO aoJ = extractThroughputObject(diaryNameJ, requestedDH);
-					PSTBTwoPoints tpoJ = (PSTBTwoPoints) aoJ;
-					ArrayList<Point2D.Double> dataJ = tpoJ.getDataset();
+					// Send data to python
+					Path folderPath = Paths.get(tpAnalysisFolderString);
+					if(!Files.exists(folderPath))
+					{
+						try 
+						{
+							Files.createDirectories(folderPath);
+						} 
+						catch (Exception e) 
+						{
+							logger.fatal(logHeader + "Couldn't create directory: ", e);
+							System.exit(PSTBError.A_ANALYSIS);
+						}
+					}
 					
-					data.put(variable, dataJ);
-				}
-				// Data received
-				
-				// Send data to python
-				Path folderPath = Paths.get(tpAnalysisFolderString);
-				if(!Files.exists(folderPath))
-				{
-					try 
+					ArrayList<String> tempCommand = new ArrayList<String>();
+					tempCommand.add("python");
+					tempCommand.add(tpAnalysisFolderString);
+					tempCommand.add(dhJ.toString() + " given " + constant);
+					if(isFinalThroughput)
 					{
-						Files.createDirectories(folderPath);
-					} 
-					catch (Exception e) 
+						tempCommand.add(1, "finalTP.py");
+						tempCommand.add("Messages/sec");
+						tempCommand.add(finalTPData.keySet().stream()
+								.collect(Collectors.joining("|")));
+						tempCommand.add(finalTPData.values().stream()
+								.map(k -> String.valueOf(k))
+								.collect(Collectors.joining("|")));
+						tempCommand.add(PSTBUtil.BENCHMARK_NUMBER_REGEX);
+					}
+					else
 					{
-						logger.fatal(logHeader + "Couldn't create directory: ", e);
+						tempCommand.add(1, "graph2.py");
+						tempCommand.add("Input Rate (messages/sec)");
+						
+						if(dhJ.equals(DiaryHeader.CurrentThroughput))
+						{
+							tempCommand.add("Current Throughput (messages/sec)");
+						}
+						else if(dhJ.equals(DiaryHeader.AverageThroughput))
+						{
+							tempCommand.add("Average Throughput (messages/sec)");
+						}
+						else if(dhJ.equals(DiaryHeader.Secant))
+						{
+							tempCommand.add("Secant (unitless)");
+						}
+						else if(dhJ.equals(DiaryHeader.CurrentRatio))
+						{
+							tempCommand.add("Ratio (unitless)");
+						}
+						else
+						{
+							tempCommand.add("Latency (sec)");
+						}
+						
+						ArrayList<ArrayList<String>> allXs = new ArrayList<ArrayList<String>>();
+						ArrayList<ArrayList<String>> allYs = new ArrayList<ArrayList<String>>();
+						ArrayList<String> allLabels = new ArrayList<String>();
+						graphData.forEach((graph, data)->{
+							int numPoints = data.size();
+							ArrayList<String> xI = new ArrayList<String>();
+							ArrayList<String> yI = new ArrayList<String>();
+							
+							for(int a = 0 ; a < numPoints ; a++)
+							{
+								Point2D.Double coOrdinateA = data.get(a);
+								Double xA = coOrdinateA.getX();
+								Double yA = coOrdinateA.getY();
+								
+								xI.add(xA.toString());
+								yI.add(yA.toString());
+							}
+							
+							allXs.add(xI);
+							allYs.add(yI);
+							allLabels.add(graph);
+						});
+						
+						ArrayList<String> allXsTemp = new ArrayList<String>();
+						allXs.forEach((t)->{
+							String e = t.stream()
+									.collect(Collectors.joining("-"));
+							allXsTemp.add(e);
+						});
+						tempCommand.add(allXsTemp.stream()
+								.collect(Collectors.joining("|")));
+						
+						ArrayList<String> allYsTemp = new ArrayList<String>();
+						allYs.forEach((t)->{
+							String e = t.stream()
+									.collect(Collectors.joining("-"));
+							allYsTemp.add(e);
+						});
+						tempCommand.add(allYsTemp.stream()
+								.collect(Collectors.joining("|")));
+						
+						tempCommand.add(graphData.keySet().stream()
+								.collect(Collectors.joining("|")));
+					}
+					
+					String[] command = tempCommand.toArray(new String[tempCommand.size()]);
+					Boolean graphCheck = PSTBUtil.createANewProcess(command, logger, true, true,
+							"Couldn't create graph process!", 
+							"Graph complete.", 
+							"Graph process failed!");
+					if(graphCheck == null || !graphCheck)
+					{
+						logger.fatal(logHeader + "Couldn't print graphs!");
 						System.exit(PSTBError.A_ANALYSIS);
 					}
-				}
-				
-				String[] command = new String[9];
-				command[0] = "python";
-				command[1] = "graph2.py";
-				command[2] = tpAnalysisFolderString;
-				command[3] = requestedDH.toString() + " given " + constant;
-				command[4] = "Input Rate (messages/sec)";
-				if(requestedDH.equals(DiaryHeader.CurrentThroughput))
-				{
-					command[5] = "Current Throughput (messages/sec)";
-				}
-				else if(requestedDH.equals(DiaryHeader.AverageThroughput))
-				{
-					command[5] = "Average Throughput (messages/sec)";
-				}
-				else if(requestedDH.equals(DiaryHeader.Secant))
-				{
-					command[5] = "Secant (unitless)";
-				}
-				else if(requestedDH.equals(DiaryHeader.CurrentRatio))
-				{
-					command[5] = "Ratio (unitless)";
-				}
-				else
-				{
-					command[5] = "Latency (sec)";
-				}
-				
-				ArrayList<ArrayList<String>> allXs = new ArrayList<ArrayList<String>>();
-				ArrayList<ArrayList<String>> allYs = new ArrayList<ArrayList<String>>();
-				ArrayList<String> allLabels = new ArrayList<String>();
-				data.forEach((graph, graphData)->{
-					int numPoints = graphData.size();
-					ArrayList<String> xI = new ArrayList<String>();
-					ArrayList<String> yI = new ArrayList<String>();
 					
-					for(int a = 0 ; a < numPoints ; a++)
-					{
-						Point2D.Double coOrdinateA = graphData.get(a);
-						Double xA = coOrdinateA.getX();
-						Double yA = coOrdinateA.getY();
-						
-						xI.add(xA.toString());
-						yI.add(yA.toString());
-					}
-					
-					allXs.add(xI);
-					allYs.add(yI);
-					allLabels.add(graph);
-				});
-				
-				ArrayList<String> allXsTemp = new ArrayList<String>();
-				allXs.forEach((t)->{
-					String e = t.stream()
-							.map(k -> String.valueOf(k))
-							.collect(Collectors.joining("-"));
-					allXsTemp.add(e);
-				});
-				command[6] = allXsTemp.stream()
-						.map(k -> String.valueOf(k))
-						.collect(Collectors.joining("|"));
-				
-				ArrayList<String> allYsTemp = new ArrayList<String>();
-				allYs.forEach((t)->{
-					String e = t.stream()
-							.map(k -> String.valueOf(k))
-							.collect(Collectors.joining("-"));
-					allYsTemp.add(e);
-				});
-				command[7] = allYsTemp.stream()
-						.map(k -> String.valueOf(k))
-						.collect(Collectors.joining("|"));
-				
-				command[8] = data.keySet().stream()
-						.map(k -> String.valueOf(k))
-						.collect(Collectors.joining("|"));
-				
-				Boolean graphCheck = PSTBUtil.createANewProcess(command, logger, true, true,
-						"Couldn't create graph process!", 
-						"Graph complete.", 
-						"Graph process failed!");
-				if(graphCheck == null || !graphCheck)
-				{
-					logger.fatal(logHeader + "Couldn't print graphs!");
-					System.exit(PSTBError.A_ANALYSIS);
+					System.out.println("");
+				}
 				}
 				
-				System.out.println("");
-			}
 			logger.debug("Analysis complete.");
 		}
 	}
@@ -677,8 +707,6 @@ public class ThroughputAnalyzer {
 	
 	private static PSTBThroughputAO extractThroughputObject(String givenDiaryName, DiaryHeader requestedAnalysis)
 	{
-		logger.debug(logHeader + "Working on object " + givenDiaryName + "...");
-
 		ClientDiary diary = bookshelf.get(givenDiaryName);
 		String name = requestedAnalysis.toString() + PSTBUtil.CONTEXT_SEPARATOR + givenDiaryName;
 		
@@ -848,8 +876,8 @@ public class ThroughputAnalyzer {
 		retVal.add(DiaryHeader.CurrentThroughput);
 		retVal.add(DiaryHeader.AverageThroughput);
 		retVal.add(DiaryHeader.RoundLatency);
-		retVal.add(DiaryHeader.Secant);
-		retVal.add(DiaryHeader.CurrentRatio);
+//		retVal.add(DiaryHeader.Secant);
+//		retVal.add(DiaryHeader.CurrentRatio);
 		retVal.add(DiaryHeader.FinalThroughput);
 		
 		return retVal;

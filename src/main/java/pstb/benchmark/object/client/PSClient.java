@@ -222,7 +222,7 @@ public abstract class PSClient extends PSNode
 		boolean runCheck = false;
 		if(cMode.equals(PSClientMode.Scenario))
 		{
-			nodeLog.info(logHeader + "Starting normal run...");
+			nodeLog.info(logHeader + "Starting scenario run...");
 			runCheck = normalRun();
 		}
 		else
@@ -568,20 +568,20 @@ public abstract class PSClient extends PSNode
 			else
 			{	
 //				PSActionType undoActionType = null;
-				if(cMode.equals(PSClientMode.TPPub))
-				{
-					PSActionType undoActionType = PSActionType.V;
-					boolean undoFirstActionCheck = launchAction(undoActionType, firstAction);
-					if(!undoFirstActionCheck)
-					{
-						nodeLog.error(logHeader + "Couldn't undo the first action!");
-						return false;
-					}
-					else
-					{
-						nodeLog.info(logHeader + "Undo complete.");
-					}					
-				}
+//				if(cMode.equals(PSClientMode.TPPub))
+//				{
+//					undoActionType = PSActionType.V;
+//					boolean undoFirstActionCheck = launchAction(undoActionType, firstAction);
+//					if(!undoFirstActionCheck)
+//					{
+//						nodeLog.error(logHeader + "Couldn't undo the first action!");
+//						return false;
+//					}
+//					else
+//					{
+//						nodeLog.info(logHeader + "Undo complete.");
+//					}					
+//				}
 //				else if(cMode.equals(PSClientMode.TPSub))
 //				{
 //					undoActionType = PSActionType.U;
@@ -596,23 +596,8 @@ public abstract class PSClient extends PSNode
 //				{
 //					nodeLog.info(logHeader + "Undo complete.");
 //				}
-
-				diaryLock.lock();
-				try
-				{
-					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.A);
-					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.V);
-					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.S);
-					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.U);
-					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.P);
-					diary.removeDiaryEntiresWithGivenPSActionType(PSActionType.R);
-				}
-				finally
-				{
-					diaryLock.unlock();
-				}
 				
-				nodeLog.info(logHeader + "Throughput experiment complete.");
+				nodeLog.debug(logHeader + "Throughput experiment complete.");
 			}
 		}
 		

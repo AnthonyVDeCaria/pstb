@@ -21,12 +21,17 @@ import pstb.util.PSTBUtil;
 public class SIENABrokerProcess extends PSTBBrokerProcess {
 	private PSBrokerSIENA actualNode;
 	
-	public SIENABrokerProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, PSEngine givenEngine, 
-			NodeRole givenRole, boolean areWeDistributed, String givenUsername, Socket givenConnection, OutputStream givenOut, 
-			Logger givenLog, String givenLogHeader, String givenThreadContextString)
+	public SIENABrokerProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, 
+			PSEngine givenEngine, NodeRole givenRole, Boolean shouldWeSendDiary,
+			boolean areWeDistributed, String givenUsername,
+			Socket givenConnection, OutputStream givenOut,
+			Logger givenLog, String givenLogHeader, String givenTCS) 
 	{
-		super(givenName, givenContext, givenIPAddress, givenPort,givenEngine, givenRole, areWeDistributed, givenUsername, 
-				givenConnection, givenOut, givenLog, givenLogHeader, givenThreadContextString);
+		super(givenName, givenContext, givenIPAddress, givenPort, 
+				givenEngine, givenRole, shouldWeSendDiary,
+				areWeDistributed, givenUsername,
+				givenConnection, givenOut,
+				givenLog, givenLogHeader, givenTCS);
 		
 		actualNode = null;
 	}

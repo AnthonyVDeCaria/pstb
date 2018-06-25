@@ -1,7 +1,7 @@
-#BenchmarkNumber	TopologyFilePath	DistributedFlag	Protocol	PeriodLength	MessageSize	NumAttributes	AttributeRatio	DiaryHeader
+#BenchmarkNumber	TopologyFilePath	DistributedFlag	Protocol	PeriodLength	MessageSize	NumAttributes	AttributeRatio
 
-null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	null	String0P	CurrentThroughput
-null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	null	null	CurrentThroughput
-null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	null	null	CurrentThroughput
+null	etc/treeTopologyD1F4.txt	L	socket	2000	ZeroBytes	null	null
+null	etc/treeTopologyD1F4.txt	L	socket	2000	TenKilobytes	null	null
+null	etc/treeTopologyD1F4.txt	L	socket	2000	OneHundredKilobytes	null	null
 
-null	null	null	null	null	null	null	null	CurrentThroughput
+null	null	null	null	null	null	null	null

@@ -36,12 +36,17 @@ import pstb.util.PSTBError;
  * 			Float until killed
  */
 public abstract class PSTBBrokerProcess extends PSTBProcess{
-	public PSTBBrokerProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, PSEngine givenEngine, 
-			NodeRole givenRole, boolean areWeDistributed, String givenUsername, Socket givenConnection, OutputStream givenOut, 
-			Logger givenLog, String givenLogHeader, String givenThreadContextString) 
+	public PSTBBrokerProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, 
+			PSEngine givenEngine, NodeRole givenRole, Boolean shouldWeSendDiary,
+			boolean areWeDistributed, String givenUsername,
+			Socket givenConnection, OutputStream givenOut,
+			Logger givenLog, String givenLogHeader, String givenTCS) 
 	{
-		super(givenName, givenContext, givenIPAddress, givenPort,givenEngine, givenRole, areWeDistributed, givenUsername, 
-				givenConnection, givenOut, givenLog, givenLogHeader, givenThreadContextString);
+		super(givenName, givenContext, givenIPAddress, givenPort, 
+				givenEngine, givenRole, shouldWeSendDiary,
+				areWeDistributed, givenUsername,
+				givenConnection, givenOut,
+				givenLog, givenLogHeader, givenTCS);
 	}
 	
 	@Override
