@@ -10,6 +10,7 @@ import java.util.Iterator;
 import org.apache.logging.log4j.Logger;
 
 import pstb.startup.workload.PSActionType;
+import pstb.util.PSTBUtil;
 
 /**
  * @author padres-dev-4187
@@ -23,6 +24,7 @@ public class ClientDiary implements java.io.Serializable
 	
 	// Key Variable
 	ArrayList<DiaryEntry> diary;
+	String timeCreated;
 	
 	/**
 	 * Empty Constructor
@@ -30,6 +32,8 @@ public class ClientDiary implements java.io.Serializable
 	public ClientDiary()
 	{
 		diary = new ArrayList<DiaryEntry>();
+		Long currTime = System.currentTimeMillis();
+		timeCreated = PSTBUtil.DATE_FORMAT.format(currTime);
 	}
 	
 	/**
@@ -122,7 +126,9 @@ public class ClientDiary implements java.io.Serializable
 	{
 		int diarySize = diary.size();
 		
-		String openingLine = "There are " + diarySize + " entries\n\n";
+		String openingLine = "Created at " + timeCreated + "\n"
+				+ "There are " + diarySize + " entries\n" 
+				+ "\n";
 		try
 		{
 			Files.deleteIfExists(givenFilePath);
