@@ -326,7 +326,7 @@ public class WorkloadFileParser {
 			}
 		}
 		
-		String fileType = PSTBUtil.getFileExtension(workloadFileString);
+		String fileType = PSTBUtil.getFileExtension(workloadFileString, false);
 		if(requestedEngines.contains(PSEngine.PADRES))
 		{
 			if(fileType.equals(SupportedEngines.WORKLOAD_FILE_TYPE_PADRES))

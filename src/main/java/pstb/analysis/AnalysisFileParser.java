@@ -110,7 +110,7 @@ public class AnalysisFileParser {
 			return null;
 		}
 		
-		String extension = PSTBUtil.getFileExtension(analysisFileString);
+		String extension = PSTBUtil.getFileExtension(analysisFileString, false);
 		try
 		{
 			afsExtension = AnalysisFileExtension.valueOf(extension);

@@ -20,7 +20,7 @@ public class SupportedEngines {
 	
 	public static boolean checkProperWorkloadFileEndings(String givenWFS)
 	{
-		String fileExtension = PSTBUtil.getFileExtension(givenWFS);
+		String fileExtension = PSTBUtil.getFileExtension(givenWFS, false);
 		
 		return fileExtension.equals(WORKLOAD_FILE_TYPE_PADRES) || fileExtension.equals(WORKLOAD_FILE_TYPE_SIENA);
 	}

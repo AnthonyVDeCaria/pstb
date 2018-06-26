@@ -194,15 +194,22 @@ public class PSTBUtil {
 	
 	/**
 	 * Gets the file extension of a given File String.
-	 * NOTE: This will also return the '.' as part of the extension.
 	 * 
 	 * @param givenFileString - the File String to get the extension from
+	 * @param receiveDot - returns the dot with the extension
 	 * @return the extension
 	 */
-	public static String getFileExtension(String givenFileString)
+	public static String getFileExtension(String givenFileString, boolean receiveDot)
 	{
 		int dot = givenFileString.lastIndexOf(".");
-	    return givenFileString.substring(dot + 1);
+		if(receiveDot)
+		{
+		    return givenFileString.substring(dot);
+		}
+		else
+	    {
+		    return givenFileString.substring(dot + 1);
+	    }
 	}
 	
 	/**
