@@ -355,6 +355,7 @@ public class ThroughputAnalyzer {
 				}
 				requestedDiaryNames.add(firstDiaryName);
 				String constant = String.join(",", constants);
+				logger.debug(logHeader + "Constants are " + constant + ".");
 				// Constants identified
 				
 				// Get data
@@ -363,6 +364,7 @@ public class ThroughputAnalyzer {
 				for(int j = 0 ; j < numKeyDHS ; j++)
 				{
 					DiaryHeader dhJ = keyDHS.get(j);
+					logger.debug(logHeader + "Creating " + dhJ + " graph.");
 					boolean isFinalThroughput = dhJ.equals(DiaryHeader.FinalThroughput);
 					
 					TreeMap<String, ArrayList<Point2D.Double>> graphData = new TreeMap<String, ArrayList<Point2D.Double>>();
@@ -384,6 +386,7 @@ public class ThroughputAnalyzer {
 						});
 						String variable = String.join(",", variables);
 						
+						logger.debug(logHeader + "Extracting data from " + variable + ".");
 						PSTBThroughputAO aoK = extractThroughputObject(diaryNameK, dhJ);
 						if(isFinalThroughput)
 						{
@@ -395,6 +398,11 @@ public class ThroughputAnalyzer {
 						{
 							PSTBTwoPoints tpoK = (PSTBTwoPoints) aoK;
 							ArrayList<Point2D.Double> dataK = tpoK.getDataset();
+							if(dataK.isEmpty())
+							{
+								logger.fatal(logHeader + "Data is missing!"); 
+								System.exit(PSTBError.A_ANALYSIS);
+							}
 							graphData.put(variable, dataK);
 						}
 					}
@@ -482,20 +490,22 @@ public class ThroughputAnalyzer {
 						ArrayList<String> allXsTemp = new ArrayList<String>();
 						allXs.forEach((t)->{
 							String e = t.stream()
-									.collect(Collectors.joining("-"));
+									.collect(Collectors.joining("+"));
 							allXsTemp.add(e);
 						});
-						tempCommand.add(allXsTemp.stream()
-								.collect(Collectors.joining("|")));
+						String combinedXs = allXsTemp.stream()
+								.collect(Collectors.joining("|"));
+						tempCommand.add(combinedXs);
 						
 						ArrayList<String> allYsTemp = new ArrayList<String>();
 						allYs.forEach((t)->{
 							String e = t.stream()
-									.collect(Collectors.joining("-"));
+									.collect(Collectors.joining("+"));
 							allYsTemp.add(e);
 						});
-						tempCommand.add(allYsTemp.stream()
-								.collect(Collectors.joining("|")));
+						String combinedYs = allYsTemp.stream()
+								.collect(Collectors.joining("|"));
+						tempCommand.add(combinedYs);
 						
 						tempCommand.add(graphData.keySet().stream()
 								.collect(Collectors.joining("|")));
@@ -876,8 +886,8 @@ public class ThroughputAnalyzer {
 		retVal.add(DiaryHeader.CurrentThroughput);
 		retVal.add(DiaryHeader.AverageThroughput);
 		retVal.add(DiaryHeader.RoundLatency);
-//		retVal.add(DiaryHeader.Secant);
-//		retVal.add(DiaryHeader.CurrentRatio);
+		retVal.add(DiaryHeader.Secant);
+		retVal.add(DiaryHeader.CurrentRatio);
 		retVal.add(DiaryHeader.FinalThroughput);
 		
 		return retVal;

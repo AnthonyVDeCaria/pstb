@@ -29,15 +29,17 @@ ls = []
 plt.figure(figsize=(16, 9), dpi=120)
 
 for graphXI in givenXs:
-    brokenGraphXI = graphXI.split("-")
+    brokenGraphXI = graphXI.split("+")
+#    print("GraphI: " + str(brokenGraphXI))
     xI = []
     for valueXJ in brokenGraphXI:
         temp = valueXJ.replace("[","").replace("]","")
+#        print(temp)
         xI.append(float(temp))
     xs.append(xI)
 
 for graphYI in givenYs:
-    brokenGraphYI = graphYI.split("-")
+    brokenGraphYI = graphYI.split("+")
     yI = []
     for valueYJ in brokenGraphYI:
         temp = valueYJ.replace("[","").replace("]","")
