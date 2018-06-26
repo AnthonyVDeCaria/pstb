@@ -436,7 +436,7 @@ public class ThroughputAnalyzer {
 						tempCommand.add(finalTPData.values().stream()
 								.map(k -> String.valueOf(k))
 								.collect(Collectors.joining("|")));
-						tempCommand.add(PSTBUtil.BENCHMARK_NUMBER_REGEX);
+						tempCommand.add("^" + PSTBUtil.BENCHMARK_NUMBER_REGEX + "$");
 					}
 					else
 					{
@@ -554,7 +554,10 @@ public class ThroughputAnalyzer {
 		for(int i = 0 ; i < listFiles.length ; i++)
 		{
 			File diaryI = listFiles[i];
-			String diaryIName = diaryI.toString().replace(".dia", "").replace(System.getProperty("user.dir"), "").replace("/", "");
+			String diaryIName = diaryI.toString()
+					.replace(".dia", "")
+					.replace(System.getProperty("user.dir"), "")
+					.replace("/", "");
 			
 			FileInputStream in = null;
 			try 
