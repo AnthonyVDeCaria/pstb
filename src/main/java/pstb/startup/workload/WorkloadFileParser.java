@@ -119,8 +119,6 @@ public class WorkloadFileParser {
 	 */
 	public boolean parse()
 	{
-		boolean parseSuccessful = true;
-		
 		if(workloadFileString.isEmpty())
 		{
 			logger.error(logHeader + "No workload file was given!");
@@ -151,77 +149,72 @@ public class WorkloadFileParser {
 				String[] splitLine = line.split("	");
 				if(!checkProperLength(splitLine))
 				{
-					parseSuccessful = false;
 					logger.error(logHeader + "line " + linesRead + " is not the proper length");
+					readerWF.close();
+					return false;
+				}
+				
+				String actionDelayString = splitLine[LOC_ACTION_DELAY];
+				Long actionDelay = PSTBUtil.checkIfLong(actionDelayString, false, null);
+				if(actionDelay == null)
+				{
+					logger.error(logHeader + "line " + linesRead + " has an incorrect action delay!");
+					readerWF.close();
+					return false;
+				}
+				
+				PSActionType lineIsActionType = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase());
+				if(lineIsActionType == null)
+				{
+					logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action!");
+					readerWF.close();
+					return false;
+				}
+				
+				if(splitLine.length != MAXSEGMENTSNUM)
+				{
+					if(!addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
+							Long.MAX_VALUE, NO_PAYLOAD))
+					{
+						logger.error(logHeader + "error adding " + linesRead + " to the workload!");
+						readerWF.close();
+						return false;
+					}
+				}
+				
+				Long timeActive = null; 
+				Integer payloadSize = null;
+				if(lineIsActionType.equals(PSActionType.P))
+				{
+					payloadSize = PSTBUtil.checkIfInteger(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
+					if(payloadSize == null)
+					{
+						logger.error(logHeader + "line " + linesRead + " has an incorrect payload size!");
+						readerWF.close();
+						return false;
+					}
+				}
+				else if(lineIsActionType.equals(PSActionType.A) || lineIsActionType.equals(PSActionType.S))
+				{
+					timeActive = PSTBUtil.checkIfLong(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
+					if(timeActive == null)
+					{
+						logger.error(logHeader + "line " + linesRead + " has an incorrect time active value!");
+						readerWF.close();
+						return false;
+					}
 				}
 				else
 				{
-					String actionDelayString = splitLine[LOC_ACTION_DELAY];
-					Long actionDelay = PSTBUtil.checkIfLong(actionDelayString, false, null);
-					
-					if(actionDelay == null)
-					{
-						parseSuccessful = false;
-						logger.error(logHeader + "line " + linesRead + " has an incorrect action delay!");
-					}
-					else
-					{
-						PSActionType lineIsActionType = checkProperClientAction(splitLine[LOC_CLIENT_ACTION].toUpperCase());
-						if(lineIsActionType == null)
-						{
-							parseSuccessful = false;
-							logger.error(logHeader + "line " + linesRead + " has an incorrect Client Action!");
-						}
-						else
-						{
-							if(splitLine.length != MAXSEGMENTSNUM)
-							{
-								boolean addCheck = addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
-																			Long.MAX_VALUE, NO_PAYLOAD);
-								if(!addCheck)
-								{
-									parseSuccessful = false;
-									logger.error(logHeader + "error adding " + linesRead + " to the workload!");
-								}
-							}
-							else
-							{
-								Long timeActive = null; 
-								Integer payloadSize = null;
-								
-								if(lineIsActionType.equals(PSActionType.P))
-								{
-									payloadSize = PSTBUtil.checkIfInteger(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
-									if(payloadSize == null)
-									{
-										parseSuccessful = false;
-										logger.error(logHeader + "line " + linesRead + " has an incorrect payload size!");
-									}
-								}
-								else if(lineIsActionType.equals(PSActionType.A) || lineIsActionType.equals(PSActionType.S))
-								{
-									timeActive = PSTBUtil.checkIfLong(splitLine[LOC_PAYLOAD_TIME_ACTIVE], false, null);
-									if(timeActive == null)
-									{
-										parseSuccessful = false;
-										logger.error(logHeader + "line " + linesRead + " has an incorrect time active value!");
-									}
-								}
-								else
-								{
-									logger.warn(logHeader + "line " + linesRead + " shouldn't have a third column - ignoring it.");
-								}
-								
-								boolean addCheck = addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
-										timeActive, payloadSize);
-								if(!addCheck)
-								{
-									parseSuccessful = false;
-									logger.error(logHeader + "error adding " + linesRead + " to the workload!");
-								}
-							}
-						}
-					}
+					logger.warn(logHeader + "line " + linesRead + " shouldn't have a third column - ignoring it.");
+				}
+				
+				if(!addActionToWorkload(actionDelay, lineIsActionType, splitLine[LOC_ATTRIBUTES], 
+						timeActive, payloadSize))
+				{
+					logger.error(logHeader + "error adding " + linesRead + " to the workload!");
+					readerWF.close();
+					return false;
 				}
 			}
 			readerWF.close();
@@ -232,7 +225,7 @@ public class WorkloadFileParser {
 			return false;
 		}
 		
-		return parseSuccessful;
+		return true;
 	}
 	
 	/**
