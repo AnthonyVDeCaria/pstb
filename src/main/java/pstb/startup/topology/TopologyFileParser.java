@@ -68,103 +68,91 @@ public class TopologyFileParser {
 	 */
 	public boolean parse()
 	{
-		boolean isParseSuccessful = true;
 		String line = null;
-		int linesRead = 0;
+		int lineI = 0;
 		try 
 		{
 			BufferedReader tFReader = new BufferedReader(new FileReader(topoFileString));
 			while( (line = tFReader.readLine()) != null)
 			{
-				linesRead++;
+				lineI++;
 				if(!PSTBUtil.checkIfLineIgnorable(line))
 				{
 					String[] splitLine = line.split(PSTBUtil.COLUMN_SEPARATOR);
 					int lineIsLength = splitLine.length;
 					if(lineIsLength < MIN_SEGMENTS || lineIsLength > MAX_SEGMENTS)
 					{
-						isParseSuccessful = false;
-						logger.error(logHeader + "Line " + linesRead + "'s length isn't correct!");
+						logger.error(logHeader + "Line " + lineI + "'s length isn't correct!");
+						tFReader.close();
+						return false;
 					}
-					else
+					
+					String role = splitLine[LOC_ROLE];
+					NodeRole lineIsRole = checkProperRoles(role);
+					if(lineIsRole == null)
 					{
-						String role = splitLine[LOC_ROLE];
-						
-						NodeRole lineIsRole = checkProperRoles(role);
-						if(lineIsRole == null)
+						logger.error(logHeader + "Line " + lineI + "'s references a role that doesn't exist!");
+						tFReader.close();
+						return false;
+					}
+					
+					if(!checkProperLineLength(lineIsRole, lineIsLength))
+					{
+						logger.error(logHeader + "Line " + lineI + "'s length isn't correct for its role!");
+						tFReader.close();
+						return false;
+					}
+					
+					String name = splitLine[LOC_NAME];
+					if(!checkUniqueName(name))
+					{
+						logger.error(logHeader + "Line " + lineI + " conatins a previously used name!");
+						tFReader.close();
+						return false;
+					}
+					
+					ArrayList<String> splitConnections = null;
+					String workloadFileString = null;
+					
+					if(
+							!lineIsRole.equals(NodeRole.B) ||
+							(lineIsRole.equals(NodeRole.B) && lineIsLength == MAX_BROKER_SEGMENTS)
+							)
+					{
+						String connections = splitLine[LOC_CONN];
+						splitConnections = PSTBUtil.turnStringArrayIntoArrayListString(
+								connections.split(PSTBUtil.ITEM_SEPARATOR));
+					}
+					
+					if(lineIsRole.equals(NodeRole.C))
+					{										
+						workloadFileString = splitLine[LOC_WORKLOAD_FILE];
+						if(!submittedWorkloadFilesStrings.contains(workloadFileString))
 						{
-							isParseSuccessful = false;
-							logger.error(logHeader + "Line " + linesRead + "'s references a role that doesn't exist!");
+							logger.error(logHeader + "Line " + lineI + " conatins a unsubmitted workload!");
+							tFReader.close();
+							return false;
 						}
-						else
-						{
-							String name = splitLine[LOC_NAME];
-							int lineLength = splitLine.length;
-							
-							if(!checkProperLineLength(lineIsRole, lineLength))
-							{
-								isParseSuccessful = false;
-								logger.error(logHeader + "Line " + linesRead + "'s length isn't correct for its role!");
-							}
-							else
-							{
-								if(!checkUniqueName(name))
-								{
-									isParseSuccessful = false;
-									logger.error(logHeader + "Line " + linesRead + " conatins a previously used name!");
-								}
-								else
-								{
-									ArrayList<String> splitConnections = null;
-									String workloadFileString = null;
-									
-									if(
-											!lineIsRole.equals(NodeRole.B) ||
-											(lineIsRole.equals(NodeRole.B) && lineLength == MAX_BROKER_SEGMENTS)
-											)
-									{
-										String connections = splitLine[LOC_CONN];
-										splitConnections = PSTBUtil.turnStringArrayIntoArrayListString(
-												connections.split(PSTBUtil.ITEM_SEPARATOR));
-									}
-									
-									if(lineIsRole.equals(NodeRole.C))
-									{										
-										workloadFileString = splitLine[LOC_WORKLOAD_FILE];
-										if(!submittedWorkloadFilesStrings.contains(workloadFileString))
-										{
-											isParseSuccessful = false;
-											logger.error(logHeader + "Line " + linesRead + " conatins a unsubmitted workload!");
-										}
-									}
-									
-									if(isParseSuccessful)
-									{
-										logger.trace(logHeader + "Line " + linesRead + "'s syntax checks out.");
-										
-										isParseSuccessful = logicalTopo.addNewNodeToTopo(lineIsRole, name, splitConnections, 
-												workloadFileString);
-										
-										
-										if(!isParseSuccessful)
-										{
-											logger.error(logHeader + "Couldn't add line " + linesRead + " to the logical topology!");
-										}
-									}
-								}
-							}
-						}
+					}
+					
+					logger.trace(logHeader + "Line " + lineI + "'s syntax checks out.");
+					
+					if(!logicalTopo.addNewNodeToTopo(lineIsRole, name, splitConnections, workloadFileString))
+					{
+						logger.error(logHeader + "Couldn't add line " + lineI + " to the logical topology!");
+						tFReader.close();
+						return false;
 					}
 				}
-			}		
+			}
 			tFReader.close();
 		} 
 		catch (IOException e) 
 		{
-			isParseSuccessful = false;
 			logger.error(logHeader + "Cannot find file: ", e);
+			return false;
 		}
-		return isParseSuccessful;
+		return true;
 	}
 	
 	/**
