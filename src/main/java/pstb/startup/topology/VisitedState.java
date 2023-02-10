@@ -8,5 +8,5 @@ package pstb.startup.topology;
  *
  */
 public enum VisitedState {
-	NOTVISITED, VISITED 
+    NOTVISITED, VISITED 
 }

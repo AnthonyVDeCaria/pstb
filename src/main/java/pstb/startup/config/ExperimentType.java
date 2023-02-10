@@ -8,5 +8,5 @@ package pstb.startup.config;
  *
  */
 public enum ExperimentType {
-	Throughput, Scenario
+    Throughput, Scenario
 }

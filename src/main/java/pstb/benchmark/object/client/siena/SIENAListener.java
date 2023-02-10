@@ -23,53 +23,53 @@ import siena.SienaException;
  */
 public class SIENAListener implements Notifiable
 {
-	// Needed variables
-	private ClientDiary diary;
-	private ReentrantLock diaryLock;
-	private String diaryName;
-	
-	// Logger
-	private final String logHeader = "SListener: ";
-	private final Logger clientLog = LogManager.getLogger(PSTBClientProcess.class);
-	
-	public SIENAListener(ClientDiary givenDiary, ReentrantLock givenLock, String givenDiaryName)
-	{
-		diary = givenDiary;
-		diaryLock = givenLock;
-		diaryName = givenDiaryName;
-	}
+    // Needed variables
+    private ClientDiary diary;
+    private ReentrantLock diaryLock;
+    private String diaryName;
+    
+    // Logger
+    private final String logHeader = "SListener: ";
+    private final Logger clientLog = LogManager.getLogger(PSTBClientProcess.class);
+    
+    public SIENAListener(ClientDiary givenDiary, ReentrantLock givenLock, String givenDiaryName)
+    {
+        diary = givenDiary;
+        diaryLock = givenLock;
+        diaryName = givenDiaryName;
+    }
 
-	@Override
-	public void notify(Notification arg0) throws SienaException {
-		ThreadContext.put("client", diaryName);
-		
-		clientLog.debug("Received a new message...");
-		
-		Long currentTime = System.currentTimeMillis();
-		DiaryEntry receivedMsg = new DiaryEntry();
-		
-		String attributes = arg0.toString();
-		
-		receivedMsg.setPSActionType(PSActionType.R);
-		receivedMsg.addTimeReceived(currentTime);
-		receivedMsg.addAttributes(attributes);
+    @Override
+    public void notify(Notification arg0) throws SienaException {
+        ThreadContext.put("client", diaryName);
+        
+        clientLog.debug("Received a new message...");
+        
+        Long currentTime = System.currentTimeMillis();
+        DiaryEntry receivedMsg = new DiaryEntry();
+        
+        String attributes = arg0.toString();
+        
+        receivedMsg.setPSActionType(PSActionType.R);
+        receivedMsg.addTimeReceived(currentTime);
+        receivedMsg.addAttributes(attributes);
 
-		diaryLock.lock();
-		try
-		{
-			diary.addDiaryEntryToDiary(receivedMsg);
-		}
-		finally
-		{
-			diaryLock.unlock();
-		}
-		
-		clientLog.debug(logHeader + "New publication received " + attributes + ".");
-		System.out.println(attributes);
-	}
+        diaryLock.lock();
+        try
+        {
+            diary.addDiaryEntryToDiary(receivedMsg);
+        }
+        finally
+        {
+            diaryLock.unlock();
+        }
+        
+        clientLog.debug(logHeader + "New publication received " + attributes + ".");
+        System.out.println(attributes);
+    }
 
-	@Override
-	public void notify(Notification[] arg0) throws SienaException {
-		// TODO Implement patterns... maybe... I kinda doubt it.
-	}
+    @Override
+    public void notify(Notification[] arg0) throws SienaException {
+        // TODO Implement patterns... maybe... I kinda doubt it.
+    }
 }

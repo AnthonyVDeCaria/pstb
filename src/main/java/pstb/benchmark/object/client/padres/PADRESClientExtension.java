@@ -13,25 +13,25 @@ import ca.utoronto.msrg.padres.common.message.Message;
  */
 public class PADRESClientExtension extends Client  
 {
-	PSClientPADRES hiddenClient;
-	
-	/**
-	 * Constructor
-	 */
-	public PADRESClientExtension(ClientConfig givenCConfig, PSClientPADRES givenClient) throws ClientException
-	{
-		super(givenCConfig);
-		hiddenClient = givenClient;
-	}
-	
-	/**
-	 * A processMessage Override
-	 * Allowing us to call our storePublication function
-	 * @see storePublication()
-	 */
-	@Override
-	public void processMessage(Message msg) 
-	{
-		hiddenClient.storePublication(msg);
-	}
+    PSClientPADRES hiddenClient;
+    
+    /**
+     * Constructor
+     */
+    public PADRESClientExtension(ClientConfig givenCConfig, PSClientPADRES givenClient) throws ClientException
+    {
+        super(givenCConfig);
+        hiddenClient = givenClient;
+    }
+    
+    /**
+     * A processMessage Override
+     * Allowing us to call our storePublication function
+     * @see storePublication()
+     */
+    @Override
+    public void processMessage(Message msg) 
+    {
+        hiddenClient.storePublication(msg);
+    }
 }

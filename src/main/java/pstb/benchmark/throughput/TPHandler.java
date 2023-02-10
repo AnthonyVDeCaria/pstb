@@ -21,123 +21,123 @@ import pstb.util.PSTBUtil;
  *
  */
 public class TPHandler extends Thread {
-	private Socket objectPipe;
-	private CountDownLatch delayAdded;
-	private CountDownLatch masterReady;
-	private CountDownLatch threadEnding;
-	private TPMaster masterOfPuppets;
-	
-	private String logHeader = "TPHandler: ";
-	private Logger log = LogManager.getRootLogger();
+    private Socket objectPipe;
+    private CountDownLatch delayAdded;
+    private CountDownLatch masterReady;
+    private CountDownLatch threadEnding;
+    private TPMaster masterOfPuppets;
+    
+    private String logHeader = "TPHandler: ";
+    private Logger log = LogManager.getRootLogger();
 
-	public TPHandler(Socket givenOP, CountDownLatch givenDD, CountDownLatch givenMR, CountDownLatch givenTE, TPMaster givenTM)
-	{
-		objectPipe = givenOP;
-		delayAdded = givenDD;
-		masterReady = givenMR;
-		threadEnding = givenTE;
-		masterOfPuppets = givenTM;
-	}
-	
-	public void run()
-	{
-		String serverName = masterOfPuppets.getName();
-		ThreadContext.put("server", serverName);
-		Thread.currentThread().setName(serverName);
-		
-		OutputStream pipeOut = null;	
-		try
-		{
-			pipeOut = objectPipe.getOutputStream();
-		}
-		catch (IOException e) 
-		{
-			log.error(logHeader + "Couldn't create output stream: ", e);
-			endFailedThread(logHeader + "Couldn't create output stream: ", e, true);
-		}
-		
-		try 
-		{
-			BufferedReader bufferedIn = new BufferedReader(new InputStreamReader(objectPipe.getInputStream()));
-			String inputLine = new String();
-			
-			while ((inputLine = bufferedIn.readLine()) != null)
-			{
-				log.info(logHeader + "Received " + inputLine + ".");
-				masterOfPuppets.addToSubMessages(inputLine);
-				delayAdded.countDown();
-				
-				try
-				{
-					masterReady.await();
-				}
-				catch (InterruptedException e) 
-				{
-					endFailedThread(logHeader + "Couldn't create output stream: ", e, true);
-				}
-				
-				if(masterOfPuppets.isExperimentRunning())
-				{
-					Long messageDelay = masterOfPuppets.getMessageDelay();
-					while(messageDelay == null)
-					{
-						messageDelay = masterOfPuppets.getMessageDelay();
-					}
-					String messageDelayString = messageDelay.toString();
-					log.info(logHeader + "Sending client " + inputLine + " message delay " + messageDelayString + "...");
-					PSTBUtil.sendStringAcrossSocket(pipeOut, messageDelayString);
-					log.debug(logHeader + "Delay sent to client " + inputLine + ".");
-				}
-				else
-				{
-					log.info(logHeader + "Telling client " + inputLine + " to stop...");
-					PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.STOP);
-					log.debug(logHeader + "Told client " + inputLine + ".");
-				}
-				
-				break;
-			}
-		}
-		catch (IOException e) 
-		{
-			endFailedThread(logHeader + "Couldn't connect: ", e, true);
-		}
-		
-		String inputLine = this.toString();
-		log.debug(logHeader + "Ending connection with " + inputLine + "...");
-		try 
-		{
-			objectPipe.close();
-		} 
-		catch (IOException e) 
-		{
-			endFailedThread(logHeader + "Couldn't get close the pipe OutputStream: ", e, true);
-		}
-		log.debug(logHeader + "Connection ended with " + inputLine + ".");
-		
-		threadEnding.countDown();
-	}
-	
-	private void endFailedThread(String record, Exception givenException, boolean exceptionPresent)
-	{
-		if(exceptionPresent)
-		{
-			log.error(record, givenException);
-		}
-		else
-		{
-			log.error(record);
-		}
-		
-		try 
-		{
-			objectPipe.close();
-		} 
-		catch (IOException eIO) 
-		{
-			log.error("Error closing objectPipe: ", eIO);
-		}
-		
-		throw new RuntimeException(record, givenException);
-	}
+    public TPHandler(Socket givenOP, CountDownLatch givenDD, CountDownLatch givenMR, CountDownLatch givenTE, TPMaster givenTM)
+    {
+        objectPipe = givenOP;
+        delayAdded = givenDD;
+        masterReady = givenMR;
+        threadEnding = givenTE;
+        masterOfPuppets = givenTM;
+    }
+    
+    public void run()
+    {
+        String serverName = masterOfPuppets.getName();
+        ThreadContext.put("server", serverName);
+        Thread.currentThread().setName(serverName);
+        
+        OutputStream pipeOut = null;    
+        try
+        {
+            pipeOut = objectPipe.getOutputStream();
+        }
+        catch (IOException e) 
+        {
+            log.error(logHeader + "Couldn't create output stream: ", e);
+            endFailedThread(logHeader + "Couldn't create output stream: ", e, true);
+        }
+        
+        try 
+        {
+            BufferedReader bufferedIn = new BufferedReader(new InputStreamReader(objectPipe.getInputStream()));
+            String inputLine = new String();
+            
+            while ((inputLine = bufferedIn.readLine()) != null)
+            {
+                log.info(logHeader + "Received " + inputLine + ".");
+                masterOfPuppets.addToSubMessages(inputLine);
+                delayAdded.countDown();
+                
+                try
+                {
+                    masterReady.await();
+                }
+                catch (InterruptedException e) 
+                {
+                    endFailedThread(logHeader + "Couldn't create output stream: ", e, true);
+                }
+                
+                if(masterOfPuppets.isExperimentRunning())
+                {
+                    Long messageDelay = masterOfPuppets.getMessageDelay();
+                    while(messageDelay == null)
+                    {
+                        messageDelay = masterOfPuppets.getMessageDelay();
+                    }
+                    String messageDelayString = messageDelay.toString();
+                    log.info(logHeader + "Sending client " + inputLine + " message delay " + messageDelayString + "...");
+                    PSTBUtil.sendStringAcrossSocket(pipeOut, messageDelayString);
+                    log.debug(logHeader + "Delay sent to client " + inputLine + ".");
+                }
+                else
+                {
+                    log.info(logHeader + "Telling client " + inputLine + " to stop...");
+                    PSTBUtil.sendStringAcrossSocket(pipeOut, PSTBUtil.STOP);
+                    log.debug(logHeader + "Told client " + inputLine + ".");
+                }
+                
+                break;
+            }
+        }
+        catch (IOException e) 
+        {
+            endFailedThread(logHeader + "Couldn't connect: ", e, true);
+        }
+        
+        String inputLine = this.toString();
+        log.debug(logHeader + "Ending connection with " + inputLine + "...");
+        try 
+        {
+            objectPipe.close();
+        } 
+        catch (IOException e) 
+        {
+            endFailedThread(logHeader + "Couldn't get close the pipe OutputStream: ", e, true);
+        }
+        log.debug(logHeader + "Connection ended with " + inputLine + ".");
+        
+        threadEnding.countDown();
+    }
+    
+    private void endFailedThread(String record, Exception givenException, boolean exceptionPresent)
+    {
+        if(exceptionPresent)
+        {
+            log.error(record, givenException);
+        }
+        else
+        {
+            log.error(record);
+        }
+        
+        try 
+        {
+            objectPipe.close();
+        } 
+        catch (IOException eIO) 
+        {
+            log.error("Error closing objectPipe: ", eIO);
+        }
+        
+        throw new RuntimeException(record, givenException);
+    }
 }

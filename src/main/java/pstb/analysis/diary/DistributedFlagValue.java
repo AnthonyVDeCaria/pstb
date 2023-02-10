@@ -11,5 +11,5 @@ package pstb.analysis.diary;
  * D means distributed, L means local.
  */
 public enum DistributedFlagValue {
-	D, L
+    D, L
 }

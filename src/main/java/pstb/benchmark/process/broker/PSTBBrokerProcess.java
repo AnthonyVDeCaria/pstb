@@ -21,58 +21,58 @@ import pstb.util.PSTBError;
  * 
  * Algorithm
  * Search the args for the name flag
- * 	Exit with error
+ *     Exit with error
  * Else
- * 	Try to find associated broker object file
- * 	Can't
- * 		Exit with error
- * 	Can
- * 		Attempt to create broker
- * 		Attempt to start broker
+ *     Try to find associated broker object file
+ *     Can't
+ *         Exit with error
+ *     Can
+ *         Attempt to create broker
+ *         Attempt to start broker
  *
- * 		Any of these attempts fail
- * 			Exit with error
- * 		Otherwise
- * 			Float until killed
+ *         Any of these attempts fail
+ *             Exit with error
+ *         Otherwise
+ *             Float until killed
  */
 public abstract class PSTBBrokerProcess extends PSTBProcess{
-	public PSTBBrokerProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, 
-			PSEngine givenEngine, NodeRole givenRole, Boolean shouldWeSendDiary,
-			boolean areWeDistributed, String givenUsername,
-			Socket givenConnection, OutputStream givenOut,
-			Logger givenLog, String givenLogHeader, String givenTCS) 
-	{
-		super(givenName, givenContext, givenIPAddress, givenPort, 
-				givenEngine, givenRole, shouldWeSendDiary,
-				areWeDistributed, givenUsername,
-				givenConnection, givenOut,
-				givenLog, givenLogHeader, givenTCS);
-	}
-	
-	@Override
-	public void complete(PSNode givenNode)
-	{
-		log.debug(logHeader + "Attempting to setup broker...");
-		boolean setupCheck = setup(givenNode);
-		if(!setupCheck)
-		{
-			log.error("Couldn't setup broker!");
-			error();
-			System.exit(PSTBError.B_SETUP);
-		}
-		log.info(logHeader + "Broker setup.");
-		
-		log.debug(logHeader + "Attempting to run broker...");
-		boolean runCheck = run();
-		if(!runCheck)
-		{
-			log.error("Couldn't run broker!");
-			error();
-			System.exit(PSTBError.B_RUN);
-		}
-		log.info(logHeader + "Broker running.");
-		
-		initalized();
-	}
+    public PSTBBrokerProcess(String givenName, String givenContext, String givenIPAddress, Integer givenPort, 
+            PSEngine givenEngine, NodeRole givenRole, Boolean shouldWeSendDiary,
+            boolean areWeDistributed, String givenUsername,
+            Socket givenConnection, OutputStream givenOut,
+            Logger givenLog, String givenLogHeader, String givenTCS) 
+    {
+        super(givenName, givenContext, givenIPAddress, givenPort, 
+                givenEngine, givenRole, shouldWeSendDiary,
+                areWeDistributed, givenUsername,
+                givenConnection, givenOut,
+                givenLog, givenLogHeader, givenTCS);
+    }
+    
+    @Override
+    public void complete(PSNode givenNode)
+    {
+        log.debug(logHeader + "Attempting to setup broker...");
+        boolean setupCheck = setup(givenNode);
+        if(!setupCheck)
+        {
+            log.error("Couldn't setup broker!");
+            error();
+            System.exit(PSTBError.B_SETUP);
+        }
+        log.info(logHeader + "Broker setup.");
+        
+        log.debug(logHeader + "Attempting to run broker...");
+        boolean runCheck = run();
+        if(!runCheck)
+        {
+            log.error("Couldn't run broker!");
+            error();
+            System.exit(PSTBError.B_RUN);
+        }
+        log.info(logHeader + "Broker running.");
+        
+        initalized();
+    }
 }
 

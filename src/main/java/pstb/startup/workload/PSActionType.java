@@ -8,5 +8,5 @@ package pstb.startup.workload;
  *
  */
 public enum PSActionType {
-	A, P, R, S, U, V
+    A, P, R, S, U, V
 }
