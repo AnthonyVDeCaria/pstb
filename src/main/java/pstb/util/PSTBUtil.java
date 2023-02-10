@@ -42,10 +42,10 @@ import pstb.startup.config.NetworkProtocol;
 import pstb.startup.config.NumAttribute;
 
 public class PSTBUtil {
-	public static final Long MIN_TO_NANOSEC = new Long(60000000000L);
-	public static final Long SEC_TO_NANOSEC = new Long(1000000000L);
-	public static final Long SEC_TO_MILLISEC = new Long(1000L);
-	public static final Long MILLISEC_TO_NANOSEC = new Long(1000000L);
+	public static final Long MIN_TO_NANOSEC = 60000000000L;
+	public static final Long SEC_TO_NANOSEC = 1000000000L;
+	public static final Long SEC_TO_MILLISEC = 1000L;
+	public static final Long MILLISEC_TO_NANOSEC = 1000000L;
 	
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd-HH:mm:ss.SSS");
 	public static final String DATE_REGEX = "\\d{4}-\\d{2}-\\d{2}-\\d{2}:\\d{2}:\\d{2}.\\d{3}";
@@ -335,12 +335,12 @@ public class PSTBUtil {
 	public static String createTimeStringOLD(Long givenTimeValue, TimeType givenTT)
 	{
 		String retVal = null;
-		Long hours = new Long(0);
-		Long minutes = new Long(0);
-		Long seconds = new Long(0);
-		Long milliseconds = new Long(0);
-		Long microseconds = new Long(0);
-		Long nanoseconds = new Long(0);
+		Long hours = 0L;
+		Long minutes = 0L;
+		Long seconds = 0L;
+		Long milliseconds = 0L;
+		Long microseconds = 0L;
+		Long nanoseconds = 0L;
 		
 		if(givenTT.equals(TimeType.Nano))
 		{
@@ -544,10 +544,10 @@ public class PSTBUtil {
 	public static String createTimeString(Long givenTimeValue, TimeType givenTT, TimeUnit units)
 	{
 		String retVal = null;
-		Long seconds = new Long(0);
-		Long milliseconds = new Long(0);
-		Long microseconds = new Long(0);
-		Long nanoseconds = new Long(0);
+		Long seconds = 0L;
+		Long milliseconds = 0L;
+		Long microseconds = 0L;
+		Long nanoseconds = 0L;
 		
 		if(units.equals(TimeUnit.SECONDS) || units.equals(TimeUnit.MILLISECONDS) 
 				|| units.equals(TimeUnit.MICROSECONDS) || units.equals(TimeUnit.NANOSECONDS))
